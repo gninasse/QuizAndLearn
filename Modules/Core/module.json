@@ -1,0 +1,22 @@
+{
+    "name": "Core",
+    "alias": "core",
+    "description": "Module principal de Keystone gérant l'authentification, les utilisateurs, les rôles, les permissions et la gestion des modules. Il inclura prochainement une table 'configs' pour la gestion centralisée des configurations système.",
+    "keywords": [
+        "auth",
+        "user",
+        "role",
+        "permission",
+        "module",
+        "configuration",
+        "core"
+    ],
+    "priority": 0,
+    "providers": [
+        "Modules\\Core\\Providers\\CoreServiceProvider"
+    ],
+    "version": "1.0.0",
+    "requires": [],
+    "icon": "fas fa-cogs",
+    "files": []
+}
