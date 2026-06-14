@@ -16,7 +16,15 @@ class ActivityTest extends TestCase
         parent::setUp();
 
         // Créer un utilisateur et l'authentifier
-        $this->user = User::factory()->create();
+        $this->user = User::create([
+            'name' => 'Activity',
+            'last_name' => 'Test',
+            'user_name' => 'activitytest',
+            'email' => 'activitytest@example.com',
+            'phone' => '111111111',
+            'is_active' => true,
+            'password' => bcrypt('password'),
+        ]);
         $this->actingAs($this->user);
     }
 

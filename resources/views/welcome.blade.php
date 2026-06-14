@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestion de Parc Informatique - CHU-YO Fondation</title>
+    <title>Gestion de Parc Informatique - Learn&Quiz Fondation</title>
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="{{ asset('plugins/fontawesome/css/all.min.css') }}">
     <!-- Theme style -->
@@ -89,7 +89,7 @@
         <div class="container">
             <a href="#" class="navbar-brand">
                 <i class="fas fa-cogs logo-icon"></i>
-                <span class="brand-text font-weight-bold">CHU-YO | <span class="font-weight-light">Gestion de Parc</span></span>
+                <span class="brand-text font-weight-bold">Learn&Quiz | <span class="font-weight-light">Gestion de Parc</span></span>
             </a>
             <button class="navbar-toggler order-1" type="button" data-toggle="collapse" data-target="#navbarCollapse"><span class="navbar-toggler-icon"></span></button>
             <div class="collapse navbar-collapse order-3" id="navbarCollapse">
@@ -113,7 +113,7 @@
         <div class="hero-section">
             <div class="container">
                 <h1>Visibilité totale et maîtrise complète de votre parc informatique</h1>
-                <p class="lead">Le module de Gestion de Parc du CHU-YO transforme la manière dont vous gérez vos actifs informatiques, de l'acquisition au retrait, en passant par la maintenance et la conformité.</p>
+                <p class="lead">Le module de Gestion de Parc du Learn&Quiz transforme la manière dont vous gérez vos actifs informatiques, de l'acquisition au retrait, en passant par la maintenance et la conformité.</p>
                 @auth
                     <a href="{{ route('cores.dashboard') }}" class="btn btn-lg btn-success">Accéder au tableau de bord</a>
                 @else
@@ -169,7 +169,7 @@
     <footer class="main-footer">
         <div class="container">
             <div class="float-right d-none d-sm-inline">Fiabilité, Sécurité et Performance.</div>
-            <strong>Copyright &copy; 2025 <a href="#">CHU-YO</a>.</strong>
+            <strong>Copyright &copy; 2025 <a href="#">Learn&Quiz</a>.</strong>
         </div>
     </footer>
 </div>

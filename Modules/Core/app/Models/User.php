@@ -23,6 +23,7 @@ class User extends Authenticatable
         'last_name',
         'user_name',
         'email',
+        'phone',
         'service',
         'password',
         'is_active',
@@ -172,5 +173,21 @@ class User extends Authenticatable
         if ($eventName === 'updated' && $this->wasChanged('avatar')) {
             $activity->description = 'user_avatar_updated';
         }
+    }
+
+    /**
+     * Relation avec le profil formateur.
+     */
+    public function trainer(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Trainer::class);
+    }
+
+    /**
+     * Relation avec le profil apprenant.
+     */
+    public function learner(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Learner::class);
     }
 }

@@ -3,6 +3,7 @@
 namespace Modules\Core\Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Spatie\Permission\Models\Role;
 
 class CoreDatabaseSeeder extends Seeder
 {
@@ -11,6 +12,13 @@ class CoreDatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // $this->call([]);
+        Role::findOrCreate('trainer');
+        Role::findOrCreate('learner');
+
+        $this->call([
+            TrainerSeeder::class,
+            LearnerSeeder::class,
+            GroupSeeder::class,
+        ]);
     }
 }

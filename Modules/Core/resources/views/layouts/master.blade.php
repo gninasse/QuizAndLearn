@@ -3,7 +3,7 @@
   <!--begin::Head-->
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>@yield('title', 'CHU-YO-KEYSTONE')</title>
+    <title>@yield('title', 'Learn&Quiz')</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <!--begin::Accessibility Meta Tags-->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
@@ -12,15 +12,15 @@
     <meta name="theme-color" content="#1a1a1a" media="(prefers-color-scheme: dark)" />
     <!--end::Accessibility Meta Tags-->
     <!--begin::Primary Meta Tags-->
-    <meta name="title" content="CHU-YO-KEYSTONE" />
+    <meta name="title" content="Learn&Quiz" />
     <meta name="author" content="ibrahim" />
     <meta
       name="description"
-      content="CHU-YO-KEYSTONE"
+      content="Learn&Quiz"
     />
     <meta
       name="keywords"
-      content="CHU-YO-KEYSTONE"
+      content="Learn&Quiz"
     />
     <!--end::Primary Meta Tags-->
     <!--begin::Accessibility Features-->
@@ -60,9 +60,16 @@
     <!--begin::Required Plugin(AdminLTE)-->
     <link rel="stylesheet" href="{{ asset('adminlte/css/adminlte.css') }}" />
     <!--end::Required Plugin(AdminLTE)-->
+    <!--begin::Third Party Plugin(Select2)-->
+    <link rel="stylesheet" href="{{ asset('plugins/select2/css/select2.min.css') }}" />
+    <link rel="stylesheet" href="{{ asset('plugins/select2/css/select2-bootstrap-5-theme.min.css') }}" />
+    <!--end::Third Party Plugin(Select2)-->
     <!--begin::Required Plugin(tools)-->
     <link rel="stylesheet" href="{{ asset('plugins/tools/tools.css') }}" />
     <!--end::Required Plugin(tools)-->
+    <!--begin::Required Theme(custom)-->
+    <link rel="stylesheet" href="{{ asset('css/admin/theme-custom.css') }}" />
+    <!--end::Required Theme(custom)-->
     
     @stack('css')
   </head>
@@ -110,12 +117,12 @@
       <!--begin::Footer-->
       <footer class="app-footer">
         <!--begin::To the end-->
-        <div class="float-end d-none d-sm-inline">CHU-YO</div>
+        <div class="float-end d-none d-sm-inline">Learn&Quiz</div>
         <!--end::To the end-->
         <!--begin::Copyright-->
         <strong>
           Copyright &copy; 2025&nbsp;
-          <a href="#" class="text-decoration-none">CHU-YO</a>.
+          <a href="#" class="text-decoration-none">Learn&Quiz</a>.
         </strong>
         tous droits reservés.
         <!--end::Copyright-->
@@ -152,6 +159,7 @@
     <script src="{{ asset('adminlte/js/adminlte.js') }}"></script>
     <!--end::Required Plugin(AdminLTE)-->
     <!--begin::Third Party Plugin(sweetalert2)-->
+     <script src="{{ asset('plugins/select2/js/select2.full.min.js') }}"></script>
     <script src="{{ asset('plugins/sweetalert2/sweetalert2.all.min.js') }}"></script>
     <!--end::Third Party Plugin(sweetalert2)-->
     <!--begin::OverlayScrollbars Configure-->

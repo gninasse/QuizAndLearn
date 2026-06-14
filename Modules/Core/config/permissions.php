@@ -38,4 +38,51 @@ return [
     'cores.activities.show' => 'Voir les détails d\'une activité',
     'cores.activities.export' => 'Exporter l\'historique',
     'cores.activities.cleanup' => 'Nettoyer les anciennes activités',
+
+    // Administrateurs
+    'cores.admins.index' => 'Voir la liste des administrateurs',
+    'cores.admins.store' => 'Créer un administrateur',
+    'cores.admins.update' => 'Modifier un administrateur',
+    'cores.admins.destroy' => 'Supprimer un administrateur',
+    'cores.admins.toggle-status' => 'Activer/Désactiver un administrateur',
+    'cores.admins.reset-password' => 'Réinitialiser le mot de passe d\'un administrateur',
+
+    // Formateurs
+    'cores.trainers.index' => 'Voir la liste des formateurs',
+    'cores.trainers.store' => 'Créer un formateur',
+    'cores.trainers.update' => 'Modifier un formateur',
+    'cores.trainers.destroy' => 'Supprimer un formateur',
+    'cores.trainers.toggle-status' => 'Activer/Désactiver un formateur',
+    'cores.trainers.reset-password' => 'Réinitialiser le mot de passe d\'un formateur',
+
+    // Apprenants
+    'cores.learners.index' => 'Voir la liste des apprenants',
+    'cores.learners.store' => 'Créer un apprenant',
+    'cores.learners.update' => 'Modifier un apprenant',
+    'cores.learners.destroy' => 'Supprimer un apprenant',
+    'cores.learners.toggle-status' => 'Activer/Désactiver un apprenant',
+    'cores.learners.reset-password' => 'Réinitialiser le mot de passe d\'un apprenant',
+
+    // Groupes
+    'cores.groups.index' => 'Voir la liste des groupes',
+    'cores.groups.store' => 'Créer un groupe',
+    'cores.groups.update' => 'Modifier un groupe',
+    'cores.groups.destroy' => 'Supprimer un groupe',
+    'cores.groups.toggle-status' => 'Activer/Désactiver un groupe',
+    'cores.groups.members' => 'Gérer les membres d\'un groupe',
+
+    // Quiz
+    'cores.quizzes.index' => 'Voir la liste des quiz',
+    'cores.quizzes.store' => 'Créer un quiz',
+    'cores.quizzes.update' => 'Modifier un quiz',
+    'cores.quizzes.destroy' => 'Supprimer un quiz',
+    'cores.quizzes.toggle-status' => 'Activer/Désactiver un quiz',
+
+    // Articles
+    'cores.articles.index' => 'Voir la liste des articles',
+    'cores.articles.store' => 'Créer un article',
+    'cores.articles.update' => 'Modifier un article',
+    'cores.articles.destroy' => 'Supprimer un article',
+    'cores.articles.toggle-status' => 'Activer/Désactiver un article',
+    'cores.articles.export' => 'Exporter un article en HTML autonome',
 ];

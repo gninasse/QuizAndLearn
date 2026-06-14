@@ -1,5 +1,5 @@
       <!--begin::Sidebar-->
-      <aside class="app-sidebar bg-body-secondary shadow" data-bs-theme="dark">
+      <aside class="app-sidebar bg-body shadow" data-bs-theme="light">
         <!--begin::Sidebar Brand-->
         <div class="sidebar-brand">
           <!--begin::Brand Link-->
@@ -12,7 +12,7 @@
             />
             <!--end::Brand Image-->
             <!--begin::Brand Text-->
-            <span class="brand-text fw-light">CHU-YO</span>
+            <span class="brand-text fw-light">Learn&Quiz</span>
             <!--end::Brand Text-->
           </a>
           <!--end::Brand Link-->
@@ -34,7 +34,7 @@
                 <a href="#" class="nav-link active">
                   <i class="nav-icon bi bi-speedometer"></i>
                   <p>
-                    KEYSTONE
+                    Learn&Quiz
                     <i class="nav-arrow bi bi-chevron-right"></i>
                   </p>
                 </a>
@@ -55,6 +55,55 @@
                     </a>
                   </li>
                   @endcan
+                  @can('cores.admins.index')
+                  <li class="nav-item">
+                    <a href="{{ route('cores.admins.index') }}" class="nav-link {{ request()->routeIs('cores.admins.*') ? 'active' : '' }}">
+                      <i class="nav-icon bi bi-person-badge"></i>
+                      <p>Administrateurs</p>
+                    </a>
+                  </li>
+                  @endcan
+                  @can('cores.trainers.index')
+                  <li class="nav-item">
+                    <a href="{{ route('cores.trainers.index') }}" class="nav-link {{ request()->routeIs('cores.trainers.*') ? 'active' : '' }}">
+                      <i class="nav-icon bi bi-person-workspace"></i>
+                      <p>Formateurs</p>
+                    </a>
+                  </li>
+                  @endcan
+                  @can('cores.learners.index')
+                  <li class="nav-item">
+                    <a href="{{ route('cores.learners.index') }}" class="nav-link {{ request()->routeIs('cores.learners.*') ? 'active' : '' }}">
+                      <i class="nav-icon bi bi-mortarboard"></i>
+                      <p>Apprenants</p>
+                    </a>
+                  </li>
+                  @endcan
+                  @can('cores.groups.index')
+                  <li class="nav-item">
+                    <a href="{{ route('cores.groups.index') }}" class="nav-link {{ request()->routeIs('cores.groups.*') ? 'active' : '' }}">
+                      <i class="nav-icon bi bi-collection"></i>
+                      <p>Groupes</p>
+                    </a>
+                  </li>
+                  @endcan
+                  @can('cores.quizzes.index')
+                  <li class="nav-item">
+                    <a href="{{ route('cores.quizzes.index') }}" class="nav-link {{ request()->routeIs('cores.quizzes.*') ? 'active' : '' }}">
+                      <i class="nav-icon bi bi-question-circle"></i>
+                      <p>Quiz</p>
+                    </a>
+                  </li>
+                  @endcan
+                  @can('cores.articles.index')
+                  <li class="nav-item">
+                    <a href="{{ route('cores.articles.index') }}" class="nav-link {{ request()->routeIs('cores.articles.*') ? 'active' : '' }}">
+                      <i class="nav-icon bi bi-file-earmark-richtext"></i>
+                      <p>Articles</p>
+                    </a>
+                  </li>
+                  @endcan
+
                   @can('cores.roles.index')
                   <li class="nav-item">
                     <a href="{{ route('cores.roles.index') }}" class="nav-link {{ request()->routeIs('cores.roles.*') ? 'active' : '' }}">

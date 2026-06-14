@@ -1,0 +1,145 @@
+/* Theme Customization for Learn&Quiz */
+:root {
+  /* Brand colors matching public/css/admin/layout.css */
+  --green-dark: #1e6f5c;
+  --green-mid: #289672;
+  --green-light: #e8f5f1;
+  --green-xlight: #f0faf6;
+  --bg: #f4f7fa;
+  --surface: #ffffff;
+  --border: #dde4ec;
+  --text: #1a2c3e;
+  --text-muted: #5a7289;
+
+  /* Bootstrap 5 Theme overrides */
+  --bs-primary: var(--green-dark);
+  --bs-primary-rgb: 30, 111, 92;
+  --bs-primary-text-emphasis: var(--green-dark);
+  --bs-primary-bg-subtle: var(--green-light);
+  --bs-primary-border-subtle: var(--green-mid);
+  
+  --bs-link-color: var(--green-dark);
+  --bs-link-hover-color: var(--green-mid);
+  --bs-focus-ring-color: rgba(30, 111, 92, 0.25);
+
+  --bs-success: var(--green-mid);
+  --bs-success-rgb: 40, 150, 114;
+}
+
+/* Explicit overrides for Bootstrap 5 primary buttons */
+.btn-primary {
+  --bs-btn-color: #fff !important;
+  --bs-btn-bg: var(--green-dark) !important;
+  --bs-btn-border-color: var(--green-dark) !important;
+  --bs-btn-hover-color: #fff !important;
+  --bs-btn-hover-bg: var(--green-mid) !important;
+  --bs-btn-hover-border-color: var(--green-mid) !important;
+  --bs-btn-focus-shadow-rgb: 30, 111, 92 !important;
+  --bs-btn-active-color: #fff !important;
+  --bs-btn-active-bg: var(--green-dark) !important;
+  --bs-btn-active-border-color: var(--green-dark) !important;
+}
+
+/* Explicit overrides for Bootstrap 5 outline primary buttons */
+.btn-outline-primary {
+  --bs-btn-color: var(--green-dark) !important;
+  --bs-btn-border-color: var(--green-dark) !important;
+  --bs-btn-hover-color: #fff !important;
+  --bs-btn-hover-bg: var(--green-dark) !important;
+  --bs-btn-hover-border-color: var(--green-dark) !important;
+  --bs-btn-focus-shadow-rgb: 30, 111, 92 !important;
+  --bs-btn-active-color: #fff !important;
+  --bs-btn-active-bg: var(--green-dark) !important;
+  --bs-btn-active-border-color: var(--green-dark) !important;
+}
+
+/* Overrides for checkbox inputs, radios, and switch checked/focus states */
+.form-check-input:checked {
+  background-color: var(--green-dark) !important;
+  border-color: var(--green-dark) !important;
+}
+
+.form-check-input:focus {
+  border-color: rgba(30, 111, 92, 0.5) !important;
+  box-shadow: 0 0 0 0.25rem rgba(30, 111, 92, 0.25) !important;
+}
+
+/* Overrides for input focus fields */
+.form-control:focus, .form-select:focus {
+  border-color: rgba(30, 111, 92, 0.5) !important;
+  box-shadow: var(--bs-box-shadow-inset), 0 0 0 0.25rem rgba(30, 111, 92, 0.25) !important;
+}
+
+/* Sidebar Harmonization for Layout Master (AdminLTE) in Light Mode */
+.app-sidebar[data-bs-theme="light"] {
+  background-color: var(--surface) !important;
+  border-right: 1px solid var(--border) !important;
+}
+
+.app-sidebar[data-bs-theme="light"] .brand-link {
+  border-bottom: 1px solid var(--border) !important;
+  color: var(--green-dark) !important;
+  font-weight: 800 !important;
+}
+
+.app-sidebar[data-bs-theme="light"] .brand-link .brand-text {
+  font-weight: 800 !important;
+}
+
+.app-sidebar[data-bs-theme="light"] .sidebar-menu .nav-link {
+  color: var(--text-muted) !important;
+  font-weight: 500;
+  transition: all 0.2s ease-in-out;
+  border-radius: 8px; /* matching var(--radius-sm) */
+  margin: 2px 8px;
+}
+
+.app-sidebar[data-bs-theme="light"] .sidebar-menu .nav-link:hover {
+  background-color: var(--green-xlight) !important;
+  color: var(--green-dark) !important;
+}
+
+.app-sidebar[data-bs-theme="light"] .sidebar-menu .nav-link.active {
+  background-color: var(--green-dark) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(30, 111, 92, 0.25) !important;
+}
+
+/* Nested submenus inside treeview */
+.app-sidebar[data-bs-theme="light"] .sidebar-menu .nav-item.menu-open > .nav-link {
+  color: var(--green-dark) !important;
+  background-color: var(--green-xlight) !important;
+}
+
+.app-sidebar[data-bs-theme="light"] .sidebar-menu .nav-treeview .nav-link {
+  padding-left: 2.5rem;
+}
+
+/* Custom sidebar scrollbar */
+.app-sidebar[data-bs-theme="light"] .sidebar-wrapper::-webkit-scrollbar {
+  width: 6px;
+}
+.app-sidebar[data-bs-theme="light"] .sidebar-wrapper::-webkit-scrollbar-thumb {
+  background-color: rgba(30, 111, 92, 0.2);
+  border-radius: 3px;
+}
+
+/* User profile header inside sidebar dropdown menu */
+.user-menu .user-header {
+  background-color: var(--green-dark) !important;
+}
+
+/* Harmonize AdminLTE general elements */
+.app-content-header {
+  background-color: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 1rem 2rem !important;
+  margin-bottom: 1.5rem;
+}
+
+.breadcrumb-item a {
+  color: var(--green-dark) !important;
+}
+.breadcrumb-item.active {
+  color: var(--text-muted) !important;
+}
