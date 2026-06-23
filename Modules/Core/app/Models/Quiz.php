@@ -11,9 +11,6 @@ class Quiz extends Model
 {
     use HasFactory;
 
-    /**
-     * The attributes that are mass assignable.
-     */
     protected $fillable = [
         'title',
         'description',
@@ -21,6 +18,11 @@ class Quiz extends Model
         'passing_score',
         'is_active',
         'shuffle_questions',
+        'max_attempts',
+        'show_correct_answers',
+        'allow_partial_score',
+        'available_from',
+        'available_until',
         'created_by',
     ];
 
@@ -31,6 +33,11 @@ class Quiz extends Model
             'passing_score' => 'integer',
             'is_active' => 'boolean',
             'shuffle_questions' => 'boolean',
+            'max_attempts' => 'integer',
+            'show_correct_answers' => 'boolean',
+            'allow_partial_score' => 'boolean',
+            'available_from' => 'datetime',
+            'available_until' => 'datetime',
         ];
     }
 

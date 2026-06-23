@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Core\Models\Group;
 use Modules\Core\Models\Learner;
 use Modules\Core\Models\Quiz;
@@ -12,7 +12,7 @@ use Tests\TestCase;
 
 class GroupMembersTest extends TestCase
 {
-    use DatabaseTransactions;
+    use RefreshDatabase;
 
     protected User $adminUser;
 

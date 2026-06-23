@@ -17,6 +17,11 @@ class CoreServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        \Illuminate\Database\Eloquent\Relations\Relation::morphMap([
+            'article' => \Modules\Core\Models\Article::class,
+            'quiz' => \Modules\Core\Models\Quiz::class,
+        ]);
+
         $this->registerTranslations();
         $this->registerConfig();
         $this->registerViews();

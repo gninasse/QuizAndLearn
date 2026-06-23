@@ -11,9 +11,6 @@ class Article extends Model
 {
     use HasFactory;
 
-    /**
-     * The attributes that are mass assignable.
-     */
     protected $fillable = [
         'title',
         'content',
@@ -21,6 +18,9 @@ class Article extends Model
         'category',
         'seo_description',
         'seo_keywords',
+        'estimated_reading_time',
+        'available_from',
+        'available_until',
         'created_by',
     ];
 
@@ -28,6 +28,9 @@ class Article extends Model
     {
         return [
             'is_active' => 'boolean',
+            'estimated_reading_time' => 'integer',
+            'available_from' => 'datetime',
+            'available_until' => 'datetime',
         ];
     }
 

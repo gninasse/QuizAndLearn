@@ -19,6 +19,9 @@ class CoreDatabaseSeeder extends Seeder
             TrainerSeeder::class,
             LearnerSeeder::class,
             GroupSeeder::class,
+            BadgeSeeder::class,
+            QuizSeeder::class,
+            ArticleSeeder::class,
         ]);
     }
 }

@@ -201,3 +201,42 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/admin/articles/quizzes/search', [ArticleEditorController::class, 'searchQuizzes'])->name('admin.articles.quizzes.search');
 });
 Route::resource('cores', CoreController::class)->names('core');
+
+// =========================================================================
+// VOLET APPRENANT (PWA Mobile-First)
+// =========================================================================
+
+// Connexion apprenant (invité)
+Route::get('/learner/login', [\Modules\Core\Http\Controllers\Learner\LearnerAuthController::class, 'showLogin'])->name('learner.login');
+Route::post('/learner/login', [\Modules\Core\Http\Controllers\Learner\LearnerAuthController::class, 'login'])->name('learner.login.post');
+
+// Routes protégées de l'apprenant
+Route::middleware(['auth', 'learner'])->prefix('learner')->name('learner.')->group(function () {
+    Route::post('/logout', [\Modules\Core\Http\Controllers\Learner\LearnerAuthController::class, 'logout'])->name('logout');
+    Route::get('/dashboard', [\Modules\Core\Http\Controllers\Learner\LearnerDashboardController::class, 'index'])->name('dashboard');
+
+    // Quiz Routes
+    Route::get('/quizzes', [\Modules\Core\Http\Controllers\Learner\LearnerQuizController::class, 'index'])->name('quizzes.index');
+    Route::get('/quizzes/{id}', [\Modules\Core\Http\Controllers\Learner\LearnerQuizController::class, 'show'])->name('quizzes.show');
+    Route::post('/quizzes/{id}/attempts', [\Modules\Core\Http\Controllers\Learner\LearnerQuizController::class, 'startAttempt'])->name('quizzes.attempts.start');
+    Route::post('/quizzes/{id}/attempts/{attemptId}/answers', [\Modules\Core\Http\Controllers\Learner\LearnerQuizController::class, 'submitAnswer'])->name('quizzes.attempts.answers.submit');
+    Route::post('/quizzes/{id}/attempts/{attemptId}/complete', [\Modules\Core\Http\Controllers\Learner\LearnerQuizController::class, 'completeAttempt'])->name('quizzes.attempts.complete');
+    Route::post('/quizzes/{id}/error-report', [\Modules\Core\Http\Controllers\Learner\LearnerQuizController::class, 'reportError'])->name('quizzes.error-report');
+    Route::post('/security/screenshot-log', [\Modules\Core\Http\Controllers\Learner\LearnerQuizController::class, 'logScreenshot'])->name('security.screenshot-log');
+
+    // Article Routes
+    Route::get('/articles', [\Modules\Core\Http\Controllers\Learner\LearnerArticleController::class, 'index'])->name('articles.index');
+    Route::get('/articles/{id}', [\Modules\Core\Http\Controllers\Learner\LearnerArticleController::class, 'show'])->name('articles.show');
+    Route::post('/articles/{id}/progress', [\Modules\Core\Http\Controllers\Learner\LearnerArticleController::class, 'updateProgress'])->name('articles.progress');
+    Route::post('/articles/{id}/rate', [\Modules\Core\Http\Controllers\Learner\LearnerArticleController::class, 'rateArticle'])->name('articles.rate');
+    Route::post('/articles/{id}/favorite', [\Modules\Core\Http\Controllers\Learner\LearnerArticleController::class, 'toggleFavorite'])->name('articles.favorite');
+    Route::post('/articles/{id}/error-report', [\Modules\Core\Http\Controllers\Learner\LearnerArticleController::class, 'reportError'])->name('articles.error-report');
+
+    // Flashcard Routes
+    Route::get('/reviser', [\Modules\Core\Http\Controllers\Learner\LearnerCardController::class, 'index'])->name('reviser');
+    Route::post('/reviser/evaluate', [\Modules\Core\Http\Controllers\Learner\LearnerCardController::class, 'evaluateCard'])->name('reviser.evaluate');
+
+    // Profile Routes
+    Route::get('/profil', [\Modules\Core\Http\Controllers\Learner\LearnerProfileController::class, 'index'])->name('profil');
+    Route::post('/profil/preferences', [\Modules\Core\Http\Controllers\Learner\LearnerProfileController::class, 'updatePreferences'])->name('profil.preferences');
+});

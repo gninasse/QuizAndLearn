@@ -230,8 +230,6 @@ class ArticleEditorController extends Controller
                 'name' => $file->getClientOriginalName(),
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            dd($e);
-
             return response()->json([
                 'success' => false,
                 'message' => $e->validator->errors()->first(),
