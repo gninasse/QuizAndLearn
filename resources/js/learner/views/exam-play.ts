@@ -299,8 +299,8 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
                       <li class="flex items-center gap-2 rounded-xl border-2 border-zinc-200 dark:border-zinc-700 px-3 py-2.5">
                         <span class="w-6 h-6 shrink-0 rounded-full bg-amber-100 dark:bg-amber-500/15 text-amber-600 text-xs font-bold flex items-center justify-center">${idx + 1}</span>
                         <span class="flex-1 text-sm font-semibold">${escapeHtml(item)}</span>
-                        <button data-ord="up" data-idx="${idx}" ${idx === 0 ? 'disabled' : ''} class="w-8 h-8 rounded-lg disabled:opacity-30"><i class="bi bi-chevron-up"></i></button>
-                        <button data-ord="down" data-idx="${idx}" ${idx === current.length - 1 ? 'disabled' : ''} class="w-8 h-8 rounded-lg disabled:opacity-30"><i class="bi bi-chevron-down"></i></button>
+                        <button data-ord="up" data-idx="${idx}" ${idx === 0 ? 'disabled' : ''} class="w-11 h-11 shrink-0 rounded-lg flex items-center justify-center disabled:opacity-30" aria-label="Monter"><i class="bi bi-chevron-up text-lg"></i></button>
+                        <button data-ord="down" data-idx="${idx}" ${idx === current.length - 1 ? 'disabled' : ''} class="w-11 h-11 shrink-0 rounded-lg flex items-center justify-center disabled:opacity-30" aria-label="Descendre"><i class="bi bi-chevron-down text-lg"></i></button>
                       </li>`,
                   )
                   .join(''),

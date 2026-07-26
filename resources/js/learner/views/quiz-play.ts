@@ -210,8 +210,8 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
                     <li class="flex items-center gap-2 rounded-xl border-2 border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2.5">
                       <span class="w-6 h-6 shrink-0 rounded-full bg-sky-100 dark:bg-sky-500/15 text-sky-600 dark:text-sky-400 text-xs font-bold flex items-center justify-center">${idx + 1}</span>
                       <span class="flex-1 text-sm font-semibold">${escapeHtml(item)}</span>
-                      <button data-move="up" data-idx="${idx}" ${idx === 0 ? 'disabled' : ''} class="w-8 h-8 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30" aria-label="Monter"><i class="bi bi-chevron-up"></i></button>
-                      <button data-move="down" data-idx="${idx}" ${idx === current.length - 1 ? 'disabled' : ''} class="w-8 h-8 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30" aria-label="Descendre"><i class="bi bi-chevron-down"></i></button>
+                      <button data-move="up" data-idx="${idx}" ${idx === 0 ? 'disabled' : ''} class="w-11 h-11 shrink-0 rounded-lg flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30" aria-label="Monter"><i class="bi bi-chevron-up text-lg"></i></button>
+                      <button data-move="down" data-idx="${idx}" ${idx === current.length - 1 ? 'disabled' : ''} class="w-11 h-11 shrink-0 rounded-lg flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30" aria-label="Descendre"><i class="bi bi-chevron-down text-lg"></i></button>
                     </li>`,
                 )
                 .join(''),
