@@ -34,6 +34,17 @@ html[data-font-size='large'] {
     }
 }
 
+/* Glisser-déposer (remise en ordre) : la poignée ne doit pas scroller la page. */
+.drag-handle {
+    touch-action: none;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+}
+.drag-active {
+    transition: none;
+}
+
 /* Retournement 3D des flashcards. */
 .flip-card {
     perspective: 1200px;

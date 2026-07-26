@@ -6,6 +6,7 @@ import type { QuizItem, QuizQuestion } from '../domain/types';
 import { quizzesStore, sessionStore } from '../stores';
 import { dispatch } from '../sync/engine';
 import { dangerDialog } from '../ui/app-dialog';
+import { makeListDraggable } from '../ui/drag-list';
 import { formatDuration, shuffleArray } from './helpers';
 
 interface PlayState {
@@ -201,13 +202,14 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
         const current = state.shuffles[question.id] ?? [];
 
         return html`
-          <p class="text-xs text-zinc-500 mb-2"><i class="bi bi-info-circle"></i> Remettez les éléments dans le bon ordre</p>
-          <ol class="flex flex-col gap-2">
+          <p class="text-xs text-zinc-500 mb-2"><i class="bi bi-info-circle"></i> Glissez les éléments (ou utilisez les flèches) pour les remettre dans le bon ordre</p>
+          <ol data-ordering-list class="flex flex-col gap-2">
             ${raw(
               current
                 .map(
                   (item, idx) => `
-                    <li class="flex items-center gap-2 rounded-xl border-2 border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2.5">
+                    <li data-key="${escapeHtml(item)}" class="flex items-center gap-2 rounded-xl border-2 border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2 py-2.5">
+                      <span class="drag-handle w-11 h-11 shrink-0 rounded-lg flex items-center justify-center text-zinc-400" aria-hidden="true"><i class="bi bi-grip-vertical text-lg"></i></span>
                       <span class="w-6 h-6 shrink-0 rounded-full bg-sky-100 dark:bg-sky-500/15 text-sky-600 dark:text-sky-400 text-xs font-bold flex items-center justify-center">${idx + 1}</span>
                       <span class="flex-1 text-sm font-semibold">${escapeHtml(item)}</span>
                       <button data-move="up" data-idx="${idx}" ${idx === 0 ? 'disabled' : ''} class="w-11 h-11 shrink-0 rounded-lg flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30" aria-label="Monter"><i class="bi bi-chevron-up text-lg"></i></button>
@@ -346,6 +348,18 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
         render();
       });
     });
+
+    const orderingList = el.querySelector<HTMLElement>('[data-ordering-list]');
+    if (orderingList) {
+      makeListDraggable(orderingList, {
+        handle: '.drag-handle',
+        onCommit: (orderedKeys) => {
+          state.shuffles[question.id] = orderedKeys;
+          state.answers[question.id] = [...orderedKeys];
+          render(); // rafraîchit numéros + état des flèches
+        },
+      });
+    }
 
     el.querySelector('#btn-prev')?.addEventListener('click', () => {
       collectCurrent(question);

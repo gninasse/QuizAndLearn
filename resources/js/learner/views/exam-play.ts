@@ -4,6 +4,7 @@ import type { ExamStartResponse, QuizQuestion } from '../domain/types';
 import { examsStore, syncStore } from '../stores';
 import { sync } from '../sync/engine';
 import { alertDialog, dangerDialog } from '../ui/app-dialog';
+import { makeListDraggable } from '../ui/drag-list';
 import { toast } from '../ui/app-toast';
 import { formatDuration } from './helpers';
 
@@ -291,12 +292,14 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
           const items: string[] = options.items ?? [];
           const current = Array.isArray(saved) && saved.length ? (saved as string[]) : items;
           return html`
-            <ol class="flex flex-col gap-2">
+            <p class="text-xs text-zinc-500 mb-2"><i class="bi bi-info-circle"></i> Glissez les éléments (ou utilisez les flèches)</p>
+            <ol data-ordering-list class="flex flex-col gap-2">
               ${raw(
                 current
                   .map(
                     (item, idx) => `
-                      <li class="flex items-center gap-2 rounded-xl border-2 border-zinc-200 dark:border-zinc-700 px-3 py-2.5">
+                      <li data-key="${escapeHtml(item)}" class="flex items-center gap-2 rounded-xl border-2 border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2 py-2.5">
+                        <span class="drag-handle w-11 h-11 shrink-0 rounded-lg flex items-center justify-center text-zinc-400" aria-hidden="true"><i class="bi bi-grip-vertical text-lg"></i></span>
                         <span class="w-6 h-6 shrink-0 rounded-full bg-amber-100 dark:bg-amber-500/15 text-amber-600 text-xs font-bold flex items-center justify-center">${idx + 1}</span>
                         <span class="flex-1 text-sm font-semibold">${escapeHtml(item)}</span>
                         <button data-ord="up" data-idx="${idx}" ${idx === 0 ? 'disabled' : ''} class="w-11 h-11 shrink-0 rounded-lg flex items-center justify-center disabled:opacity-30" aria-label="Monter"><i class="bi bi-chevron-up text-lg"></i></button>
@@ -406,6 +409,18 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
           render();
         });
       });
+
+      const orderingList = el.querySelector<HTMLElement>('[data-ordering-list]');
+      if (orderingList) {
+        makeListDraggable(orderingList, {
+          handle: '.drag-handle',
+          onCommit: (orderedKeys) => {
+            answers[question.id] = orderedKeys;
+            scheduleSave();
+            render();
+          },
+        });
+      }
 
       el.querySelectorAll<HTMLButtonElement>('[data-ord]').forEach((button) => {
         button.addEventListener('click', () => {
