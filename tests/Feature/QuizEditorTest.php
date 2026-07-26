@@ -63,7 +63,7 @@ class QuizEditorTest extends TestCase
     public function test_can_access_quiz_editor(): void
     {
         $response = $this->actingAs($this->user)
-            ->get(route('admin.quizzes.edit', $this->quiz->id));
+            ->get(route('cores.editor.quizzes.edit', $this->quiz->id));
 
         $response->assertStatus(200);
         $response->assertViewIs('core::admin.quiz.editor');
@@ -76,7 +76,7 @@ class QuizEditorTest extends TestCase
     public function test_can_access_quiz_preview(): void
     {
         $response = $this->actingAs($this->user)
-            ->get(route('admin.quizzes.preview', $this->quiz->id));
+            ->get(route('cores.editor.quizzes.preview', $this->quiz->id));
 
         $response->assertStatus(200);
         $response->assertViewIs('core::admin.quiz.preview');
@@ -88,7 +88,7 @@ class QuizEditorTest extends TestCase
     public function test_can_access_quiz_preview_iframe(): void
     {
         $response = $this->actingAs($this->user)
-            ->get(route('admin.quizzes.preview-iframe', $this->quiz->id));
+            ->get(route('cores.editor.quizzes.preview-iframe', $this->quiz->id));
 
         $response->assertStatus(200);
         $response->assertViewIs('core::admin.quiz.preview-iframe');
@@ -100,7 +100,7 @@ class QuizEditorTest extends TestCase
     public function test_can_autosave_quiz(): void
     {
         $response = $this->actingAs($this->user)
-            ->post(route('admin.quizzes.autosave', $this->quiz->id), [
+            ->post(route('cores.editor.quizzes.autosave', $this->quiz->id), [
                 'title' => 'Updated Title',
                 'description' => 'Updated Description',
                 'duration' => 25,
@@ -130,7 +130,7 @@ class QuizEditorTest extends TestCase
         $this->assertFalse($this->quiz->is_active);
 
         $response = $this->actingAs($this->user)
-            ->patch(route('admin.quizzes.toggle-active', $this->quiz->id));
+            ->patch(route('cores.editor.quizzes.toggle-active', $this->quiz->id));
 
         $response->assertStatus(200);
         $response->assertJson([
@@ -164,7 +164,7 @@ class QuizEditorTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->user)
-            ->post(route('admin.quizzes.reorder', $this->quiz->id), [
+            ->post(route('cores.editor.quizzes.reorder', $this->quiz->id), [
                 'question_ids' => [$q2->id, $q1->id],
             ]);
 
@@ -186,7 +186,7 @@ class QuizEditorTest extends TestCase
     public function test_can_search_active_groups(): void
     {
         $response = $this->actingAs($this->user)
-            ->get(route('admin.groups.search', ['q' => 'Test']));
+            ->get(route('cores.editor.groups.search', ['q' => 'Test']));
 
         $response->assertStatus(200);
         $response->assertJson([
@@ -204,7 +204,7 @@ class QuizEditorTest extends TestCase
     {
         // Search using lowercase query for group with uppercase name
         $response = $this->actingAs($this->user)
-            ->get(route('admin.groups.search', ['q' => 'test']));
+            ->get(route('cores.editor.groups.search', ['q' => 'test']));
 
         $response->assertStatus(200);
         $response->assertJsonFragment([
@@ -251,7 +251,7 @@ class QuizEditorTest extends TestCase
 
         // Search as trainer
         $response = $this->actingAs($trainerUser)
-            ->get(route('admin.groups.search', ['q' => 'Group']));
+            ->get(route('cores.editor.groups.search', ['q' => 'Group']));
 
         $response->assertStatus(200);
 
@@ -273,7 +273,7 @@ class QuizEditorTest extends TestCase
     {
         // 1. Assign group
         $response = $this->actingAs($this->user)
-            ->post(route('admin.quizzes.groups.assign', $this->quiz->id), [
+            ->post(route('cores.editor.quizzes.groups.assign', $this->quiz->id), [
                 'group_id' => $this->group->id,
             ]);
 
@@ -286,7 +286,7 @@ class QuizEditorTest extends TestCase
 
         // 2. Unassign group
         $response = $this->actingAs($this->user)
-            ->delete(route('admin.quizzes.groups.unassign', [
+            ->delete(route('cores.editor.quizzes.groups.unassign', [
                 'quiz' => $this->quiz->id,
                 'group' => $this->group->id,
             ]));
@@ -305,7 +305,7 @@ class QuizEditorTest extends TestCase
     public function test_can_store_question(): void
     {
         $response = $this->actingAs($this->user)
-            ->post(route('admin.quizzes.questions.store', $this->quiz->id), [
+            ->post(route('cores.editor.quizzes.questions.store', $this->quiz->id), [
                 'question_text' => 'New True False Question',
                 'type' => 'true_false',
                 'points' => 12,
@@ -332,7 +332,7 @@ class QuizEditorTest extends TestCase
     public function test_can_store_fill_blank_question(): void
     {
         $response = $this->actingAs($this->user)
-            ->post(route('admin.quizzes.questions.store', $this->quiz->id), [
+            ->post(route('cores.editor.quizzes.questions.store', $this->quiz->id), [
                 'question_text' => 'The capital of France is [blank].',
                 'type' => 'fill_blank',
                 'points' => 15,
@@ -367,7 +367,7 @@ class QuizEditorTest extends TestCase
     public function test_can_store_ordering_question(): void
     {
         $response = $this->actingAs($this->user)
-            ->post(route('admin.quizzes.questions.store', $this->quiz->id), [
+            ->post(route('cores.editor.quizzes.questions.store', $this->quiz->id), [
                 'question_text' => 'Order these events chronologically.',
                 'type' => 'ordering',
                 'points' => 10,
@@ -401,7 +401,7 @@ class QuizEditorTest extends TestCase
     public function test_can_store_matching_question(): void
     {
         $response = $this->actingAs($this->user)
-            ->post(route('admin.quizzes.questions.store', $this->quiz->id), [
+            ->post(route('cores.editor.quizzes.questions.store', $this->quiz->id), [
                 'question_text' => 'Match the capitals to their countries.',
                 'type' => 'matching',
                 'points' => 20,
@@ -434,7 +434,7 @@ class QuizEditorTest extends TestCase
     public function test_can_store_open_text_question(): void
     {
         $response = $this->actingAs($this->user)
-            ->post(route('admin.quizzes.questions.store', $this->quiz->id), [
+            ->post(route('cores.editor.quizzes.questions.store', $this->quiz->id), [
                 'question_text' => 'Describe your favorite coding project.',
                 'type' => 'open_text',
                 'points' => 10,
@@ -464,7 +464,7 @@ class QuizEditorTest extends TestCase
     public function test_can_store_mcq_question(): void
     {
         $response = $this->actingAs($this->user)
-            ->post(route('admin.quizzes.questions.store', $this->quiz->id), [
+            ->post(route('cores.editor.quizzes.questions.store', $this->quiz->id), [
                 'question_text' => 'Which of the following are primary colors?',
                 'type' => 'mcq',
                 'points' => 15,
@@ -508,7 +508,7 @@ class QuizEditorTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->user)
-            ->get(route('admin.quizzes.questions.show', [
+            ->get(route('cores.editor.quizzes.questions.show', [
                 'quiz' => $this->quiz->id,
                 'question' => $q->id,
             ]));
@@ -537,7 +537,7 @@ class QuizEditorTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->user)
-            ->put(route('admin.quizzes.questions.update', [
+            ->put(route('cores.editor.quizzes.questions.update', [
                 'quiz' => $this->quiz->id,
                 'q' => $q->id,
             ]), [
@@ -572,7 +572,7 @@ class QuizEditorTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->user)
-            ->delete(route('admin.quizzes.questions.destroy', [
+            ->delete(route('cores.editor.quizzes.questions.destroy', [
                 'quiz' => $this->quiz->id,
                 'q' => $q->id,
             ]));

@@ -57,6 +57,22 @@ class Learner extends Model
     }
 
     /**
+     * Obtenir les révisions de cartes individuelles (SRS).
+     */
+    public function cardReviews(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(FlashcardItemReview::class, 'learner_id');
+    }
+
+    /**
+     * Obtenir les sessions d'étude des flashcards de l'apprenant.
+     */
+    public function cardSessions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(FlashcardSession::class, 'learner_id');
+    }
+
+    /**
      * Obtenir les badges obtenus par l'apprenant.
      */
     public function badges(): \Illuminate\Database\Eloquent\Relations\BelongsToMany

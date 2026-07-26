@@ -27,6 +27,9 @@
             <button id="btn-preview-quiz" class="btn btn-primary" disabled data-bs-toggle="tooltip" title="Prévisualiser le quiz">
                 <i class="fas fa-eye me-1"></i> Aperçu
             </button>
+            <button id="btn-print-quiz" class="btn btn-outline-dark" disabled data-bs-toggle="tooltip" title="Imprimer le quiz (A4)">
+                <i class="fas fa-print me-1"></i> Imprimer
+            </button>
             <button id="btn-enable-quiz" class="btn btn-outline-success" disabled data-bs-toggle="tooltip" title="Activer le quiz">
                 <i class="fas fa-check me-1"></i> Activer
             </button>
@@ -70,6 +73,32 @@
 
 @include('core::quizzes._modal')
 
+<!-- Modal Print Quiz -->
+<div class="modal fade" id="modal-print-quiz" tabindex="-1" aria-labelledby="modal-print-quiz-label" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 12px; border: none; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
+            <div class="modal-header bg-light py-3">
+                <h5 class="modal-title fw-bold" id="modal-print-quiz-label" style="color: #1e6f5c;">
+                    <i class="bi bi-printer-fill me-2"></i> Aperçu Avant Impression - Format A4
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0 bg-light" style="height: 70vh;">
+                <iframe id="print-iframe-loader" src="" style="width: 100%; height: 100%; border: none;"></iframe>
+            </div>
+            <div class="modal-footer bg-white border-top p-3 d-flex justify-content-between">
+                <span class="text-muted small"><i class="bi bi-info-circle me-1"></i> La grille de correction est automatiquement générée et insérée sur une feuille séparée à la fin du document.</span>
+                <div>
+                    <button type="button" class="btn btn-secondary px-4 py-2 me-2" data-bs-dismiss="modal" style="border-radius: 8px;">Annuler</button>
+                    <button type="button" class="btn btn-primary px-4 py-2" id="btn-print-confirm" style="background-color: #1e6f5c; border: none; border-radius: 8px; font-weight: 600; color: white;">
+                        <i class="bi bi-printer me-1"></i> Imprimer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 @stop
 
 @push('css')
@@ -110,6 +139,11 @@
         }
         return value.map(g => `<span class="badge bg-info">${g}</span>`).join(' ');
     }
+    $(function() {
+        $('#btn-print-confirm').click(function () {
+            document.getElementById('print-iframe-loader').contentWindow.print();
+        });
+    });
 </script>
 <script type="module" src="{{ asset('js/modules/core/quizzes/index.js') }}"></script>
 @endpush

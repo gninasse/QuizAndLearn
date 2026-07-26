@@ -12,22 +12,36 @@ use Modules\Core\Models\Quiz;
 
 class ArticleEditorController extends Controller
 {
+    private function authorizeArticle(int $articleId): Article
+    {
+        $article = Article::findOrFail($articleId);
+        $user = auth()->user();
+        if (! ($user->hasRole('super-admin') || $user->hasRole('Admin') || $user->hasRole('admin'))) {
+            if ($article->created_by !== $user->id) {
+                abort(403, 'Action non autorisée.');
+            }
+        }
+
+        return $article;
+    }
+
     public function edit(int $articleId): View
     {
+        $article = $this->authorizeArticle($articleId);
         $user = auth()->user();
 
         if ($user->hasRole('super-admin') || $user->hasRole('Admin') || $user->hasRole('admin')) {
-            $article = Article::with(['creator', 'groups'])->findOrFail($articleId);
+            $article->load(['creator', 'groups']);
         } elseif ($user->hasRole('trainer') || $user->trainer) {
-            $article = Article::with(['creator', 'groups' => function ($query) use ($user) {
+            $article->load(['creator', 'groups' => function ($query) use ($user) {
                 $query->whereHas('trainers', function ($q) use ($user) {
                     $q->where('user_id', $user->id);
                 });
-            }])->findOrFail($articleId);
+            }]);
         } else {
-            $article = Article::with(['creator', 'groups' => function ($query) {
+            $article->load(['creator', 'groups' => function ($query) {
                 $query->whereRaw('1 = 0');
-            }])->findOrFail($articleId);
+            }]);
         }
 
         return view('core::admin.article.editor', compact('article'));
@@ -39,7 +53,7 @@ class ArticleEditorController extends Controller
     public function autosave(Request $request, int $articleId): JsonResponse
     {
         try {
-            $article = Article::findOrFail($articleId);
+            $article = $this->authorizeArticle($articleId);
 
             $article->update([
                 'title' => $request->title,
@@ -69,7 +83,7 @@ class ArticleEditorController extends Controller
     public function toggleActive(int $articleId): JsonResponse
     {
         try {
-            $article = Article::findOrFail($articleId);
+            $article = $this->authorizeArticle($articleId);
             $article->is_active = ! $article->is_active;
             $article->save();
 
@@ -93,6 +107,8 @@ class ArticleEditorController extends Controller
     public function assignGroup(Request $request, int $articleId): JsonResponse
     {
         try {
+            $article = $this->authorizeArticle($articleId);
+
             $request->validate([
                 'group_id' => 'required|integer|exists:groups,id',
             ]);
@@ -118,7 +134,6 @@ class ArticleEditorController extends Controller
                 }
             }
 
-            $article = Article::findOrFail($articleId);
             $article->groups()->syncWithoutDetaching([$groupId]);
 
             return response()->json([
@@ -139,7 +154,7 @@ class ArticleEditorController extends Controller
     public function unassignGroup(int $articleId, int $groupId): JsonResponse
     {
         try {
-            $article = Article::findOrFail($articleId);
+            $article = $this->authorizeArticle($articleId);
             $article->groups()->detach($groupId);
 
             return response()->json([
@@ -201,6 +216,8 @@ class ArticleEditorController extends Controller
             $type = $request->input('type');
             $file = $request->file('file');
             $articleId = $request->input('article_id');
+
+            $this->authorizeArticle($articleId);
 
             if ($type === 'image') {
                 $request->validate([

@@ -27,6 +27,17 @@ class GroupController extends Controller
     {
         $query = Group::query();
 
+        $user = auth()->user();
+        if (! ($user->hasRole('super-admin') || $user->hasRole('Admin') || $user->hasRole('admin'))) {
+            if ($user->trainer) {
+                $query->whereHas('trainers', function ($q) use ($user) {
+                    $q->where('trainers.id', $user->trainer->id);
+                });
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        }
+
         // Recherche
         if ($request->has('search') && ! empty($request->search)) {
             $search = $request->search;
@@ -71,6 +82,17 @@ class GroupController extends Controller
     {
         try {
             $group = Group::findOrFail($id);
+
+            $user = auth()->user();
+            if (! ($user->hasRole('super-admin') || $user->hasRole('Admin') || $user->hasRole('admin'))) {
+                $assigned = $user->trainer ? $group->trainers()->where('trainers.id', $user->trainer->id)->exists() : false;
+                if (! $assigned) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Action non autorisée.',
+                    ], 403);
+                }
+            }
 
             return response()->json([
                 'success' => true,

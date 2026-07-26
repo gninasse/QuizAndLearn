@@ -41,6 +41,7 @@ class CoreServiceProvider extends ServiceProvider
             \Modules\Core\Console\Commands\CleanupExpiredActivitiesCommand::class,
             \Modules\Core\Console\Commands\ResetUserPassword::class,
             \Modules\Core\Console\Commands\CreateUserCommand::class,
+            \Modules\Core\Console\Commands\InitRolesCommand::class,
         ]);
     }
 

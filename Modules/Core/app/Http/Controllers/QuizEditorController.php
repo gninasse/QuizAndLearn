@@ -12,25 +12,39 @@ use Modules\Core\Models\Quiz;
 
 class QuizEditorController extends Controller
 {
+    private function authorizeQuiz(int $quizId): Quiz
+    {
+        $quiz = Quiz::findOrFail($quizId);
+        $user = auth()->user();
+        if (! ($user->hasRole('super-admin') || $user->hasRole('Admin') || $user->hasRole('admin'))) {
+            if ($quiz->created_by !== $user->id) {
+                abort(403, 'Action non autorisée.');
+            }
+        }
+
+        return $quiz;
+    }
+
     /**
      * Display the quiz editor view.
      */
     public function edit(int $quizId): View
     {
+        $quiz = $this->authorizeQuiz($quizId);
         $user = auth()->user();
 
         if ($user->hasRole('super-admin') || $user->hasRole('Admin') || $user->hasRole('admin')) {
-            $quiz = Quiz::with(['questions', 'groups'])->findOrFail($quizId);
+            $quiz->load(['questions', 'groups']);
         } elseif ($user->hasRole('trainer') || $user->trainer) {
-            $quiz = Quiz::with(['questions', 'groups' => function ($query) use ($user) {
+            $quiz->load(['questions', 'groups' => function ($query) use ($user) {
                 $query->whereHas('trainers', function ($q) use ($user) {
                     $q->where('user_id', $user->id);
                 });
-            }])->findOrFail($quizId);
+            }]);
         } else {
-            $quiz = Quiz::with(['questions', 'groups' => function ($query) {
+            $quiz->load(['questions', 'groups' => function ($query) {
                 $query->whereRaw('1 = 0');
-            }])->findOrFail($quizId);
+            }]);
         }
 
         return view('core::admin.quiz.editor', compact('quiz'));
@@ -42,7 +56,7 @@ class QuizEditorController extends Controller
     public function autosave(Request $request, int $quizId): JsonResponse
     {
         try {
-            $quiz = Quiz::findOrFail($quizId);
+            $quiz = $this->authorizeQuiz($quizId);
 
             $quiz->update([
                 'title' => $request->title,
@@ -71,7 +85,7 @@ class QuizEditorController extends Controller
     public function toggleActive(int $quizId): JsonResponse
     {
         try {
-            $quiz = Quiz::findOrFail($quizId);
+            $quiz = $this->authorizeQuiz($quizId);
             $quiz->is_active = ! $quiz->is_active;
             $quiz->save();
 
@@ -98,6 +112,8 @@ class QuizEditorController extends Controller
     public function reorderQuestions(Request $request, int $quizId): JsonResponse
     {
         try {
+            $this->authorizeQuiz($quizId);
+
             $request->validate([
                 'question_ids' => 'required|array',
                 'question_ids.*' => 'integer|exists:questions,id',
@@ -172,6 +188,8 @@ class QuizEditorController extends Controller
     public function assignGroup(Request $request, int $quizId): JsonResponse
     {
         try {
+            $quiz = $this->authorizeQuiz($quizId);
+
             $request->validate([
                 'group_id' => 'required|integer|exists:groups,id',
             ]);
@@ -197,7 +215,6 @@ class QuizEditorController extends Controller
                 }
             }
 
-            $quiz = Quiz::findOrFail($quizId);
             $quiz->groups()->syncWithoutDetaching([$groupId]);
 
             return response()->json([
@@ -218,6 +235,7 @@ class QuizEditorController extends Controller
     public function unassignGroup(int $quizId, int $groupId): JsonResponse
     {
         try {
+            $this->authorizeQuiz($quizId);
             $quiz = Quiz::findOrFail($quizId);
             $quiz->groups()->detach($groupId);
 
@@ -239,6 +257,7 @@ class QuizEditorController extends Controller
     public function showQuestion(int $quizId, int $questionId): JsonResponse
     {
         try {
+            $this->authorizeQuiz($quizId);
             $question = Question::where('id', $questionId)
                 ->where('quiz_id', $quizId)
                 ->firstOrFail();
@@ -268,7 +287,7 @@ class QuizEditorController extends Controller
                 'options' => 'nullable|array',
             ]);
 
-            $quiz = Quiz::findOrFail($quizId);
+            $quiz = $this->authorizeQuiz($quizId);
 
             // Compute order index
             $maxOrder = Question::where('quiz_id', $quizId)->max('order');
@@ -309,6 +328,7 @@ class QuizEditorController extends Controller
                 'options' => 'nullable|array',
             ]);
 
+            $this->authorizeQuiz($quizId);
             $question = Question::where('id', $questionId)
                 ->where('quiz_id', $quizId)
                 ->firstOrFail();
@@ -339,6 +359,7 @@ class QuizEditorController extends Controller
     public function destroyQuestion(int $quizId, int $questionId): JsonResponse
     {
         try {
+            $this->authorizeQuiz($quizId);
             $question = Question::where('id', $questionId)
                 ->where('quiz_id', $quizId)
                 ->firstOrFail();
@@ -362,7 +383,7 @@ class QuizEditorController extends Controller
      */
     public function preview(int $quizId): View
     {
-        $quiz = Quiz::findOrFail($quizId);
+        $quiz = $this->authorizeQuiz($quizId);
 
         return view('core::admin.quiz.preview', compact('quiz'));
     }
@@ -372,8 +393,18 @@ class QuizEditorController extends Controller
      */
     public function previewIframe(int $quizId): View
     {
-        $quiz = Quiz::with('questions')->findOrFail($quizId);
+        $quiz = $this->authorizeQuiz($quizId)->load('questions');
 
         return view('core::admin.quiz.preview-iframe', compact('quiz'));
+    }
+
+    /**
+     * Display the print preview page for the quiz.
+     */
+    public function printIframe(int $quizId): View
+    {
+        $quiz = $this->authorizeQuiz($quizId)->load('questions');
+
+        return view('core::admin.quiz.print-iframe', compact('quiz'));
     }
 }

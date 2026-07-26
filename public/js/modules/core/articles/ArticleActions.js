@@ -17,7 +17,7 @@ export class ArticleActions {
         $('#btn-edit-article').click(() => {
             const articleId = this.table.getSelectedId();
             if (articleId) {
-                window.location.href = route('admin.articles.edit', articleId);
+                window.location.href = route('cores.editor.articles.edit', articleId);
             }
         });
 

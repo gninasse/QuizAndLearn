@@ -55,6 +55,7 @@
                   <button type="button" class="btn btn-sm btn-light wysiwyg-btn" data-cmd="bold" title="Gras" style="border: 1px solid var(--border);"><i class="bi bi-type-bold"></i></button>
                   <button type="button" class="btn btn-sm btn-light wysiwyg-btn" data-cmd="italic" title="Italique" style="border: 1px solid var(--border);"><i class="bi bi-type-italic"></i></button>
                   <button type="button" class="btn btn-sm btn-light wysiwyg-btn" data-cmd="underline" title="Souligné" style="border: 1px solid var(--border);"><i class="bi bi-type-underline"></i></button>
+                  <button type="button" class="btn btn-sm btn-light wysiwyg-btn" data-cmd="image" title="Insérer une image" style="border: 1px solid var(--border);"><i class="bi bi-image"></i></button>
                 </div>
                 <button type="button" class="btn btn-sm btn-success px-3" id="fbInsertBlankBtn" style="border-radius: 6px; background-color: var(--green-mid); border: none;">
                   <i class="bi bi-plus-circle me-1"></i> Insérer [blank]

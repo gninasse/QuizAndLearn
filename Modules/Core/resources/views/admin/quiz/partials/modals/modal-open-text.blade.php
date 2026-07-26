@@ -45,6 +45,7 @@
                     <div class="vr mx-1"></div>
                     <button type="button" class="btn btn-sm btn-light wysiwyg-btn" data-cmd="list" title="Liste à puces" style="border: 1px solid var(--border);"><i class="bi bi-list-ul"></i></button>
                     <button type="button" class="btn btn-sm btn-light wysiwyg-btn" data-cmd="link" title="Insérer un lien" style="border: 1px solid var(--border);"><i class="bi bi-link-45deg"></i></button>
+                    <button type="button" class="btn btn-sm btn-light wysiwyg-btn" data-cmd="image" title="Insérer une image" style="border: 1px solid var(--border);"><i class="bi bi-image"></i></button>
                   </div>
                   <!-- Textarea -->
                   <textarea class="form-control border-0 p-3 wysiwyg-textarea" id="otQuestionPrompt" name="question_text" rows="5" placeholder="Écrivez votre question ici..." required style="border-radius: 0; outline: none; box-shadow: none;"></textarea>

@@ -458,6 +458,35 @@
         var userAnswers = {}; // key: questionId, value: user response data
         var sortableInstances = [];
 
+        // Helper to dynamically synchronize heights of matching terms and definitions
+        function alignMatchingHeights(qId) {
+          var $matchList = $('#matchList_' + qId);
+          if (!$matchList.length) return;
+          var leftItems = $matchList.parent().find('.left-col .matching-item');
+          var rightItems = $matchList.find('.matching-item');
+          
+          // Reset inline heights first to recalculate accurately
+          leftItems.css('height', 'auto');
+          rightItems.css('height', 'auto');
+          
+          leftItems.each(function(index) {
+            var $left = $(this);
+            var $right = rightItems.eq(index);
+            if ($right.length) {
+              var h = Math.max($left.outerHeight(), $right.outerHeight());
+              $left.css('height', h + 'px');
+              $right.css('height', h + 'px');
+            }
+          });
+        }
+
+        $(window).on('resize', function() {
+          var q = questions[currentSlideIndex];
+          if (q && q.type === 'matching') {
+            alignMatchingHeights(q.id);
+          }
+        });
+
         var $slidesContainer = $('#slidesContainer');
         var $progressWrapper = $('#playerProgressWrapper');
         var $footer = $('#playerFooter');
@@ -679,11 +708,18 @@
                     currentMatched.push($(this).data('def'));
                   });
                   userAnswers[q.id].definitions = currentMatched;
+                  // Re-align heights because the order of definitions changed
+                  alignMatchingHeights(q.id);
                 }
               });
               $el.data('sortable-init', true);
             }
+            // Align heights on slide show
+            setTimeout(function() {
+              alignMatchingHeights(q.id);
+            }, 50);
           } 
+
           else if (q.type === 'ordering') {
             var $el = $('#orderList_' + q.id);
             if ($el.length && !$el.data('sortable-init')) {

@@ -39,6 +39,11 @@ class QuizController extends Controller
     {
         $query = Quiz::with(['creator', 'groups']);
 
+        $user = auth()->user();
+        if (! ($user->hasRole('super-admin') || $user->hasRole('Admin') || $user->hasRole('admin'))) {
+            $query->where('created_by', $user->id);
+        }
+
         // Recherche
         if ($request->has('search') && ! empty($request->search)) {
             $search = $request->search;
@@ -82,6 +87,16 @@ class QuizController extends Controller
     {
         try {
             $quiz = Quiz::with('groups')->findOrFail($id);
+
+            $user = auth()->user();
+            if (! ($user->hasRole('super-admin') || $user->hasRole('Admin') || $user->hasRole('admin'))) {
+                if ($quiz->created_by !== $user->id) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Action non autorisée.',
+                    ], 403);
+                }
+            }
 
             $data = $quiz->toArray();
             $data['group_ids'] = $quiz->groups->pluck('id')->toArray() ?? [];
@@ -138,6 +153,17 @@ class QuizController extends Controller
     {
         try {
             $quiz = Quiz::findOrFail($id);
+
+            $user = auth()->user();
+            if (! ($user->hasRole('super-admin') || $user->hasRole('Admin') || $user->hasRole('admin'))) {
+                if ($quiz->created_by !== $user->id) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Action non autorisée.',
+                    ], 403);
+                }
+            }
+
             $quiz->update([
                 'title' => $request->title,
                 'description' => $request->description,
@@ -173,6 +199,17 @@ class QuizController extends Controller
     {
         try {
             $quiz = Quiz::findOrFail($id);
+
+            $user = auth()->user();
+            if (! ($user->hasRole('super-admin') || $user->hasRole('Admin') || $user->hasRole('admin'))) {
+                if ($quiz->created_by !== $user->id) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Action non autorisée.',
+                    ], 403);
+                }
+            }
+
             $quiz->delete();
 
             return response()->json([
@@ -194,6 +231,17 @@ class QuizController extends Controller
     {
         try {
             $quiz = Quiz::findOrFail($id);
+
+            $user = auth()->user();
+            if (! ($user->hasRole('super-admin') || $user->hasRole('Admin') || $user->hasRole('admin'))) {
+                if ($quiz->created_by !== $user->id) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Action non autorisée.',
+                    ], 403);
+                }
+            }
+
             $quiz->is_active = ! $quiz->is_active;
             $quiz->save();
 

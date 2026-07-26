@@ -50,6 +50,7 @@
                 <button type="button" class="btn btn-sm btn-light wysiwyg-btn" data-cmd="bold" title="Gras" style="border: 1px solid var(--border);"><i class="bi bi-type-bold"></i></button>
                 <button type="button" class="btn btn-sm btn-light wysiwyg-btn" data-cmd="italic" title="Italique" style="border: 1px solid var(--border);"><i class="bi bi-type-italic"></i></button>
                 <button type="button" class="btn btn-sm btn-light wysiwyg-btn" data-cmd="underline" title="Souligné" style="border: 1px solid var(--border);"><i class="bi bi-type-underline"></i></button>
+                <button type="button" class="btn btn-sm btn-light wysiwyg-btn" data-cmd="image" title="Insérer une image" style="border: 1px solid var(--border);"><i class="bi bi-image"></i></button>
               </div>
               <!-- Textarea -->
               <textarea class="form-control border-0 p-3 wysiwyg-textarea" id="orQuestionPrompt" name="question_text" rows="3" placeholder="Saisissez la consigne (ex: Classez les éléments dans l'ordre chronologique)..." required style="border-radius: 0; outline: none; box-shadow: none;"></textarea>

@@ -12,6 +12,19 @@ use Modules\Core\Models\Group;
 
 class ArticleController extends Controller
 {
+    private function authorizeArticle(int $id): Article
+    {
+        $article = Article::findOrFail($id);
+        $user = auth()->user();
+        if (! ($user->hasRole('super-admin') || $user->hasRole('Admin') || $user->hasRole('admin'))) {
+            if ($article->created_by !== $user->id) {
+                abort(403, 'Action non autorisée.');
+            }
+        }
+
+        return $article;
+    }
+
     public function index(): \Illuminate\Contracts\View\View
     {
         $user = auth()->user();
@@ -33,6 +46,11 @@ class ArticleController extends Controller
     public function getData(Request $request): \Illuminate\Http\JsonResponse
     {
         $query = Article::with(['creator', 'groups']);
+
+        $user = auth()->user();
+        if (! ($user->hasRole('super-admin') || $user->hasRole('Admin') || $user->hasRole('admin'))) {
+            $query->where('created_by', $user->id);
+        }
 
         // Recherche
         if ($request->has('search') && ! empty($request->search)) {
@@ -76,7 +94,8 @@ class ArticleController extends Controller
     public function show(int $id): \Illuminate\Http\JsonResponse
     {
         try {
-            $article = Article::with('groups')->findOrFail($id);
+            $article = $this->authorizeArticle($id);
+            $article->load('groups');
 
             $data = $article->toArray();
             $data['group_ids'] = $article->groups->pluck('id')->toArray() ?? [];
@@ -129,7 +148,7 @@ class ArticleController extends Controller
     public function update(UpdateArticleRequest $request, int $id): \Illuminate\Http\JsonResponse
     {
         try {
-            $article = Article::findOrFail($id);
+            $article = $this->authorizeArticle($id);
             $article->update([
                 'title' => $request->title,
                 'content' => $request->content,
@@ -145,7 +164,7 @@ class ArticleController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Article modifié avec succès',
+                'message' => 'Article modified successfully',
                 'data' => $article,
             ]);
         } catch (\Exception $e) {
@@ -162,7 +181,7 @@ class ArticleController extends Controller
     public function destroy(int $id): \Illuminate\Http\JsonResponse
     {
         try {
-            $article = Article::findOrFail($id);
+            $article = $this->authorizeArticle($id);
             $article->delete();
 
             return response()->json([
@@ -183,7 +202,7 @@ class ArticleController extends Controller
     public function toggleStatus(int $id): \Illuminate\Http\JsonResponse
     {
         try {
-            $article = Article::findOrFail($id);
+            $article = $this->authorizeArticle($id);
             $article->is_active = ! $article->is_active;
             $article->save();
 
@@ -207,7 +226,7 @@ class ArticleController extends Controller
      */
     public function export(int $id): \Illuminate\Http\Response
     {
-        $article = Article::findOrFail($id);
+        $article = $this->authorizeArticle($id);
         $content = $article->content;
 
         // Sécuriser les éléments audio et vidéo dans le contenu (attributs anti-téléchargement)
