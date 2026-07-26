@@ -23,7 +23,7 @@ class EnsureUserIsLearner
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
-            return redirect()->route('learner.login')->withErrors([
+            return redirect()->route('learn.login')->withErrors([
                 'login_error' => 'Veuillez vous connecter avec un compte apprenant actif.',
             ]);
         }

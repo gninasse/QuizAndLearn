@@ -8,6 +8,8 @@ use Modules\Core\Http\Controllers\ArticleEditorController;
 use Modules\Core\Http\Controllers\AuthController;
 use Modules\Core\Http\Controllers\CoreController;
 use Modules\Core\Http\Controllers\DashboardController;
+use Modules\Core\Http\Controllers\ExamController;
+use Modules\Core\Http\Controllers\FlashcardDeckController;
 use Modules\Core\Http\Controllers\GroupController;
 use Modules\Core\Http\Controllers\LearnerController;
 use Modules\Core\Http\Controllers\ModuleController;
@@ -26,6 +28,7 @@ Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 Route::middleware(['auth'])->group(function () {
     Route::prefix('cores')->name('cores.')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        Route::post('/media/upload', [CoreController::class, 'uploadMedia'])->name('media.upload');
 
         // Routes pour la gestion des utilisateurs (général)
         Route::prefix('users')->name('users.')->group(function () {
@@ -116,6 +119,29 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/{id}/questions/reorder', [QuizController::class, 'reorderQuestions'])->name('questions.reorder');
         });
 
+        // Routes pour la gestion des examens
+        Route::prefix('exams')->name('exams.')->group(function () {
+            Route::get('/', [ExamController::class, 'index'])->name('index');
+            Route::get('/data', [ExamController::class, 'getData'])->name('data');
+            Route::get('/{id}', [ExamController::class, 'show'])->name('show');
+            Route::post('/', [ExamController::class, 'store'])->name('store');
+            Route::put('/{id}', [ExamController::class, 'update'])->name('update');
+            Route::delete('/{id}', [ExamController::class, 'destroy'])->name('destroy');
+            Route::post('/{id}/toggle-status', [ExamController::class, 'toggleStatus'])->name('toggle-status');
+            Route::get('/{id}/supervision-data', [ExamController::class, 'getSupervisionData'])->name('supervision-data');
+        });
+
+        // Routes pour la gestion des decks de flashcards
+        Route::prefix('flashcard-decks')->name('flashcard-decks.')->group(function () {
+            Route::get('/', [FlashcardDeckController::class, 'index'])->name('index');
+            Route::get('/data', [FlashcardDeckController::class, 'getData'])->name('data');
+            Route::get('/{id}', [FlashcardDeckController::class, 'show'])->name('show');
+            Route::post('/', [FlashcardDeckController::class, 'store'])->name('store');
+            Route::put('/{id}', [FlashcardDeckController::class, 'update'])->name('update');
+            Route::delete('/{id}', [FlashcardDeckController::class, 'destroy'])->name('destroy');
+            Route::post('/{id}/toggle-status', [FlashcardDeckController::class, 'toggleStatus'])->name('toggle-status');
+        });
+
         // Routes pour la gestion des articles
         Route::prefix('articles')->name('articles.')->group(function () {
             Route::get('/', [ArticleController::class, 'index'])->name('index');
@@ -172,33 +198,64 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
         Route::post('/profile/avatar', [ProfileController::class, 'updateAvatar'])->name('profile.avatar');
         Route::post('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
+
+        // Routes de l'éditeur de contenu (Article / Quiz)
+        Route::prefix('editor')->name('editor.')->group(function () {
+            // Quiz Editor
+            Route::get('/quizzes/{quiz}/edit', [QuizEditorController::class, 'edit'])->name('quizzes.edit');
+            Route::get('/quizzes/{quiz}/preview', [QuizEditorController::class, 'preview'])->name('quizzes.preview');
+            Route::get('/quizzes/{quiz}/preview-iframe', [QuizEditorController::class, 'previewIframe'])->name('quizzes.preview-iframe');
+            Route::get('/quizzes/{quiz}/print-iframe', [QuizEditorController::class, 'printIframe'])->name('quizzes.print-iframe');
+            Route::post('/quizzes/{quiz}/questions', [QuizEditorController::class, 'storeQuestion'])->name('quizzes.questions.store');
+            Route::get('/quizzes/{quiz}/questions/{question}', [QuizEditorController::class, 'showQuestion'])->name('quizzes.questions.show');
+            Route::put('/quizzes/{quiz}/questions/{q}', [QuizEditorController::class, 'updateQuestion'])->name('quizzes.questions.update');
+            Route::delete('/quizzes/{quiz}/questions/{q}', [QuizEditorController::class, 'destroyQuestion'])->name('quizzes.questions.destroy');
+            Route::patch('/quizzes/{quiz}/toggle-active', [QuizEditorController::class, 'toggleActive'])->name('quizzes.toggle-active');
+            Route::post('/quizzes/{quiz}/reorder', [QuizEditorController::class, 'reorderQuestions'])->name('quizzes.reorder');
+            Route::post('/quizzes/{quiz}/autosave', [QuizEditorController::class, 'autosave'])->name('quizzes.autosave');
+
+            // Exam Editor
+            Route::get('/exams/{exam}/edit', [ExamController::class, 'builder'])->name('exams.edit');
+            Route::get('/exams/{exam}/preview', [ExamController::class, 'preview'])->name('exams.preview');
+            Route::get('/exams/{exam}/preview-iframe', [ExamController::class, 'previewIframe'])->name('exams.preview-iframe');
+            Route::get('/exams/{exam}/print-iframe', [ExamController::class, 'printIframe'])->name('exams.print-iframe');
+            Route::post('/exams/{exam}/questions', [ExamController::class, 'storeQuestion'])->name('exams.questions.store');
+            Route::get('/exams/{exam}/questions/{question}', [ExamController::class, 'showQuestion'])->name('exams.questions.show');
+            Route::put('/exams/{exam}/questions/{q}', [ExamController::class, 'updateQuestion'])->name('exams.questions.update');
+            Route::delete('/exams/{exam}/questions/{q}', [ExamController::class, 'destroyQuestion'])->name('exams.questions.destroy');
+            Route::patch('/exams/{exam}/toggle-active', [ExamController::class, 'toggleStatus'])->name('exams.toggle-active');
+            Route::post('/exams/{exam}/reorder', [ExamController::class, 'reorderQuestions'])->name('exams.reorder');
+            Route::get('/exams/{exam}/supervision', [ExamController::class, 'supervision'])->name('exams.supervision');
+
+            // Flashcard Deck Editor
+            Route::get('/flashcards/{deck}/edit', [FlashcardDeckController::class, 'builder'])->name('flashcards.edit');
+            Route::post('/flashcards/{deck}/cards', [FlashcardDeckController::class, 'storeCard'])->name('flashcards.cards.store');
+            Route::get('/flashcards/{deck}/cards/{card}', [FlashcardDeckController::class, 'showCard'])->name('flashcards.cards.show');
+            Route::put('/flashcards/{deck}/cards/{card}', [FlashcardDeckController::class, 'updateCard'])->name('flashcards.cards.update');
+            Route::delete('/flashcards/{deck}/cards/{card}', [FlashcardDeckController::class, 'destroyCard'])->name('flashcards.cards.destroy');
+            Route::post('/flashcards/{deck}/groups', [FlashcardDeckController::class, 'assignGroup'])->name('flashcards.groups.assign');
+            Route::delete('/flashcards/{deck}/groups/{group}', [FlashcardDeckController::class, 'unassignGroup'])->name('flashcards.groups.unassign');
+            Route::post('/flashcards/{deck}/generate', [FlashcardDeckController::class, 'autoGenerate'])->name('flashcards.generate');
+
+            Route::get('/flashcards/{deck}/preview', [FlashcardDeckController::class, 'preview'])->name('flashcards.preview');
+            Route::get('/flashcards/{deck}/preview-iframe', [FlashcardDeckController::class, 'previewIframe'])->name('flashcards.preview-iframe');
+            Route::get('/flashcards/{deck}/print-iframe', [FlashcardDeckController::class, 'printIframe'])->name('flashcards.print-iframe');
+
+            // Groups Assignments
+            Route::get('/groups/search', [QuizEditorController::class, 'searchGroups'])->name('groups.search');
+            Route::post('/quizzes/{quiz}/groups', [QuizEditorController::class, 'assignGroup'])->name('quizzes.groups.assign');
+            Route::delete('/quizzes/{quiz}/groups/{group}', [QuizEditorController::class, 'unassignGroup'])->name('quizzes.groups.unassign');
+
+            // Article Editor
+            Route::post('/articles/upload-media', [ArticleEditorController::class, 'uploadMedia'])->name('articles.upload-media');
+            Route::get('/articles/{article}/edit', [ArticleEditorController::class, 'edit'])->name('articles.edit');
+            Route::post('/articles/{article}/autosave', [ArticleEditorController::class, 'autosave'])->name('articles.autosave');
+            Route::patch('/articles/{article}/toggle-active', [ArticleEditorController::class, 'toggleActive'])->name('articles.toggle-active');
+            Route::post('/articles/{article}/groups', [ArticleEditorController::class, 'assignGroup'])->name('articles.groups.assign');
+            Route::delete('/articles/{article}/groups/{group}', [ArticleEditorController::class, 'unassignGroup'])->name('articles.groups.unassign');
+            Route::get('/articles/quizzes/search', [ArticleEditorController::class, 'searchQuizzes'])->name('articles.quizzes.search');
+        });
     });
-
-    // Quiz Editor
-    Route::get('/admin/quizzes/{quiz}/edit', [QuizEditorController::class, 'edit'])->name('admin.quizzes.edit');
-    Route::get('/admin/quizzes/{quiz}/preview', [QuizEditorController::class, 'preview'])->name('admin.quizzes.preview');
-    Route::get('/admin/quizzes/{quiz}/preview-iframe', [QuizEditorController::class, 'previewIframe'])->name('admin.quizzes.preview-iframe');
-    Route::post('/admin/quizzes/{quiz}/questions', [QuizEditorController::class, 'storeQuestion'])->name('admin.quizzes.questions.store');
-    Route::get('/admin/quizzes/{quiz}/questions/{question}', [QuizEditorController::class, 'showQuestion'])->name('admin.quizzes.questions.show');
-    Route::put('/admin/quizzes/{quiz}/questions/{q}', [QuizEditorController::class, 'updateQuestion'])->name('admin.quizzes.questions.update');
-    Route::delete('/admin/quizzes/{quiz}/questions/{q}', [QuizEditorController::class, 'destroyQuestion'])->name('admin.quizzes.questions.destroy');
-    Route::patch('/admin/quizzes/{quiz}/toggle-active', [QuizEditorController::class, 'toggleActive'])->name('admin.quizzes.toggle-active');
-    Route::post('/admin/quizzes/{quiz}/reorder', [QuizEditorController::class, 'reorderQuestions'])->name('admin.quizzes.reorder');
-    Route::post('/admin/quizzes/{quiz}/autosave', [QuizEditorController::class, 'autosave'])->name('admin.quizzes.autosave');
-
-    // Groups Assignments
-    Route::get('/admin/groups/search', [QuizEditorController::class, 'searchGroups'])->name('admin.groups.search');
-    Route::post('/admin/quizzes/{quiz}/groups', [QuizEditorController::class, 'assignGroup'])->name('admin.quizzes.groups.assign');
-    Route::delete('/admin/quizzes/{quiz}/groups/{group}', [QuizEditorController::class, 'unassignGroup'])->name('admin.quizzes.groups.unassign');
-
-    // Article Editor
-    Route::post('/admin/articles/upload-media', [ArticleEditorController::class, 'uploadMedia'])->name('admin.articles.upload-media');
-    Route::get('/admin/articles/{article}/edit', [ArticleEditorController::class, 'edit'])->name('admin.articles.edit');
-    Route::post('/admin/articles/{article}/autosave', [ArticleEditorController::class, 'autosave'])->name('admin.articles.autosave');
-    Route::patch('/admin/articles/{article}/toggle-active', [ArticleEditorController::class, 'toggleActive'])->name('admin.articles.toggle-active');
-    Route::post('/admin/articles/{article}/groups', [ArticleEditorController::class, 'assignGroup'])->name('admin.articles.groups.assign');
-    Route::delete('/admin/articles/{article}/groups/{group}', [ArticleEditorController::class, 'unassignGroup'])->name('admin.articles.groups.unassign');
-    Route::get('/admin/articles/quizzes/search', [ArticleEditorController::class, 'searchQuizzes'])->name('admin.articles.quizzes.search');
 });
 Route::resource('cores', CoreController::class)->names('core');
 
@@ -206,37 +263,58 @@ Route::resource('cores', CoreController::class)->names('core');
 // VOLET APPRENANT (PWA Mobile-First)
 // =========================================================================
 
-// Connexion apprenant (invité)
-Route::get('/learner/login', [\Modules\Core\Http\Controllers\Learner\LearnerAuthController::class, 'showLogin'])->name('learner.login');
-Route::post('/learner/login', [\Modules\Core\Http\Controllers\Learner\LearnerAuthController::class, 'login'])->name('learner.login.post');
+// Shell SPA (public : le client affiche login ou app selon la session locale)
+Route::get('/', [\Modules\Core\Http\Controllers\Learner\ShellController::class, '__invoke'])->name('learn.login');
+Route::get('/connexion', [\Modules\Core\Http\Controllers\Learner\ShellController::class, '__invoke'])->name('learn.spa.login');
 
-// Routes protégées de l'apprenant
-Route::middleware(['auth', 'learner'])->prefix('learner')->name('learner.')->group(function () {
-    Route::post('/logout', [\Modules\Core\Http\Controllers\Learner\LearnerAuthController::class, 'logout'])->name('logout');
-    Route::get('/dashboard', [\Modules\Core\Http\Controllers\Learner\LearnerDashboardController::class, 'index'])->name('dashboard');
+// Service worker généré par Vite (public/build/sw.js), servi à la racine.
+Route::get('/sw.js', function () {
+    $path = public_path('build/sw.js');
+    abort_unless(file_exists($path), 404);
 
-    // Quiz Routes
-    Route::get('/quizzes', [\Modules\Core\Http\Controllers\Learner\LearnerQuizController::class, 'index'])->name('quizzes.index');
-    Route::get('/quizzes/{id}', [\Modules\Core\Http\Controllers\Learner\LearnerQuizController::class, 'show'])->name('quizzes.show');
-    Route::post('/quizzes/{id}/attempts', [\Modules\Core\Http\Controllers\Learner\LearnerQuizController::class, 'startAttempt'])->name('quizzes.attempts.start');
-    Route::post('/quizzes/{id}/attempts/{attemptId}/answers', [\Modules\Core\Http\Controllers\Learner\LearnerQuizController::class, 'submitAnswer'])->name('quizzes.attempts.answers.submit');
-    Route::post('/quizzes/{id}/attempts/{attemptId}/complete', [\Modules\Core\Http\Controllers\Learner\LearnerQuizController::class, 'completeAttempt'])->name('quizzes.attempts.complete');
-    Route::post('/quizzes/{id}/error-report', [\Modules\Core\Http\Controllers\Learner\LearnerQuizController::class, 'reportError'])->name('quizzes.error-report');
-    Route::post('/security/screenshot-log', [\Modules\Core\Http\Controllers\Learner\LearnerQuizController::class, 'logScreenshot'])->name('security.screenshot-log');
+    return response()->file($path, [
+        'Content-Type' => 'application/javascript',
+        'Cache-Control' => 'no-cache, no-store, must-revalidate',
+    ]);
+})->name('learn.sw');
 
-    // Article Routes
-    Route::get('/articles', [\Modules\Core\Http\Controllers\Learner\LearnerArticleController::class, 'index'])->name('articles.index');
-    Route::get('/articles/{id}', [\Modules\Core\Http\Controllers\Learner\LearnerArticleController::class, 'show'])->name('articles.show');
-    Route::post('/articles/{id}/progress', [\Modules\Core\Http\Controllers\Learner\LearnerArticleController::class, 'updateProgress'])->name('articles.progress');
-    Route::post('/articles/{id}/rate', [\Modules\Core\Http\Controllers\Learner\LearnerArticleController::class, 'rateArticle'])->name('articles.rate');
-    Route::post('/articles/{id}/favorite', [\Modules\Core\Http\Controllers\Learner\LearnerArticleController::class, 'toggleFavorite'])->name('articles.favorite');
-    Route::post('/articles/{id}/error-report', [\Modules\Core\Http\Controllers\Learner\LearnerArticleController::class, 'reportError'])->name('articles.error-report');
+// -------------------------------------------------------------------------
+// API Apprenant v1 (session + cookie + CSRF, SPA same-origin)
+// -------------------------------------------------------------------------
+Route::prefix('api/learner/v1')->name('learn.v1.')->group(function () {
+    Route::post('/session', [\Modules\Core\Http\Controllers\Learner\Api\SessionController::class, 'store'])->name('session.store');
 
-    // Flashcard Routes
-    Route::get('/reviser', [\Modules\Core\Http\Controllers\Learner\LearnerCardController::class, 'index'])->name('reviser');
-    Route::post('/reviser/evaluate', [\Modules\Core\Http\Controllers\Learner\LearnerCardController::class, 'evaluateCard'])->name('reviser.evaluate');
+    Route::middleware(['auth', 'learner'])->group(function () {
+        Route::get('/me', [\Modules\Core\Http\Controllers\Learner\Api\SessionController::class, 'show'])->name('me');
+        Route::delete('/session', [\Modules\Core\Http\Controllers\Learner\Api\SessionController::class, 'destroy'])->name('session.destroy');
 
-    // Profile Routes
-    Route::get('/profil', [\Modules\Core\Http\Controllers\Learner\LearnerProfileController::class, 'index'])->name('profil');
-    Route::post('/profil/preferences', [\Modules\Core\Http\Controllers\Learner\LearnerProfileController::class, 'updatePreferences'])->name('profil.preferences');
+        Route::get('/bootstrap', [\Modules\Core\Http\Controllers\Learner\Api\ContentController::class, 'bootstrap'])->name('bootstrap');
+        Route::get('/changes', [\Modules\Core\Http\Controllers\Learner\Api\ContentController::class, 'changes'])->name('changes');
+
+        Route::post('/actions', [\Modules\Core\Http\Controllers\Learner\Api\ActionController::class, 'store'])->name('actions');
+
+        Route::post('/exams/{exam}/attempts', [\Modules\Core\Http\Controllers\Learner\Api\ExamAttemptController::class, 'store'])->name('exams.attempts.store');
+        Route::patch('/exams/{exam}/attempts/{attempt}', [\Modules\Core\Http\Controllers\Learner\Api\ExamAttemptController::class, 'update'])->name('exams.attempts.update');
+        Route::post('/exams/{exam}/attempts/{attempt}/complete', [\Modules\Core\Http\Controllers\Learner\Api\ExamAttemptController::class, 'complete'])->name('exams.attempts.complete');
+        Route::post('/exams/{exam}/attempts/{attempt}/violations', [\Modules\Core\Http\Controllers\Learner\Api\ExamAttemptController::class, 'violations'])->name('exams.attempts.violations');
+    });
+});
+
+// Routes profondes du SPA (History API) : le serveur renvoie toujours le shell.
+Route::middleware(['auth', 'learner'])->name('learn.')->group(function () {
+    Route::get('/dashboard', fn () => redirect('/'))->name('spa-shell');
+
+    foreach ([
+        '/articles',
+        '/articles/{id}',
+        '/evaluations',
+        '/quizzes/{id}',
+        '/quizzes/{id}/play',
+        '/exams/{id}/play',
+        '/reviser',
+        '/reviser/{deckId}',
+        '/profil',
+    ] as $spaPath) {
+        Route::get($spaPath, [\Modules\Core\Http\Controllers\Learner\ShellController::class, '__invoke']);
+    }
 });
