@@ -8,9 +8,12 @@
   <!-- Simulator Header Toolbar -->
   <div class="simulator-toolbar d-flex align-items-center justify-content-between p-3 bg-white border-bottom shadow-sm">
     <div class="d-flex align-items-center gap-2">
-      <a href="{{ route('admin.quizzes.edit', $quiz->id) }}" class="btn btn-sm btn-outline-secondary" style="border-radius: 8px;">
+      <a href="{{ route('cores.editor.quizzes.edit', $quiz->id) }}" class="btn btn-sm btn-outline-secondary" style="border-radius: 8px;">
         <i class="bi bi-arrow-left me-1"></i> Retour à l'éditeur
       </a>
+      <button class="btn btn-sm btn-outline-dark" id="btnPrintQuiz" style="border-radius: 8px;">
+        <i class="bi bi-print me-1"></i> Imprimer (A4)
+      </button>
       <h5 class="mb-0 ms-2 fw-bold text-truncate" style="max-width: 250px; color: var(--green-dark);">Aperçu : {{ $quiz->title }}</h5>
     </div>
     
@@ -42,13 +45,39 @@
       <div class="device-bezel">
         <div class="device-camera"></div>
         <div class="device-content">
-          <iframe src="{{ route('admin.quizzes.preview-iframe', $quiz->id) }}" id="previewIframe" title="Quiz Player Preview"></iframe>
+          <iframe src="{{ route('cores.editor.quizzes.preview-iframe', $quiz->id) }}" id="previewIframe" title="Quiz Player Preview"></iframe>
         </div>
         <div class="device-home-button"></div>
       </div>
     </div>
   </div>
 
+</div>
+
+<!-- Modal Print Quiz -->
+<div class="modal fade" id="modal-print-quiz" tabindex="-1" aria-labelledby="modal-print-quiz-label" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content" style="border-radius: 12px; border: none; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
+      <div class="modal-header bg-light py-3">
+        <h5 class="modal-title fw-bold" id="modal-print-quiz-label" style="color: #1e6f5c;">
+          <i class="bi bi-printer-fill me-2"></i> Aperçu Avant Impression - Format A4
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-0 bg-light" style="height: 70vh;">
+        <iframe id="print-iframe-loader" src="" style="width: 100%; height: 100%; border: none;"></iframe>
+      </div>
+      <div class="modal-footer bg-white border-top p-3 d-flex justify-content-between">
+        <span class="text-muted small"><i class="bi bi-info-circle me-1"></i> La grille de correction est automatiquement générée et insérée sur une feuille séparée à la fin du document.</span>
+        <div>
+          <button type="button" class="btn btn-secondary px-4 py-2 me-2" data-bs-dismiss="modal" style="border-radius: 8px;">Annuler</button>
+          <button type="button" class="btn btn-primary px-4 py-2" id="btn-print-confirm" style="background-color: #1e6f5c; border: none; border-radius: 8px; font-weight: 600; color: white;">
+            <i class="bi bi-printer me-1"></i> Imprimer
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <style>
@@ -259,6 +288,18 @@ $(document).ready(function() {
       
       setTimeout(updateSizeIndicator, 450);
     }
+  });
+
+  // Print
+  $('#btnPrintQuiz').click(function () {
+    const printUrl = "{{ route('cores.editor.quizzes.print-iframe', $quiz->id) }}";
+    $('#print-iframe-loader').attr('src', printUrl);
+    $('#modal-print-quiz').modal('show');
+  });
+
+  // Print Confirmation
+  $('#btn-print-confirm').click(function () {
+    document.getElementById('print-iframe-loader').contentWindow.print();
   });
 
   // Init size

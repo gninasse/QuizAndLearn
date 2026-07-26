@@ -64,4 +64,13 @@ class Quiz extends Model
     {
         return $this->belongsToMany(Group::class, 'group_quiz', 'quiz_id', 'group_id');
     }
+
+    protected static function booted(): void
+    {
+        static::deleting(function (Quiz $quiz) {
+            foreach ($quiz->questions as $q) {
+                $q->delete();
+            }
+        });
+    }
 }

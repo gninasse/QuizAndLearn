@@ -94,6 +94,18 @@
                       <p>Quiz</p>
                     </a>
                   </li>
+                  <li class="nav-item">
+                    <a href="{{ route('cores.exams.index') }}" class="nav-link {{ request()->routeIs('cores.exams.*') ? 'active' : '' }}">
+                      <i class="nav-icon bi bi-file-earmark-check"></i>
+                      <p>Examens</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="{{ route('cores.flashcard-decks.index') }}" class="nav-link {{ request()->routeIs('cores.flashcard-decks.*') ? 'active' : '' }}">
+                      <i class="nav-icon bi bi-card-text"></i>
+                      <p>Flashcards</p>
+                    </a>
+                  </li>
                   @endcan
                   @can('cores.articles.index')
                   <li class="nav-item">

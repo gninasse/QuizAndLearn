@@ -94,6 +94,54 @@ window.insertWysiwygTag = function($textarea, cmd) {
         case 'code':
             replacement = '<code>' + selectedText + '</code>';
             break;
+        case 'image':
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = function() {
+                const file = this.files[0];
+                if (!file) return;
+
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('_token', $('meta[name="csrf-token"]').attr('content') || $('input[name="_token"]').val() || '');
+
+                Swal.fire({
+                    title: 'Téléversement...',
+                    text: 'Veuillez patienter pendant le chargement de l\'image.',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                $.ajax({
+                    url: '/cores/media/upload',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(res) {
+                        Swal.close();
+                        if (res.success) {
+                            const imgHtml = `<img src="${res.url}" alt="${res.name || 'Image'}" class="img-fluid my-2" />`;
+                            el.value = text.substring(0, start) + imgHtml + text.substring(end);
+                            el.focus();
+                            el.selectionStart = start + imgHtml.length;
+                            el.selectionEnd = start + imgHtml.length;
+                            $textarea.trigger('input');
+                        } else {
+                            Swal.fire('Erreur', res.message || 'Échec du téléversement', 'error');
+                        }
+                    },
+                    error: function(xhr) {
+                        Swal.close();
+                        Swal.fire('Erreur', xhr.responseJSON?.message || 'Une erreur est survenue lors du téléversement.', 'error');
+                    }
+                });
+            };
+            input.click();
+            return;
     }
 
     el.value = text.substring(0, start) + replacement + text.substring(end);

@@ -1,12 +1,93 @@
 @import 'tailwindcss';
+@import 'bootstrap-icons/font/bootstrap-icons.css';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 @source '../../Modules/Core/resources/views/**/*.blade.php';
 @source '../**/*.blade.php';
 @source '../**/*.js';
+@source '../js/learner/**/*.ts';
+
+/* Thème piloté par la classe .dark sur <html> (préférence apprenant). */
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
+/* Tailles de police pilotées par la préférence apprenant (font_size). */
+html[data-font-size='small'] {
+    font-size: 14px;
+}
+html[data-font-size='large'] {
+    font-size: 18px;
+}
+
+/* Transitions de vue (View Transitions API). */
+@media (prefers-reduced-motion: no-preference) {
+    ::view-transition-old(root) {
+        animation-duration: 120ms;
+    }
+    ::view-transition-new(root) {
+        animation-duration: 180ms;
+    }
+}
+
+/* Retournement 3D des flashcards. */
+.flip-card {
+    perspective: 1200px;
+}
+.flip-card-inner {
+    transform-style: preserve-3d;
+    transition: transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.flip-card.flipped .flip-card-inner {
+    transform: rotateY(180deg);
+}
+.flip-face {
+    backface-visibility: hidden;
+}
+.flip-back {
+    transform: rotateY(180deg);
+}
+@media (prefers-reduced-motion: reduce) {
+    .flip-card-inner {
+        transition: none;
+    }
+}
+
+/* Contenu riche injecté (articles, cartes) — lisibilité de base. */
+.rich-content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.75rem;
+}
+.rich-content h1,
+.rich-content h2,
+.rich-content h3 {
+    font-weight: 700;
+    margin: 1.2em 0 0.5em;
+}
+.rich-content p {
+    margin: 0.6em 0;
+}
+.rich-content ul,
+.rich-content ol {
+    padding-left: 1.4em;
+    margin: 0.6em 0;
+}
+.rich-content ul {
+    list-style: disc;
+}
+.rich-content ol {
+    list-style: decimal;
+}
+.rich-content a {
+    text-decoration: underline;
+}
+.rich-content audio,
+.rich-content video {
+    width: 100%;
+    margin: 0.8em 0;
 }

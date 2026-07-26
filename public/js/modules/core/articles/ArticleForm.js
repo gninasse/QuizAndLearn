@@ -171,7 +171,7 @@ export class ArticleForm {
                     if (response.success) {
                         this.$modal.modal('hide');
                         // Rediriger immédiatement vers le nouvel éditeur moderne
-                        window.location.href = route('admin.articles.edit', response.data.id);
+                        window.location.href = route('cores.editor.articles.edit', response.data.id);
                     }
                 },
                 error: (xhr) => {

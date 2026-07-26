@@ -67,4 +67,20 @@ class Group extends Model
     {
         return $this->belongsToMany(Article::class, 'group_article', 'group_id', 'article_id');
     }
+
+    /**
+     * Obtenir les examens assignés à ce groupe.
+     */
+    public function exams(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Exam::class, 'group_exam', 'group_id', 'exam_id');
+    }
+
+    /**
+     * Obtenir les decks de flashcards assignés à ce groupe.
+     */
+    public function flashcardDecks(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(FlashcardDeck::class, 'group_flashcard_deck', 'group_id', 'flashcard_deck_id');
+    }
 }

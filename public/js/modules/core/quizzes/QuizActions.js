@@ -24,14 +24,23 @@ export class QuizActions {
         $('#btn-builder-quiz').click(() => {
             const quizId = this.table.getSelectedId();
             if (quizId) {
-                window.location.href = route('admin.quizzes.edit', quizId);
+                window.location.href = route('cores.editor.quizzes.edit', quizId);
             }
         });
 
         $('#btn-preview-quiz').click(() => {
             const quizId = this.table.getSelectedId();
             if (quizId) {
-                window.location.href = route('admin.quizzes.preview', quizId);
+                window.location.href = route('cores.editor.quizzes.preview', quizId);
+            }
+        });
+
+        $('#btn-print-quiz').click(() => {
+            const quizId = this.table.getSelectedId();
+            if (quizId) {
+                const printUrl = `/cores/editor/quizzes/${quizId}/print-iframe`;
+                $('#print-iframe-loader').attr('src', printUrl);
+                $('#modal-print-quiz').modal('show');
             }
         });
 

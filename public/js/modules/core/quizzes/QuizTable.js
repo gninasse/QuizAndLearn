@@ -9,6 +9,7 @@ export class QuizTable {
         this.$btnDelete = $('#btn-delete-quiz');
         this.$btnBuilder = $('#btn-builder-quiz');
         this.$btnPreview = $('#btn-preview-quiz');
+        this.$btnPrint = $('#btn-print-quiz');
         this.$btnEnable = $('#btn-enable-quiz');
         this.$btnDisable = $('#btn-disable-quiz');
     }
@@ -33,6 +34,7 @@ export class QuizTable {
         this.$btnDelete.prop('disabled', !isSingle);
         this.$btnBuilder.prop('disabled', !isSingle);
         this.$btnPreview.prop('disabled', !isSingle);
+        this.$btnPrint.prop('disabled', !isSingle);
 
         if (isSingle) {
             const row = selections[0];

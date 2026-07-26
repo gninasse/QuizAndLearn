@@ -61,7 +61,7 @@ class ArticleEditorTest extends TestCase
     public function test_can_access_article_editor(): void
     {
         $response = $this->actingAs($this->user)
-            ->get(route('admin.articles.edit', $this->article->id));
+            ->get(route('cores.editor.articles.edit', $this->article->id));
 
         $response->assertStatus(200);
         $response->assertViewIs('core::admin.article.editor');
@@ -74,7 +74,7 @@ class ArticleEditorTest extends TestCase
     public function test_can_autosave_article(): void
     {
         $response = $this->actingAs($this->user)
-            ->post(route('admin.articles.autosave', $this->article->id), [
+            ->post(route('cores.editor.articles.autosave', $this->article->id), [
                 'title' => 'Updated Article Title',
                 'content' => '<h2>Heading</h2><p>Updated content</p>',
                 'category' => 'Technology',
@@ -106,7 +106,7 @@ class ArticleEditorTest extends TestCase
         $this->assertFalse($this->article->is_active);
 
         $response = $this->actingAs($this->user)
-            ->patch(route('admin.articles.toggle-active', $this->article->id));
+            ->patch(route('cores.editor.articles.toggle-active', $this->article->id));
 
         $response->assertStatus(200);
         $response->assertJson([
@@ -125,7 +125,7 @@ class ArticleEditorTest extends TestCase
     {
         // 1. Assign group access
         $response = $this->actingAs($this->user)
-            ->post(route('admin.articles.groups.assign', $this->article->id), [
+            ->post(route('cores.editor.articles.groups.assign', $this->article->id), [
                 'group_id' => $this->group->id,
             ]);
 
@@ -138,7 +138,7 @@ class ArticleEditorTest extends TestCase
 
         // 2. Unassign group access
         $response = $this->actingAs($this->user)
-            ->delete(route('admin.articles.groups.unassign', [
+            ->delete(route('cores.editor.articles.groups.unassign', [
                 'article' => $this->article->id,
                 'group' => $this->group->id,
             ]));
@@ -167,7 +167,7 @@ class ArticleEditorTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->user)
-            ->get(route('admin.articles.quizzes.search', ['q' => 'Math']));
+            ->get(route('cores.editor.articles.quizzes.search', ['q' => 'Math']));
 
         $response->assertStatus(200);
         $response->assertJson([
@@ -188,7 +188,7 @@ class ArticleEditorTest extends TestCase
         $file = \Illuminate\Http\UploadedFile::fake()->create('photo.jpg', 1024, 'image/jpeg');
 
         $response = $this->actingAs($this->user)
-            ->post(route('admin.articles.upload-media'), [
+            ->post(route('cores.editor.articles.upload-media'), [
                 'file' => $file,
                 'type' => 'image',
                 'article_id' => $this->article->id,
@@ -215,7 +215,7 @@ class ArticleEditorTest extends TestCase
         $file = \Illuminate\Http\UploadedFile::fake()->create('track.mp3', 2048, 'audio/mpeg'); // 2MB
 
         $response = $this->actingAs($this->user)
-            ->post(route('admin.articles.upload-media'), [
+            ->post(route('cores.editor.articles.upload-media'), [
                 'file' => $file,
                 'type' => 'audio',
                 'article_id' => $this->article->id,
@@ -240,7 +240,7 @@ class ArticleEditorTest extends TestCase
         $file = \Illuminate\Http\UploadedFile::fake()->create('large.mp3', 15000, 'audio/mpeg'); // 15MB
 
         $response = $this->actingAs($this->user)
-            ->post(route('admin.articles.upload-media'), [
+            ->post(route('cores.editor.articles.upload-media'), [
                 'file' => $file,
                 'type' => 'audio',
                 'article_id' => $this->article->id,
@@ -262,7 +262,7 @@ class ArticleEditorTest extends TestCase
         $file = \Illuminate\Http\UploadedFile::fake()->create('track.mp3', 2048, 'audio/mpeg');
 
         $response = $this->actingAs($this->user)
-            ->post(route('admin.articles.upload-media'), [
+            ->post(route('cores.editor.articles.upload-media'), [
                 'file' => $file,
                 'type' => 'audio',
                 'article_id' => $this->article->id,

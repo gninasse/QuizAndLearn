@@ -22,6 +22,8 @@ class CoreDatabaseSeeder extends Seeder
             BadgeSeeder::class,
             QuizSeeder::class,
             ArticleSeeder::class,
+            ExamSeeder::class,
+            FlashcardDeckSeeder::class,
         ]);
     }
 }
