@@ -11,6 +11,7 @@ import type {
   ChangesPayload,
   ExamResultResponse,
   ExamStartResponse,
+  LeaderboardGroup,
   OutboxAction,
   UserProfile,
 } from '../domain/types';
@@ -91,6 +92,10 @@ export const api = {
 
   bootstrap() {
     return request<BootstrapPayload & { success: boolean }>('GET', '/bootstrap');
+  },
+
+  leaderboard() {
+    return request<{ success: boolean; groups: LeaderboardGroup[] }>('GET', '/leaderboard');
   },
 
   changes(since: string) {

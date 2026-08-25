@@ -6,6 +6,7 @@ import type { DeckCard, DeckItem } from '../domain/types';
 import { decksStore, sessionStore } from '../stores';
 import { dispatch } from '../sync/engine';
 import { toast } from '../ui/app-toast';
+import { playCorrect, playWrong } from '../ui/sound';
 
 /**
  * Révision par deck (système FlashcardDeck/FlashcardItem) :
@@ -147,6 +148,8 @@ function startSession(el: HTMLElement, deck: DeckItem): void {
       : { easinessFactor: deck.easiness_default, repetitions: 0, intervalDays: 0 };
 
     const isNew = !card.review;
+    if (quality >= 3) playCorrect();
+    else playWrong();
     const next = review(prior, quality, deck.interval_min, deck.interval_max);
     const status = statusFor(next.repetitions, quality);
 

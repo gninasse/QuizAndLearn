@@ -291,6 +291,7 @@ Route::prefix('api/learner/v1')->name('learn.v1.')->group(function () {
 
         Route::get('/bootstrap', [\Modules\Core\Http\Controllers\Learner\Api\ContentController::class, 'bootstrap'])->name('bootstrap');
         Route::get('/changes', [\Modules\Core\Http\Controllers\Learner\Api\ContentController::class, 'changes'])->name('changes');
+        Route::get('/leaderboard', [\Modules\Core\Http\Controllers\Learner\Api\ContentController::class, 'leaderboard'])->name('leaderboard');
 
         Route::post('/actions', [\Modules\Core\Http\Controllers\Learner\Api\ActionController::class, 'store'])->name('actions');
 

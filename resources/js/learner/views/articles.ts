@@ -42,6 +42,15 @@ function articleCard(article: ArticleItem): string {
   `;
 }
 
+type ArticleFilter = 'tous' | 'a-lire' | 'lus' | 'favoris';
+
+const FILTERS: Array<{ key: ArticleFilter; label: string }> = [
+  { key: 'tous', label: 'Tous' },
+  { key: 'a-lire', label: 'À lire' },
+  { key: 'lus', label: 'Lus' },
+  { key: 'favoris', label: 'Favoris ♥' },
+];
+
 export function mount(el: HTMLElement): void {
   const articles = articlesStore.get();
 
@@ -56,22 +65,80 @@ export function mount(el: HTMLElement): void {
     return;
   }
 
-  const favorites = articles.filter((a) => a.is_favorite);
+  let query = '';
+  let filter: ArticleFilter = 'tous';
+
+  const filtered = (): ArticleItem[] => {
+    const q = query.trim().toLowerCase();
+    return articles.filter((article) => {
+      if (q && !`${article.title} ${article.category ?? ''}`.toLowerCase().includes(q)) return false;
+      switch (filter) {
+        case 'a-lire':
+          return article.status !== 'completed';
+        case 'lus':
+          return article.status === 'completed';
+        case 'favoris':
+          return article.is_favorite;
+        default:
+          return true;
+      }
+    });
+  };
 
   el.innerHTML = html`
-    <div class="flex flex-col gap-5">
-      ${favorites.length
-        ? raw(html`
-            <section>
-              <h3 class="font-bold text-sm uppercase tracking-wide text-zinc-500 mb-2">Favoris</h3>
-              <div class="grid sm:grid-cols-2 gap-3">${raw(favorites.map(articleCard).join(''))}</div>
-            </section>
-            <h3 class="font-bold text-sm uppercase tracking-wide text-zinc-500 -mb-3">Tous les articles</h3>
-          `)
-        : ''}
-      <div class="grid sm:grid-cols-2 gap-3">
-        ${raw(articles.map(articleCard).join(''))}
+    <div class="flex flex-col gap-4">
+      <div class="relative">
+        <i class="bi bi-search absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" aria-hidden="true"></i>
+        <input id="article-search" type="search" placeholder="Rechercher un article…"
+               aria-label="Rechercher un article"
+               class="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 pl-11 pr-4 py-3 text-sm focus:border-sky-500 focus:outline-none" />
       </div>
+      <div class="flex gap-2 flex-wrap" role="group" aria-label="Filtres">
+        ${raw(
+          FILTERS.map(
+            (f) =>
+              `<button data-filter="${f.key}" aria-pressed="${f.key === 'tous'}"
+                       class="filter-chip rounded-full px-3.5 py-1.5 text-xs font-bold border transition-colors">${f.label}</button>`,
+          ).join(''),
+        )}
+      </div>
+      <div id="articles-grid" class="grid sm:grid-cols-2 gap-3"></div>
     </div>
   `;
+
+  const grid = el.querySelector<HTMLElement>('#articles-grid')!;
+
+  const renderGrid = (): void => {
+    const rows = filtered();
+    grid.innerHTML = rows.length
+      ? rows.map(articleCard).join('')
+      : '<p class="col-span-full text-center py-10 text-sm text-zinc-500">Aucun article ne correspond.</p>';
+  };
+
+  const styleChips = (): void => {
+    el.querySelectorAll<HTMLButtonElement>('.filter-chip').forEach((chip) => {
+      const active = chip.dataset.filter === filter;
+      chip.setAttribute('aria-pressed', String(active));
+      chip.className = `filter-chip rounded-full px-3.5 py-1.5 text-xs font-bold border transition-colors ${
+        active
+          ? 'bg-sky-600 border-sky-600 text-white'
+          : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 hover:border-sky-300'
+      }`;
+    });
+  };
+
+  el.querySelector('#article-search')?.addEventListener('input', (event) => {
+    query = (event.target as HTMLInputElement).value;
+    renderGrid();
+  });
+  el.querySelectorAll<HTMLButtonElement>('.filter-chip').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      filter = (chip.dataset.filter as ArticleFilter) ?? 'tous';
+      styleChips();
+      renderGrid();
+    });
+  });
+
+  styleChips();
+  renderGrid();
 }

@@ -6,6 +6,7 @@ import { badgesStore, preferencesStore, sessionStore, syncStore } from '../store
 import { clearLocalData, dispatch, sync } from '../sync/engine';
 import { applyPreferences } from '../theme';
 import { avatarHtml } from '../ui/avatar';
+import { canOfferInstall, triggerInstall } from '../ui/install';
 import { confirmDialog } from '../ui/app-dialog';
 import { toast } from '../ui/app-toast';
 import { levelProgress } from './helpers';
@@ -134,6 +135,18 @@ export function mount(el: HTMLElement): void {
         </button>
       </section>
 
+      <!-- Application -->
+      ${canOfferInstall()
+        ? raw(`
+          <section class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 flex flex-col gap-3">
+            <h3 class="font-bold text-sm">Application</h3>
+            <p class="text-xs text-zinc-500">Installez Learn&Quiz sur votre écran d'accueil : plein écran, hors-ligne, comme une vraie application.</p>
+            <button id="btn-install" class="rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-sm py-2.5">
+              <i class="bi bi-download"></i> Installer l'application
+            </button>
+          </section>`)
+        : ''}
+
       <!-- Synchronisation -->
       <section class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 flex flex-col gap-3">
         <h3 class="font-bold text-sm">Synchronisation</h3>
@@ -173,6 +186,10 @@ export function mount(el: HTMLElement): void {
   });
   el.querySelector('[data-pref-sound]')?.addEventListener('click', () => {
     savePrefs({ sound_enabled: !preferencesStore.get().sound_enabled });
+  });
+
+  el.querySelector('#btn-install')?.addEventListener('click', () => {
+    void triggerInstall();
   });
 
   el.querySelector('#btn-password')?.addEventListener('click', () => {

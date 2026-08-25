@@ -1,7 +1,8 @@
 import { BaseComponent, define } from '../core/base-component';
 import { html, raw } from '../core/html';
+import { isDue } from '../domain/sm2';
 import { avatarHtml } from '../ui/avatar';
-import { sessionStore, syncStore } from '../stores';
+import { articlesStore, decksStore, quizzesStore, sessionStore, syncStore } from '../stores';
 
 /**
  * Chrome de l'application : header + sidebar desktop + tab bar mobile +
@@ -67,6 +68,35 @@ export class AppShell extends BaseComponent {
         }
       }),
     );
+
+    // Compteurs « à faire » sur la navigation, patchés en place.
+    const patchBadges = (): void => this.patchNavBadges();
+    this.own(articlesStore.subscribe(patchBadges));
+    this.own(quizzesStore.subscribe(patchBadges));
+    this.own(decksStore.subscribe(patchBadges));
+  }
+
+  /** Nombre d'éléments « à faire » par entrée de navigation. */
+  private navCounts(): Record<string, number> {
+    const unreadArticles = articlesStore.get().filter((a) => a.status !== 'completed').length;
+    const pendingQuizzes = quizzesStore
+      .get()
+      .filter((q) => q.status !== 'completed' && !q.max_attempts_reached).length;
+    const dueCards = decksStore
+      .get()
+      .flatMap((d) => d.cards)
+      .filter((c) => isDue(c.review?.next_review)).length;
+
+    return { '/articles': unreadArticles, '/entrainement': pendingQuizzes + dueCards };
+  }
+
+  private patchNavBadges(): void {
+    const counts = this.navCounts();
+    this.$$<HTMLElement>('[data-nav-badge]').forEach((badge) => {
+      const count = counts[badge.dataset.navBadge ?? ''] ?? 0;
+      badge.textContent = count > 9 ? '9+' : String(count);
+      badge.style.display = count === 0 ? 'none' : '';
+    });
   }
 
   private patchSync(state: ReturnType<typeof syncStore.get>): void {
@@ -117,11 +147,18 @@ export class AppShell extends BaseComponent {
       return html`<main id="outlet" class="min-h-dvh"></main>`;
     }
 
+    const counts = this.navCounts();
+    const badgeChip = (path: string, classes: string): string => {
+      const count = counts[path] ?? 0;
+      return `<span data-nav-badge="${path}" style="${count === 0 ? 'display:none' : ''}" class="${classes}">${count > 9 ? '9+' : count}</span>`;
+    };
+
     const navLinks = NAV.map((item) =>
       html`
         <a data-link data-nav="${item.path}" href="${item.path}"
            class="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
           <i class="bi ${item.icon} text-lg"></i><span>${item.label}</span>
+          ${raw(badgeChip(item.path, 'ml-auto inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-sky-600 text-white text-[10px] font-bold'))}
         </a>
       `,
     );
@@ -129,8 +166,12 @@ export class AppShell extends BaseComponent {
     const tabLinks = NAV.map((item) =>
       html`
         <a data-link data-nav="${item.path}" href="${item.path}"
-           class="flex flex-col items-center gap-0.5 py-2 flex-1 text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
-          <i class="bi ${item.icon} text-xl leading-none"></i><span>${item.label}</span>
+           class="relative flex flex-col items-center gap-0.5 py-2 flex-1 text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
+          <span class="relative">
+            <i class="bi ${item.icon} text-xl leading-none"></i>
+            ${raw(badgeChip(item.path, 'absolute -top-1.5 -right-3 inline-flex items-center justify-center min-w-4 h-4 px-1 rounded-full bg-sky-600 text-white text-[9px] font-bold'))}
+          </span>
+          <span>${item.label}</span>
         </a>
       `,
     );

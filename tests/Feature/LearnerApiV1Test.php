@@ -265,6 +265,66 @@ class LearnerApiV1Test extends TestCase
             ->assertJsonPath('quizzes.authorized_ids', []);
     }
 
+    // ----------------------------------------------------------- Leaderboard
+
+    public function test_leaderboard_ranks_peers_by_xp(): void
+    {
+        $peerUser = User::create([
+            'name' => 'Peer', 'last_name' => 'Learner', 'user_name' => 'peerlearner',
+            'email' => 'peer@learnandquiz.fr', 'password' => bcrypt('password123'), 'is_active' => true,
+        ]);
+        $peer = Learner::create(['user_id' => $peerUser->id, 'matricule' => 'MAT-PEER']);
+        $peer->groups()->attach($this->group->id);
+        $peer->xp()->create(['total_xp' => 500, 'current_level' => 6, 'current_streak' => 4, 'longest_streak' => 4]);
+        $this->learner->xp()->create(['total_xp' => 120, 'current_level' => 2, 'current_streak' => 1, 'longest_streak' => 2]);
+
+        $response = $this->actingAs($this->user)->getJson(route('learn.v1.leaderboard'));
+
+        $response->assertStatus(200)
+            ->assertJsonPath('groups.0.group_name', 'API Group')
+            ->assertJsonPath('groups.0.total_participants', 2)
+            ->assertJsonPath('groups.0.my_rank', 2)
+            ->assertJsonPath('groups.0.rows.0.rank', 1)
+            ->assertJsonPath('groups.0.rows.0.total_xp', 500)
+            ->assertJsonPath('groups.0.rows.0.is_me', false)
+            ->assertJsonPath('groups.0.rows.1.is_me', true);
+    }
+
+    // --------------------------------------------------------- Badges étendus
+
+    public function test_streak_and_perfect_badges_unlock(): void
+    {
+        Badge::create([
+            'code' => 'perfectionist', 'name' => 'Perfectionniste', 'description' => '100 %',
+            'icon' => '💯', 'condition_type' => 'quiz_perfect', 'condition_value' => ['count' => 1],
+        ]);
+        Badge::create([
+            'code' => 'streak_3', 'name' => 'Assidu', 'description' => '3 jours',
+            'icon' => '🔥', 'condition_type' => 'streak', 'condition_value' => ['count' => 3],
+        ]);
+        // Actif hier avec une série de 2 : l'action du jour porte la série à 3.
+        $this->learner->xp()->create([
+            'total_xp' => 0, 'current_level' => 1, 'current_streak' => 2,
+            'longest_streak' => 2, 'last_activity_date' => now()->subDay()->toDateString(),
+        ]);
+
+        // Tentative parfaite (score 100) via l'API actions.
+        $response = $this->actingAs($this->user)->postJson(route('learn.v1.actions'), [
+            'actions' => [[
+                'id' => (string) Str::uuid(),
+                'type' => 'quiz_attempt',
+                'data' => [
+                    'quiz_id' => $this->quiz->id,
+                    'answers' => [$this->quiz->questions->first()->id => 'true'],
+                ],
+            ]],
+        ]);
+
+        $unlocked = $response->json('badges_unlocked');
+        $this->assertContains('Perfectionniste', $unlocked);
+        $this->assertContains('Assidu', $unlocked);
+    }
+
     // -------------------------------------------------------------- Actions
 
     public function test_article_progress_action_awards_xp_once(): void

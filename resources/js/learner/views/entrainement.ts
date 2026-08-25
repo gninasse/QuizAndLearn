@@ -1,4 +1,5 @@
 import { escapeHtml, html, raw } from '../core/html';
+import { db } from '../db/schema';
 import { isDue } from '../domain/sm2';
 import type { DeckItem, QuizItem } from '../domain/types';
 import { decksStore, quizzesStore } from '../stores';
@@ -70,14 +71,65 @@ function deckCard(deck: DeckItem): string {
   `;
 }
 
+type QuizFilter = 'tous' | 'nouveaux' | 'en-cours' | 'termines';
+
+const QUIZ_FILTERS: Array<{ key: QuizFilter; label: string }> = [
+  { key: 'tous', label: 'Tous' },
+  { key: 'nouveaux', label: 'Nouveaux' },
+  { key: 'en-cours', label: 'En cours' },
+  { key: 'termines', label: 'Terminés' },
+];
+
 export function mount(el: HTMLElement): void {
   const tab = new URLSearchParams(window.location.search).get('tab') === 'cartes' ? 'cartes' : 'quiz';
   const quizzes = quizzesStore.get();
   const decks = decksStore.get();
   const totalDue = decks.flatMap((d) => d.cards).filter((c) => isDue(c.review?.next_review)).length;
 
+  let query = '';
+  let quizFilter: QuizFilter = 'tous';
+
+  const filteredQuizzes = (): QuizItem[] => {
+    const q = query.trim().toLowerCase();
+    return quizzes.filter((quiz) => {
+      if (q && !quiz.title.toLowerCase().includes(q)) return false;
+      switch (quizFilter) {
+        case 'nouveaux':
+          return quiz.status === 'unread';
+        case 'en-cours':
+          return quiz.status === 'in_progress';
+        case 'termines':
+          return quiz.status === 'completed';
+        default:
+          return true;
+      }
+    });
+  };
+
   const emptyState = (emoji: string, title: string, hint: string): string =>
     `<div class="text-center py-16 text-zinc-500"><div class="text-4xl mb-3">${emoji}</div><p class="font-semibold">${title}</p><p class="text-sm mt-1">${hint}</p></div>`;
+
+  const quizToolbar = (): string => `
+    <div class="flex flex-col gap-3 mb-3">
+      <div class="relative">
+        <i class="bi bi-search absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" aria-hidden="true"></i>
+        <input id="quiz-search" type="search" placeholder="Rechercher un quiz…" aria-label="Rechercher un quiz"
+               value="${escapeHtml(query)}"
+               class="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 pl-11 pr-4 py-3 text-sm focus:border-sky-500 focus:outline-none" />
+      </div>
+      <div class="flex gap-2 flex-wrap" role="group" aria-label="Filtres de statut">
+        ${QUIZ_FILTERS.map(
+          (f) =>
+            `<button data-qfilter="${f.key}" aria-pressed="${f.key === quizFilter}"
+                     class="rounded-full px-3.5 py-1.5 text-xs font-bold border transition-colors ${
+                       f.key === quizFilter
+                         ? 'bg-sky-600 border-sky-600 text-white'
+                         : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 hover:border-sky-300'
+                     }">${f.label}</button>`,
+        ).join('')}
+      </div>
+      <div id="mistakes-slot"></div>
+    </div>`;
 
   const renderContent = (active: string): string => {
     if (active === 'cartes') {
@@ -85,9 +137,15 @@ export function mount(el: HTMLElement): void {
         ? `<div class="grid sm:grid-cols-2 gap-3">${decks.map(deckCard).join('')}</div>`
         : emptyState('🃏', 'Aucun deck de révision', 'Les decks assignés à vos groupes apparaîtront ici.');
     }
-    return quizzes.length
-      ? `<div class="flex flex-col gap-3">${quizzes.map(quizCard).join('')}</div>`
-      : emptyState('❓', 'Aucun quiz assigné', 'Les quiz assignés à vos groupes apparaîtront ici.');
+    const rows = filteredQuizzes();
+    return (
+      quizToolbar() +
+      (rows.length
+        ? `<div class="flex flex-col gap-3">${rows.map(quizCard).join('')}</div>`
+        : quizzes.length
+          ? '<p class="text-center py-10 text-sm text-zinc-500">Aucun quiz ne correspond.</p>'
+          : emptyState('❓', 'Aucun quiz assigné', 'Les quiz assignés à vos groupes apparaîtront ici.'))
+    );
   };
 
   el.innerHTML = html`
@@ -121,12 +179,57 @@ export function mount(el: HTMLElement): void {
   };
   styleTabs(tab);
 
+  const bindQuizToolbar = (): void => {
+    const search = el.querySelector<HTMLInputElement>('#quiz-search');
+    search?.addEventListener('input', () => {
+      query = search.value;
+      const content = el.querySelector('#training-content')!;
+      const scrollPos = search.selectionStart;
+      content.innerHTML = renderContent('quiz');
+      bindQuizToolbar();
+      const restored = el.querySelector<HTMLInputElement>('#quiz-search');
+      restored?.focus();
+      restored?.setSelectionRange(scrollPos, scrollPos);
+    });
+    el.querySelectorAll<HTMLButtonElement>('[data-qfilter]').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        quizFilter = (chip.dataset.qfilter as QuizFilter) ?? 'tous';
+        el.querySelector('#training-content')!.innerHTML = renderContent('quiz');
+        bindQuizToolbar();
+      });
+    });
+    void fillMistakesSlot();
+  };
+
+  // Carte « Rejouer mes erreurs » si des questions ratées existent en local.
+  const fillMistakesSlot = async (): Promise<void> => {
+    const slot = el.querySelector('#mistakes-slot');
+    if (!slot) return;
+    const count = await db.mistakes.count();
+    if (!count) return;
+    slot.innerHTML = `
+      <a data-link href="/quizzes/erreurs/play"
+         class="flex items-center gap-3.5 rounded-2xl border-2 border-dashed border-violet-300 dark:border-violet-500/40 bg-violet-50/60 dark:bg-violet-500/10 p-4 hover:border-violet-400 transition-colors">
+        <span class="w-11 h-11 shrink-0 rounded-xl bg-violet-600 text-white flex items-center justify-center text-lg">
+          <i class="bi bi-arrow-repeat"></i>
+        </span>
+        <div class="min-w-0 flex-1">
+          <p class="font-bold text-sm text-violet-800 dark:text-violet-300">Rejouer mes erreurs</p>
+          <p class="text-xs text-violet-600/80 dark:text-violet-400/80">${count} question(s) ratée(s) à retravailler — entraînement libre, sans XP.</p>
+        </div>
+        <i class="bi bi-chevron-right text-violet-400"></i>
+      </a>`;
+  };
+
   el.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach((button) => {
     button.addEventListener('click', () => {
       const active = button.dataset.tab ?? 'quiz';
       history.replaceState(null, '', active === 'cartes' ? '/entrainement?tab=cartes' : '/entrainement');
       styleTabs(active);
       el.querySelector('#training-content')!.innerHTML = renderContent(active);
+      if (active === 'quiz') bindQuizToolbar();
     });
   });
+
+  if (tab === 'quiz') bindQuizToolbar();
 }

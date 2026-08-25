@@ -10,10 +10,13 @@ import { hydrateFromDb, installSyncTriggers, onSyncEvent, sync } from './sync/en
 import { applyPreferences, applyTheme, initialTheme, toggleTheme } from './theme';
 import { celebrateDialog } from './ui/app-dialog';
 import { toast } from './ui/app-toast';
+import { captureInstallPrompt, maybeShowInstallBanner } from './ui/install';
+import { playBadge } from './ui/sound';
 
 // ------------------------------------------------------------------ Thème
 
 applyTheme(initialTheme());
+captureInstallPrompt();
 
 // ---------------------------------------------------------------- Routage
 
@@ -30,6 +33,7 @@ const routes: RouteDefinition[] = [
   { path: '/reviser', title: 'Révision', view: () => import('./views/reviser') },
   { path: '/reviser/:deckId', title: 'Révision', view: () => import('./views/reviser') },
   { path: '/profil', title: 'Profil', view: () => import('./views/profil') },
+  { path: '/progression', title: 'Ma progression', view: () => import('./views/progression') },
 ];
 
 async function boot(): Promise<void> {
@@ -75,6 +79,7 @@ async function boot(): Promise<void> {
   window.addEventListener('learner:authenticated', () => {
     applyPreferences(preferencesStore.get());
     void router.go('/', true);
+    maybeShowInstallBanner();
   });
 
   window.addEventListener('learner:logged-out', () => {
@@ -95,6 +100,7 @@ async function boot(): Promise<void> {
       return;
     }
     if (event.kind === 'badges-unlocked') {
+      playBadge();
       void celebrateDialog(
         'Nouveau badge débloqué !',
         event.names.join(', '),
@@ -115,6 +121,7 @@ async function boot(): Promise<void> {
   await router.resolve();
   if (hasLocalSession && navigator.onLine) {
     void sync();
+    maybeShowInstallBanner();
   }
 
   // Compteur d'actions en attente affiché dans le header (déjà via stores).

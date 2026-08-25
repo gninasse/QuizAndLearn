@@ -220,6 +220,43 @@ export interface ActionsResponse {
   badges_unlocked: string[];
 }
 
+// ------------------------------------------------------------ Progression
+
+export interface LeaderboardRow {
+  rank: number;
+  name: string;
+  total_xp: number;
+  current_level: number;
+  current_streak: number;
+  is_me: boolean;
+}
+
+export interface LeaderboardGroup {
+  group_id: number;
+  group_name: string;
+  total_participants: number;
+  my_rank: number | null;
+  rows: LeaderboardRow[];
+}
+
+/** Brouillon local d'un quiz en cours (reprise après fermeture). */
+export interface QuizDraft {
+  quiz_id: number;
+  answers: Record<number, unknown>;
+  question_order: number[];
+  index: number;
+  started_at: string;
+  remaining_seconds: number | null;
+  updated_at: string;
+}
+
+/** Question ratée récemment — alimente « Rejouer mes erreurs ». */
+export interface MistakeEntry {
+  question_id: number;
+  quiz_id: number;
+  last_wrong_at: string;
+}
+
 // ------------------------------------------------------------------ Exams
 
 export interface ExamStartResponse {

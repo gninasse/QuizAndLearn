@@ -4,8 +4,10 @@ import type {
   BadgeItem,
   DeckItem,
   ExamItem,
+  MistakeEntry,
   OutboxAction,
   Preferences,
+  QuizDraft,
   QuizItem,
   UserProfile,
 } from '../domain/types';
@@ -41,6 +43,12 @@ export class LearnerDb extends Dexie {
 
   meta!: Table<MetaRow, string>;
 
+  /** Brouillons de quiz en cours (reprise après fermeture). */
+  drafts!: Table<QuizDraft, number>;
+
+  /** Questions ratées récemment (mode « rejouer mes erreurs »). */
+  mistakes!: Table<MistakeEntry, number>;
+
   constructor() {
     super('LearnQuizDB-v2026');
 
@@ -54,6 +62,11 @@ export class LearnerDb extends Dexie {
       badges: 'id',
       outbox: '++seq, id, type',
       meta: 'key',
+    });
+
+    this.version(2).stores({
+      drafts: 'quiz_id',
+      mistakes: 'question_id, quiz_id',
     });
   }
 }

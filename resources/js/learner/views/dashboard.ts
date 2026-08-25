@@ -67,13 +67,17 @@ export function mount(el: HTMLElement): void {
             <div class="h-full rounded-full bg-white/90 transition-all" style="width:${progress.percent}%"></div>
           </div>
         </div>
-        <div class="mt-4 flex items-center gap-4 text-sm">
+        <div class="mt-4 flex items-center gap-2.5 text-sm flex-wrap">
           <span class="inline-flex items-center gap-1.5 bg-white/15 rounded-full px-3 py-1">
             🔥 <b class="tabular-nums">${user.xp.current_streak}</b> ${pluralize(user.xp.current_streak, 'jour')}
           </span>
           <span class="inline-flex items-center gap-1.5 bg-white/15 rounded-full px-3 py-1">
             🏅 <b class="tabular-nums">${badges.length}</b> ${pluralize(badges.length, 'badge')}
           </span>
+          <a data-link href="/progression"
+             class="ml-auto inline-flex items-center gap-1.5 bg-white text-sky-700 hover:bg-sky-50 rounded-full px-3.5 py-1 font-bold text-xs transition-colors">
+            <i class="bi bi-graph-up-arrow"></i> Ma progression
+          </a>
         </div>
       </section>
 

@@ -145,6 +145,13 @@ class GamificationService
             ->where('status', 'completed')
             ->count();
 
+        $perfectQuizCount = QuizAttempt::where('learner_id', $learner->id)
+            ->where('status', 'completed')
+            ->where('score', '>=', 100)
+            ->count();
+
+        $currentStreak = $learner->xp?->current_streak ?? 0;
+
         foreach (Badge::all() as $badge) {
             if (in_array($badge->id, $existingBadgeIds)) {
                 continue;
@@ -159,6 +166,8 @@ class GamificationService
             $unlock = match ($badge->condition_type) {
                 'quiz_completed' => $completedQuizCount >= $requiredCount,
                 'article_read' => $completedArticlesCount >= $requiredCount,
+                'quiz_perfect' => $perfectQuizCount >= $requiredCount,
+                'streak' => $currentStreak >= $requiredCount,
                 default => false,
             };
 

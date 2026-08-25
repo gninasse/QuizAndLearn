@@ -2,11 +2,13 @@ import { escapeHtml, html, raw } from '../core/html';
 import { db } from '../db/schema';
 import { xpForQuizCompletion } from '../domain/gamification';
 import { scoreQuiz, type AnswerValue } from '../domain/scoring';
-import type { QuizItem, QuizQuestion } from '../domain/types';
+import type { QuizDraft, QuizItem, QuizQuestion } from '../domain/types';
 import { quizzesStore, sessionStore } from '../stores';
 import { dispatch } from '../sync/engine';
-import { dangerDialog } from '../ui/app-dialog';
+import { confirmDialog, dangerDialog } from '../ui/app-dialog';
 import { makeListDraggable } from '../ui/drag-list';
+import { playSuccess, playWrong } from '../ui/sound';
+import { toast } from '../ui/app-toast';
 import { formatDuration, shuffleArray } from './helpers';
 
 interface PlayState {
@@ -19,16 +21,40 @@ interface PlayState {
   timerId: number | null;
   /** Ordres mélangés mémorisés par question (matching/ordering). */
   shuffles: Record<number, string[]>;
+  /** Mode entraînement libre (rejouer ses erreurs) : rien n'est envoyé au serveur. */
+  practice: boolean;
 }
 
 export function mount(el: HTMLElement, params: Record<string, string>): void {
-  const quiz = quizzesStore.get().find((q) => q.id === Number(params.id));
+  void mountAsync(el, params);
+}
+
+async function mountAsync(el: HTMLElement, params: Record<string, string>): Promise<void> {
+  const practice = params.id === 'erreurs';
+
+  let quiz: QuizItem | undefined;
+  if (practice) {
+    quiz = await buildMistakesQuiz();
+    if (!quiz) {
+      el.innerHTML = html`
+        <div class="text-center py-16 text-zinc-500">
+          <div class="text-4xl mb-3">🎯</div>
+          <p class="font-semibold">Aucune erreur à rejouer</p>
+          <p class="text-sm mt-1">Les questions ratées lors de vos quiz apparaîtront ici.</p>
+          <a data-link href="/entrainement" class="inline-block mt-4 rounded-xl bg-sky-600 text-white font-bold px-5 py-2.5 text-sm">Retour</a>
+        </div>
+      `;
+      return;
+    }
+  } else {
+    quiz = quizzesStore.get().find((q) => q.id === Number(params.id));
+  }
 
   if (!quiz) {
     el.innerHTML = '<p class="text-zinc-500 py-10 text-center">Quiz introuvable.</p>';
     return;
   }
-  if (quiz.max_attempts_reached) {
+  if (!practice && quiz.max_attempts_reached) {
     el.innerHTML =
       '<p class="text-zinc-500 py-10 text-center">Nombre maximum de tentatives atteint pour ce quiz.</p>';
     return;
@@ -43,6 +69,47 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
     remainingSeconds: quiz.duration ? quiz.duration * 60 : null,
     timerId: null,
     shuffles: {},
+    practice,
+  };
+
+  // ----------------------------------------------- Reprise de brouillon
+
+  if (!practice) {
+    const draft = await db.drafts.get(quiz.id);
+    if (draft) {
+      const resume = await confirmDialog(
+        'Reprendre votre session ?',
+        'Une session interrompue de ce quiz a été retrouvée sur cet appareil.',
+        'Reprendre',
+      );
+      if (resume) {
+        state.answers = draft.answers as Record<number, AnswerValue>;
+        state.index = Math.min(draft.index, state.questions.length - 1);
+        state.startedAt = new Date(draft.started_at);
+        state.remainingSeconds = draft.remaining_seconds;
+        const byId = new Map(state.questions.map((q) => [q.id, q]));
+        const restored = draft.question_order
+          .map((id) => byId.get(id))
+          .filter((q): q is QuizQuestion => q !== undefined);
+        if (restored.length === state.questions.length) state.questions = restored;
+      } else {
+        await db.drafts.delete(quiz.id);
+      }
+    }
+  }
+
+  const saveDraft = (): void => {
+    if (state.practice) return;
+    const draft: QuizDraft = {
+      quiz_id: state.quiz.id,
+      answers: state.answers,
+      question_order: state.questions.map((q) => q.id),
+      index: state.index,
+      started_at: state.startedAt.toISOString(),
+      remaining_seconds: state.remainingSeconds,
+      updated_at: new Date().toISOString(),
+    };
+    void db.drafts.put(draft);
   };
 
   const cleanup = (): void => {
@@ -67,9 +134,10 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
         timerEl.textContent = formatDuration(Math.max(0, state.remainingSeconds));
         timerEl.classList.toggle('text-red-500', state.remainingSeconds <= 60);
       }
+      if (state.remainingSeconds % 10 === 0) saveDraft();
       if (state.remainingSeconds <= 0) {
         cleanup();
-        finish();
+        void finish();
       }
     }, 1000);
   }
@@ -241,6 +309,11 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
 
     el.innerHTML = html`
       <div class="max-w-2xl mx-auto flex flex-col gap-4">
+        ${state.practice
+          ? raw(
+              '<p class="rounded-xl bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-300 text-xs font-semibold px-4 py-2.5"><i class="bi bi-arrow-repeat"></i> Entraînement libre sur vos erreurs — sans XP ni enregistrement.</p>',
+            )
+          : ''}
         <div class="flex items-center gap-3">
           <button id="btn-quit" class="text-sm font-semibold text-zinc-500 hover:text-red-500">
             <i class="bi bi-x-lg"></i> Quitter
@@ -309,12 +382,14 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
         break;
       }
     }
+    saveDraft();
   }
 
   function bind(question: QuizQuestion): void {
     el.querySelectorAll<HTMLButtonElement>('.answer-tf').forEach((button) => {
       button.addEventListener('click', () => {
         state.answers[question.id] = button.dataset.answer ?? null;
+        saveDraft();
         render();
       });
     });
@@ -333,6 +408,7 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
         } else {
           state.answers[question.id] = choice;
         }
+        saveDraft();
         render();
       });
     });
@@ -345,6 +421,7 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
         if (target < 0 || target >= list.length) return;
         [list[idx], list[target]] = [list[target] as string, list[idx] as string];
         state.answers[question.id] = [...list];
+        saveDraft();
         render();
       });
     });
@@ -356,6 +433,7 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
         onCommit: (orderedKeys) => {
           state.shuffles[question.id] = orderedKeys;
           state.answers[question.id] = [...orderedKeys];
+          saveDraft();
           render(); // rafraîchit numéros + état des flèches
         },
       });
@@ -375,14 +453,16 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
 
     el.querySelector('#btn-finish')?.addEventListener('click', () => {
       collectCurrent(question);
-      finish();
+      void finish();
     });
 
     el.querySelector('#btn-quit')?.addEventListener('click', () => {
       void (async () => {
         const ok = await dangerDialog(
           'Quitter le quiz ?',
-          'Vos réponses de cette session seront perdues.',
+          state.practice
+            ? 'Cette session d\'entraînement sera abandonnée.'
+            : 'Votre progression est enregistrée sur cet appareil : vous pourrez reprendre plus tard.',
           'Quitter',
         );
         if (ok) {
@@ -395,65 +475,132 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
 
   // ----------------------------------------------------------- Résultat
 
-  function finish(): void {
+  async function finish(): Promise<void> {
     cleanup();
 
     const result = scoreQuiz(state.quiz, state.answers);
-    const xpEarned = xpForQuizCompletion(result.passed, result.scoredPoints);
+    const xpEarned = state.practice ? 0 : xpForQuizCompletion(result.passed, result.scoredPoints);
 
-    // Journalise la tentative (rejouée vers le serveur, qui re-note).
-    void dispatch('quiz_attempt', {
-      quiz_id: state.quiz.id,
-      answers: state.answers,
-      started_at: state.startedAt.toISOString(),
-      completed_at: new Date().toISOString(),
-    });
-
-    // Mise à jour optimiste locale (statut, tentative, XP).
-    const attemptNumber = state.quiz.attempts.length + 1;
-    const updatedQuiz: QuizItem = {
-      ...state.quiz,
-      status: 'completed',
-      max_attempts_reached:
-        !!state.quiz.max_attempts &&
-        state.quiz.attempts.filter((a) => a.status === 'completed').length + 1 >= state.quiz.max_attempts,
-      attempts: [
-        ...state.quiz.attempts,
-        {
-          id: -attemptNumber, // id local provisoire, remplacé au prochain delta
-          attempt_number: attemptNumber,
-          status: 'completed',
-          score: result.scorePercent,
-          points_earned: result.scoredPoints,
-          points_total: result.totalPoints,
-          passed: result.passed,
-          completed_at: new Date().toISOString(),
-        },
-      ],
-    };
-    quizzesStore.set(quizzesStore.get().map((q) => (q.id === updatedQuiz.id ? updatedQuiz : q)));
-    void db.quizzes.put(updatedQuiz);
-
-    const user = sessionStore.get();
-    if (user) {
-      sessionStore.set({ ...user, xp: { ...user.xp, total_xp: user.xp.total_xp + xpEarned } });
+    // Mémorise / résout les erreurs pour le mode « Rejouer mes erreurs ».
+    for (const question of state.questions) {
+      const score = result.perQuestion[question.id];
+      if (score && !score.isCorrect) {
+        await db.mistakes.put({
+          question_id: question.id,
+          quiz_id: state.practice ? (findQuizIdOf(question.id) ?? state.quiz.id) : state.quiz.id,
+          last_wrong_at: new Date().toISOString(),
+        });
+      } else {
+        await db.mistakes.delete(question.id);
+      }
     }
 
+    if (result.passed) playSuccess();
+    else playWrong();
+
+    if (!state.practice) {
+      await db.drafts.delete(state.quiz.id);
+
+      // Journalise la tentative (rejouée vers le serveur, qui re-note).
+      void dispatch('quiz_attempt', {
+        quiz_id: state.quiz.id,
+        answers: state.answers,
+        started_at: state.startedAt.toISOString(),
+        completed_at: new Date().toISOString(),
+      });
+
+      // Mise à jour optimiste locale (statut, tentative, XP).
+      const attemptNumber = state.quiz.attempts.length + 1;
+      const updatedQuiz: QuizItem = {
+        ...state.quiz,
+        status: 'completed',
+        max_attempts_reached:
+          !!state.quiz.max_attempts &&
+          state.quiz.attempts.filter((a) => a.status === 'completed').length + 1 >= state.quiz.max_attempts,
+        attempts: [
+          ...state.quiz.attempts,
+          {
+            id: -attemptNumber, // id local provisoire, remplacé au prochain delta
+            attempt_number: attemptNumber,
+            status: 'completed',
+            score: result.scorePercent,
+            points_earned: result.scoredPoints,
+            points_total: result.totalPoints,
+            passed: result.passed,
+            completed_at: new Date().toISOString(),
+          },
+        ],
+      };
+      quizzesStore.set(quizzesStore.get().map((q) => (q.id === updatedQuiz.id ? updatedQuiz : q)));
+      void db.quizzes.put(updatedQuiz);
+
+      const user = sessionStore.get();
+      if (user) {
+        sessionStore.set({ ...user, xp: { ...user.xp, total_xp: user.xp.total_xp + xpEarned } });
+      }
+    }
+
+    renderResult(result, xpEarned);
+  }
+
+  function renderResult(result: ReturnType<typeof scoreQuiz>, xpEarned: number): void {
     const showCorrections = state.quiz.show_correct_answers;
+
+    // Historique (avant cette tentative) pour la comparaison.
+    const previous = state.quiz.attempts
+      .filter((a) => a.status === 'completed' && a.id > 0)
+      .map((a) => a.score ?? 0);
+    const bestPrevious = previous.length ? Math.max(...previous) : null;
+    const delta = bestPrevious !== null ? Math.round((result.scorePercent - bestPrevious) * 100) / 100 : null;
+
+    const historyBars = [...previous.slice(-7), result.scorePercent];
 
     el.innerHTML = html`
       <div class="max-w-xl mx-auto flex flex-col gap-5 text-center py-6">
         <div class="text-6xl">${result.passed ? '🎉' : '😕'}</div>
-        <h2 class="text-2xl font-extrabold">${result.passed ? 'Quiz réussi !' : 'Quiz terminé'}</h2>
+        <h2 class="text-2xl font-extrabold">
+          ${state.practice
+            ? 'Entraînement terminé'
+            : result.passed
+              ? 'Quiz réussi !'
+              : 'Quiz terminé'}
+        </h2>
 
         <div class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 flex flex-col gap-4">
           <p class="text-5xl font-extrabold tabular-nums ${result.passed ? 'text-emerald-500' : 'text-red-500'}">
             ${result.scorePercent} %
           </p>
           <p class="text-sm text-zinc-500">${result.scoredPoints} / ${result.totalPoints} points · seuil de réussite ${state.quiz.passing_score} %</p>
-          <p class="inline-flex items-center justify-center gap-2 text-sm font-bold text-amber-600 dark:text-amber-400">
-            <i class="bi bi-lightning-charge-fill"></i> +${xpEarned} XP
-          </p>
+          ${!state.practice
+            ? raw(
+                `<p class="inline-flex items-center justify-center gap-2 text-sm font-bold text-amber-600 dark:text-amber-400"><i class="bi bi-lightning-charge-fill"></i> +${xpEarned} XP</p>`,
+              )
+            : ''}
+          ${delta !== null
+            ? raw(
+                `<p class="text-xs font-semibold ${delta > 0 ? 'text-emerald-600 dark:text-emerald-400' : delta < 0 ? 'text-red-500' : 'text-zinc-500'}">
+                   ${delta > 0 ? `▲ +${delta} pts vs votre meilleur score` : delta < 0 ? `▼ ${delta} pts vs votre meilleur score (${bestPrevious} %)` : '= égal à votre meilleur score'}
+                 </p>`,
+              )
+            : ''}
+          ${historyBars.length > 1
+            ? raw(html`
+                <div class="pt-1">
+                  <p class="text-[10px] font-bold uppercase tracking-wide text-zinc-400 mb-1.5">Vos tentatives</p>
+                  <div class="flex items-end justify-center gap-1.5 h-14" role="img" aria-label="Historique des scores">
+                    ${raw(
+                      historyBars
+                        .map(
+                          (score, i) =>
+                            `<div class="w-6 rounded-t-md ${i === historyBars.length - 1 ? 'bg-sky-500' : 'bg-zinc-200 dark:bg-zinc-700'}"
+                                  style="height:${Math.max(8, score)}%" title="${score} %"></div>`,
+                        )
+                        .join(''),
+                    )}
+                  </div>
+                </div>
+              `)
+            : ''}
         </div>
 
         ${showCorrections
@@ -480,13 +627,79 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
             `)
           : ''}
 
-        <div class="flex gap-3 justify-center">
-          <a data-link href="/quizzes/${state.quiz.id}" class="rounded-xl border border-zinc-300 dark:border-zinc-700 px-5 py-2.5 text-sm font-bold">Détails</a>
+        <div class="flex gap-3 justify-center flex-wrap">
+          ${!state.practice && result.passed
+            ? raw('<button id="btn-share" class="rounded-xl border border-sky-300 dark:border-sky-500/40 text-sky-600 dark:text-sky-400 px-5 py-2.5 text-sm font-bold"><i class="bi bi-share"></i> Partager</button>')
+            : ''}
+          ${state.practice
+            ? raw('<a data-link href="/quizzes/erreurs/play" class="rounded-xl border border-zinc-300 dark:border-zinc-700 px-5 py-2.5 text-sm font-bold">Recommencer</a>')
+            : raw(`<a data-link href="/quizzes/${state.quiz.id}" class="rounded-xl border border-zinc-300 dark:border-zinc-700 px-5 py-2.5 text-sm font-bold">Détails</a>`)}
           <a data-link href="/entrainement" class="rounded-xl bg-sky-600 hover:bg-sky-500 text-white px-5 py-2.5 text-sm font-bold">Retour à l'entraînement</a>
         </div>
       </div>
     `;
+
+    el.querySelector('#btn-share')?.addEventListener('click', () => {
+      void shareResult(state.quiz.title, result.scorePercent, xpEarned);
+    });
   }
 
   render();
+}
+
+// ----------------------------------------------------------- Utilitaires
+
+/** Quiz synthétique construit à partir des questions ratées récemment. */
+async function buildMistakesQuiz(): Promise<QuizItem | undefined> {
+  const mistakes = await db.mistakes.orderBy('question_id').toArray();
+  if (!mistakes.length) return undefined;
+
+  const allQuestions = new Map(
+    quizzesStore.get().flatMap((quiz) => quiz.questions.map((q) => [q.id, q] as const)),
+  );
+  const questions = mistakes
+    .map((m) => allQuestions.get(m.question_id))
+    .filter((q): q is QuizQuestion => q !== undefined);
+
+  if (!questions.length) return undefined;
+
+  return {
+    id: -1,
+    title: 'Rejouer mes erreurs',
+    description: null,
+    duration: null,
+    passing_score: 60,
+    max_attempts: 0,
+    shuffle_questions: true,
+    show_correct_answers: true,
+    status: 'unread',
+    max_attempts_reached: false,
+    updated_at: new Date().toISOString(),
+    attempts: [],
+    questions,
+  };
+}
+
+function findQuizIdOf(questionId: number): number | undefined {
+  return quizzesStore.get().find((quiz) => quiz.questions.some((q) => q.id === questionId))?.id;
+}
+
+async function shareResult(title: string, score: number, xp: number): Promise<void> {
+  const text = `J'ai obtenu ${score} % au quiz « ${title} » sur Learn&Quiz ! 🎓 (+${xp} XP)`;
+
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: 'Learn&Quiz', text });
+      return;
+    } catch {
+      /* partage annulé */
+    }
+  }
+
+  try {
+    await navigator.clipboard.writeText(text);
+    toast('Résultat copié dans le presse-papiers !', 'success');
+  } catch {
+    toast(text, 'info', 6000);
+  }
 }
