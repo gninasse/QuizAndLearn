@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Impression Quiz - {{ $quiz->titre }}</title>
+  <title>Impression Quiz - {{ $quiz->title }}</title>
   <link rel="stylesheet" href="{{ asset('plugins/source-sans-3/index.css') }}">
   <link rel="stylesheet" href="{{ asset('plugins/bootstrap-icons/font/bootstrap-icons.min.css') }}">
   
@@ -276,7 +276,7 @@
   <div class="print-page">
     <div class="test-header">
       <div class="test-title-section">
-        <h2>{{ $quiz->titre }}</h2>
+        <h2>{{ $quiz->title }}</h2>
         <p>{{ $quiz->description ?: 'Aucune description disponible.' }}</p>
       </div>
       <div class="student-fields">
@@ -373,7 +373,7 @@
   <div class="print-page">
     <div class="correction-header">
       <h3>GRILLE DE CORRECTION (Réservé au correcteur)</h3>
-      <span class="text-muted small">Quiz : {{ $quiz->titre }}</span>
+      <span class="text-muted small">Quiz : {{ $quiz->title }}</span>
     </div>
 
     <div class="answer-key-list">

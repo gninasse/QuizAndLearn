@@ -33,6 +33,15 @@ class Activity extends BaseActivity
     /**
      * Scope pour filtrer par module
      */
+    /**
+     * Activités dont la date d'expiration est dépassée
+     * (utilisé par activities:cleanup-expired).
+     */
+    public function scopeExpired($query)
+    {
+        return $query->whereNotNull('expires_at')->where('expires_at', '<=', now());
+    }
+
     public function scopeForModule($query, string $module)
     {
         return $query->where('module', $module);
