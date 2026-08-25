@@ -77,6 +77,14 @@ export const api = {
     return request<{ success: boolean }>('DELETE', '/session');
   },
 
+  updatePassword(currentPassword: string, password: string, passwordConfirmation: string) {
+    return request<{ success: boolean; message: string }>('PUT', '/password', {
+      current_password: currentPassword,
+      password,
+      password_confirmation: passwordConfirmation,
+    });
+  },
+
   me() {
     return request<{ success: boolean; user: UserProfile }>('GET', '/me');
   },

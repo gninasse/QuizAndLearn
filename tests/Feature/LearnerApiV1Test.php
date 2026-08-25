@@ -158,6 +158,38 @@ class LearnerApiV1Test extends TestCase
             ->assertJsonPath('user.id', $this->user->id);
     }
 
+    public function test_learner_can_change_password(): void
+    {
+        $response = $this->actingAs($this->user)->putJson(route('learn.v1.password.update'), [
+            'current_password' => 'password123',
+            'password' => 'nouveau-mdp-solide',
+            'password_confirmation' => 'nouveau-mdp-solide',
+        ]);
+
+        $response->assertStatus(200)->assertJsonPath('success', true);
+
+        $this->user->refresh();
+        $this->assertTrue(\Illuminate\Support\Facades\Hash::check('nouveau-mdp-solide', $this->user->password));
+    }
+
+    public function test_password_change_rejects_wrong_current_password(): void
+    {
+        $this->actingAs($this->user)->putJson(route('learn.v1.password.update'), [
+            'current_password' => 'mauvais-mdp',
+            'password' => 'nouveau-mdp-solide',
+            'password_confirmation' => 'nouveau-mdp-solide',
+        ])->assertStatus(422)->assertJsonValidationErrors(['current_password']);
+    }
+
+    public function test_password_change_requires_confirmation_and_length(): void
+    {
+        $this->actingAs($this->user)->putJson(route('learn.v1.password.update'), [
+            'current_password' => 'password123',
+            'password' => 'court',
+            'password_confirmation' => 'autre',
+        ])->assertStatus(422)->assertJsonValidationErrors(['password']);
+    }
+
     public function test_logout_invalidates_session(): void
     {
         $this->actingAs($this->user)

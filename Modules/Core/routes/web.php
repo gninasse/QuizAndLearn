@@ -286,6 +286,7 @@ Route::prefix('api/learner/v1')->name('learn.v1.')->group(function () {
 
     Route::middleware(['auth', 'learner'])->group(function () {
         Route::get('/me', [\Modules\Core\Http\Controllers\Learner\Api\SessionController::class, 'show'])->name('me');
+        Route::put('/password', [\Modules\Core\Http\Controllers\Learner\Api\SessionController::class, 'updatePassword'])->name('password.update');
         Route::delete('/session', [\Modules\Core\Http\Controllers\Learner\Api\SessionController::class, 'destroy'])->name('session.destroy');
 
         Route::get('/bootstrap', [\Modules\Core\Http\Controllers\Learner\Api\ContentController::class, 'bootstrap'])->name('bootstrap');

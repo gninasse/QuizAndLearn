@@ -125,6 +125,15 @@ export function mount(el: HTMLElement): void {
         </div>
       </section>
 
+      <!-- Sécurité -->
+      <section class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 flex flex-col gap-3">
+        <h3 class="font-bold text-sm">Sécurité</h3>
+        <p class="text-xs text-zinc-500">Le changement de mot de passe nécessite une connexion internet.</p>
+        <button id="btn-password" class="rounded-xl border border-zinc-300 dark:border-zinc-700 font-bold text-sm py-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-800">
+          <i class="bi bi-key"></i> Changer mon mot de passe
+        </button>
+      </section>
+
       <!-- Synchronisation -->
       <section class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 flex flex-col gap-3">
         <h3 class="font-bold text-sm">Synchronisation</h3>
@@ -166,6 +175,14 @@ export function mount(el: HTMLElement): void {
     savePrefs({ sound_enabled: !preferencesStore.get().sound_enabled });
   });
 
+  el.querySelector('#btn-password')?.addEventListener('click', () => {
+    if (!syncStore.get().online) {
+      toast('Connexion internet requise pour changer le mot de passe.', 'warning');
+      return;
+    }
+    openPasswordDialog();
+  });
+
   el.querySelector('#btn-sync')?.addEventListener('click', () => {
     void sync().then(() => toast('Synchronisation terminée.', 'success'));
   });
@@ -192,4 +209,84 @@ export function mount(el: HTMLElement): void {
       window.dispatchEvent(new CustomEvent('learner:logged-out'));
     })();
   });
+}
+
+// ---------------------------------------------------- Dialogue mot de passe
+
+function openPasswordDialog(): void {
+  const dialog = document.createElement('dialog');
+  dialog.className =
+    'rounded-2xl p-0 w-[92%] max-w-md backdrop:bg-black/50 backdrop:backdrop-blur-sm ' +
+    'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-2xl border border-zinc-200 dark:border-zinc-700 ' +
+    'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 m-0';
+
+  const field = (name: string, label: string, autocomplete: string): string => `
+    <label class="flex flex-col gap-1.5">
+      <span class="text-xs font-bold text-zinc-500 uppercase tracking-wide">${label}</span>
+      <input name="${name}" type="password" required autocomplete="${autocomplete}"
+             class="rounded-xl border-2 border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-4 py-3 text-sm focus:border-sky-500 focus:outline-none" />
+      <span data-error="${name}" class="hidden text-xs font-medium text-red-500"></span>
+    </label>`;
+
+  dialog.innerHTML = `
+    <form method="dialog" class="p-6 flex flex-col gap-4" novalidate>
+      <h2 class="text-lg font-bold"><i class="bi bi-key"></i> Changer mon mot de passe</h2>
+      ${field('current_password', 'Mot de passe actuel', 'current-password')}
+      ${field('password', 'Nouveau mot de passe (8 caractères min.)', 'new-password')}
+      ${field('password_confirmation', 'Confirmer le nouveau mot de passe', 'new-password')}
+      <div class="flex gap-3 justify-end mt-1">
+        <button type="button" data-cancel
+                class="px-4 py-2 rounded-xl text-sm font-semibold bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700">Annuler</button>
+        <button type="submit" data-submit
+                class="px-4 py-2 rounded-xl text-sm font-semibold bg-sky-600 hover:bg-sky-500 text-white disabled:opacity-60">Mettre à jour</button>
+      </div>
+    </form>`;
+
+  document.body.append(dialog);
+  const close = (): void => {
+    dialog.close();
+    dialog.remove();
+  };
+  dialog.querySelector('[data-cancel]')?.addEventListener('click', close);
+  dialog.addEventListener('cancel', close);
+
+  const form = dialog.querySelector('form')!;
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    void (async () => {
+      dialog.querySelectorAll('[data-error]').forEach((e) => e.classList.add('hidden'));
+      const submit = dialog.querySelector<HTMLButtonElement>('[data-submit]')!;
+      submit.disabled = true;
+
+      const data = new FormData(form);
+      try {
+        await api.updatePassword(
+          String(data.get('current_password')),
+          String(data.get('password')),
+          String(data.get('password_confirmation')),
+        );
+        close();
+        toast('Mot de passe mis à jour.', 'success');
+      } catch (e) {
+        const payload = (e as { payload?: { errors?: Record<string, string[]> } }).payload;
+        const errors = payload?.errors ?? {};
+        let shown = false;
+        for (const [fieldName, messages] of Object.entries(errors)) {
+          const target = dialog.querySelector(`[data-error="${fieldName}"]`);
+          if (target && messages[0]) {
+            target.textContent = messages[0];
+            target.classList.remove('hidden');
+            shown = true;
+          }
+        }
+        if (!shown) {
+          toast(e instanceof Error ? e.message : 'Le changement de mot de passe a échoué.', 'error');
+        }
+      } finally {
+        submit.disabled = false;
+      }
+    })();
+  });
+
+  dialog.showModal();
 }

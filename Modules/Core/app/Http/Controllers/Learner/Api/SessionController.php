@@ -76,6 +76,36 @@ class SessionController extends Controller
     }
 
     /**
+     * PUT /api/learner/v1/password — changement de mot de passe.
+     *
+     * Action de sécurité : en ligne uniquement (jamais rejouée via l'outbox).
+     * La session courante est conservée (régénérée), les autres appareils
+     * devront se reconnecter à l'expiration de leur session.
+     */
+    public function updatePassword(Request $request): JsonResponse
+    {
+        $request->validate([
+            'current_password' => ['required', 'current_password'],
+            'password' => ['required', 'string', 'min:8', 'confirmed', 'different:current_password'],
+        ], [
+            'current_password.current_password' => 'Le mot de passe actuel est incorrect.',
+            'password.min' => 'Le nouveau mot de passe doit contenir au moins 8 caractères.',
+            'password.confirmed' => 'La confirmation ne correspond pas.',
+            'password.different' => 'Le nouveau mot de passe doit être différent de l\'actuel.',
+        ]);
+
+        $user = Auth::user();
+        $user->update(['password' => $request->input('password')]);
+
+        $request->session()->regenerate();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Mot de passe mis à jour.',
+        ]);
+    }
+
+    /**
      * DELETE /api/learner/v1/session — déconnexion.
      */
     public function destroy(Request $request): JsonResponse
