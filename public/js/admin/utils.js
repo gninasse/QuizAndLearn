@@ -55,6 +55,22 @@ window.showToast = function(type, message) {
 };
 
 /**
+ * Ajoute un bouton « Insérer un audio » à côté de chaque bouton image des
+ * barres wysiwyg (quiz, examens, flashcards) — sans modifier les vues.
+ */
+$(function() {
+    $('.wysiwyg-toolbar .wysiwyg-btn[data-cmd="image"]').each(function() {
+        const $img = $(this);
+        if ($img.siblings('[data-cmd="audio"]').length) return;
+        const $audio = $img.clone()
+            .attr('data-cmd', 'audio')
+            .attr('title', 'Insérer un audio')
+            .html('<i class="bi bi-music-note-beamed"></i>');
+        $img.after($audio);
+    });
+});
+
+/**
  * Insert formatting HTML tags at the cursor position in a textarea.
  * @param {jQuery} $textarea - Textarea element
  * @param {string} cmd - Command: bold, italic, underline, list, link, code
@@ -95,53 +111,66 @@ window.insertWysiwygTag = function($textarea, cmd) {
             replacement = '<code>' + selectedText + '</code>';
             break;
         case 'image':
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = 'image/*';
-            input.onchange = function() {
-                const file = this.files[0];
-                if (!file) return;
-
-                const formData = new FormData();
-                formData.append('file', file);
-                formData.append('_token', $('meta[name="csrf-token"]').attr('content') || $('input[name="_token"]').val() || '');
-
-                Swal.fire({
-                    title: 'Téléversement...',
-                    text: 'Veuillez patienter pendant le chargement de l\'image.',
-                    allowOutsideClick: false,
-                    didOpen: () => {
-                        Swal.showLoading();
-                    }
-                });
-
-                $.ajax({
-                    url: '/cores/media/upload',
-                    type: 'POST',
-                    data: formData,
-                    processData: false,
-                    contentType: false,
-                    success: function(res) {
-                        Swal.close();
-                        if (res.success) {
-                            const imgHtml = `<img src="${res.url}" alt="${res.name || 'Image'}" class="img-fluid my-2" />`;
-                            el.value = text.substring(0, start) + imgHtml + text.substring(end);
-                            el.focus();
-                            el.selectionStart = start + imgHtml.length;
-                            el.selectionEnd = start + imgHtml.length;
-                            $textarea.trigger('input');
-                        } else {
-                            Swal.fire('Erreur', res.message || 'Échec du téléversement', 'error');
-                        }
-                    },
-                    error: function(xhr) {
-                        Swal.close();
-                        Swal.fire('Erreur', xhr.responseJSON?.message || 'Une erreur est survenue lors du téléversement.', 'error');
-                    }
-                });
-            };
-            input.click();
+            uploadAndInsertMedia('image/*', "l'image", function(res) {
+                return `<img src="${res.url}" alt="${res.name || 'Image'}" class="img-fluid my-2" />`;
+            });
             return;
+        case 'audio':
+            uploadAndInsertMedia('audio/*,.mp3,.wav,.ogg,.m4a,.flac', "l'audio", function(res) {
+                return `<audio controls preload="metadata" src="${res.url}" class="my-2 w-100"></audio>`;
+            });
+            return;
+    }
+
+    // Téléverse un fichier vers /cores/media/upload puis insère le HTML rendu.
+    function uploadAndInsertMedia(accept, label, buildHtml) {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = accept;
+        input.onchange = function() {
+            const file = this.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('_token', $('meta[name="csrf-token"]').attr('content') || $('input[name="_token"]').val() || '');
+
+            Swal.fire({
+                title: 'Téléversement...',
+                text: 'Veuillez patienter pendant le chargement de ' + label + '.',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            $.ajax({
+                url: '/cores/media/upload',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(res) {
+                    Swal.close();
+                    if (res.success) {
+                        const mediaHtml = buildHtml(res);
+                        el.value = text.substring(0, start) + mediaHtml + text.substring(end);
+                        el.focus();
+                        el.selectionStart = start + mediaHtml.length;
+                        el.selectionEnd = start + mediaHtml.length;
+                        $textarea.trigger('input');
+                    } else {
+                        Swal.fire('Erreur', res.message || 'Échec du téléversement', 'error');
+                    }
+                },
+                error: function(xhr) {
+                    Swal.close();
+                    Swal.fire('Erreur', xhr.responseJSON?.message || 'Une erreur est survenue lors du téléversement.', 'error');
+                }
+            });
+        };
+        input.click();
+        return;
     }
 
     el.value = text.substring(0, start) + replacement + text.substring(end);

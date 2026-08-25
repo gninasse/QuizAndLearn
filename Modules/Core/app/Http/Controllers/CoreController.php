@@ -60,11 +60,20 @@ class CoreController extends Controller
     public function uploadMedia(Request $request): \Illuminate\Http\JsonResponse
     {
         try {
-            $request->validate([
-                'file' => 'required|image|max:5120', // Max 5MB
-            ]);
-
+            // Image (≤5 Mo) ou audio (≤10 Mo) — utilisé par les éditeurs
+            // de quiz, d'examens et de flashcards.
             $file = $request->file('file');
+            $isAudio = $file && str_starts_with((string) $file->getMimeType(), 'audio/');
+
+            if ($isAudio) {
+                $request->validate([
+                    'file' => 'required|file|mimes:mp3,wav,ogg,oga,m4a,flac|max:10240',
+                ]);
+            } else {
+                $request->validate([
+                    'file' => 'required|image|max:5120',
+                ]);
+            }
 
             // Store the file in public/uploads/media
             $path = $file->store('uploads/media', 'public');
@@ -73,6 +82,8 @@ class CoreController extends Controller
             return response()->json([
                 'success' => true,
                 'url' => $url,
+                'type' => $isAudio ? 'audio' : 'image',
+                'name' => $file->getClientOriginalName(),
             ]);
         } catch (\Exception $e) {
             return response()->json([

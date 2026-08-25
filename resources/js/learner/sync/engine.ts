@@ -118,6 +118,67 @@ async function applyChanges(delta: ChangesPayload): Promise<void> {
   );
 }
 
+// ------------------------------------------------------ Warm cache médias
+
+/** Chemins locaux considérés comme médias pédagogiques cacheables. */
+const MEDIA_PATH_PREFIXES = ['/storage/', '/uploads/'];
+
+export function extractMediaUrls(htmlFragments: (string | null | undefined)[]): string[] {
+  const urls = new Set<string>();
+  const attrRegex = /(?:src|href)\s*=\s*["']([^"']+)["']/gi;
+
+  for (const fragment of htmlFragments) {
+    if (!fragment) continue;
+    for (const match of fragment.matchAll(attrRegex)) {
+      const rawUrl = match[1] ?? '';
+      try {
+        const url = new URL(rawUrl, window.location.origin);
+        if (
+          url.origin === window.location.origin &&
+          MEDIA_PATH_PREFIXES.some((prefix) => url.pathname.startsWith(prefix))
+        ) {
+          urls.add(url.pathname);
+        }
+      } catch {
+        /* URL invalide : ignorée */
+      }
+    }
+  }
+
+  return [...urls];
+}
+
+const warmedUrls = new Set<string>();
+
+/**
+ * Pré-télécharge les médias référencés par le contenu pédagogique afin que
+ * le service worker (CacheFirst sur /storage/) les garde pour le hors-ligne —
+ * un article jamais ouvert s'affiche ainsi complet sans réseau.
+ */
+async function warmMediaCache(): Promise<void> {
+  if (!navigator.onLine || !('serviceWorker' in navigator)) return;
+
+  const fragments: (string | null | undefined)[] = [
+    ...articlesStore.get().map((a) => a.content),
+    ...quizzesStore.get().flatMap((q) => q.questions.map((question) => question.question_text)),
+    ...decksStore.get().flatMap((d) => d.cards.flatMap((c) => [c.recto, c.verso])),
+  ];
+
+  const pending = extractMediaUrls(fragments).filter((u) => !warmedUrls.has(u));
+  if (!pending.length) return;
+
+  // Fetch séquentiel par petits lots : le SW met en cache au passage.
+  const BATCH = 4;
+  for (let i = 0; i < pending.length; i += BATCH) {
+    await Promise.allSettled(
+      pending.slice(i, i + BATCH).map(async (path) => {
+        const response = await fetch(path, { credentials: 'same-origin' });
+        if (response.ok) warmedUrls.add(path);
+      }),
+    );
+  }
+}
+
 // ---------------------------------------------------------------- Badging
 
 async function updateAppBadge(count: number): Promise<void> {
@@ -209,6 +270,7 @@ async function doSync(): Promise<void> {
     await hydrateFromDb();
     syncStore.update((s) => ({ ...s, lastSyncAt: new Date().toISOString() }));
     emit({ kind: 'data-refreshed' });
+    void warmMediaCache();
   } catch (e) {
     if (e instanceof ApiError && (e.status === 401 || e.status === 419)) {
       emit({ kind: 'session-expired' });
@@ -227,6 +289,7 @@ export async function fullBootstrap(): Promise<void> {
   const payload = await api.bootstrap();
   await persistBootstrap(payload);
   await hydrateFromDb();
+  void warmMediaCache();
 }
 
 // -------------------------------------------------------- File d'actions

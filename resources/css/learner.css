@@ -85,6 +85,38 @@ html[data-font-size='large'] {
     height: auto;
     border-radius: 0.75rem;
 }
+
+/* Dans une question de quiz/examen : l'image ne domine jamais l'écran. */
+#question-body .rich-content img,
+.rich-content.font-semibold img {
+    max-height: 40vh;
+    width: auto;
+    margin-inline: auto;
+    object-fit: contain;
+}
+
+/* Sur une flashcard : l'image est redimensionnée pour tenir dans la carte,
+   recto comme verso ; le contenu long défile à l'intérieur de la face. */
+.flip-face {
+    overflow-y: auto;
+}
+.flip-face .rich-content {
+    max-width: 100%;
+}
+.flip-face .rich-content img {
+    max-height: 9.5rem;
+    width: auto;
+    max-width: 100%;
+    margin: 0.35rem auto;
+    object-fit: contain;
+    display: block;
+}
+.flip-face .rich-content audio {
+    width: 100%;
+    max-width: 18rem;
+    margin: 0.5rem auto;
+    display: block;
+}
 .rich-content h1,
 .rich-content h2,
 .rich-content h3 {
