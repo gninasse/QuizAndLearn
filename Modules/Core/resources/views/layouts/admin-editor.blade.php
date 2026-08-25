@@ -26,6 +26,7 @@
   @stack('css')
 </head>
 <body>
+@include('core::layouts.partials.preloader')
 
   <!-- Backdrop for Mobile Sidebar -->
   <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
