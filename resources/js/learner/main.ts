@@ -81,8 +81,19 @@ async function boot(): Promise<void> {
     void router.go('/connexion', true);
   });
 
+  // Après une sync, les vues « liste » se rafraîchissent avec les données
+  // fraîches (stale-while-revalidate). Jamais pendant une activité en cours
+  // (quiz, examen, session de révision) : on ne casse pas l'état local.
+  const REFRESHABLE_PATHS = new Set(['/', '/articles', '/entrainement', '/examens', '/profil']);
+
   // Événements de synchronisation → retours visuels.
   onSyncEvent((event) => {
+    if (event.kind === 'data-refreshed') {
+      if (REFRESHABLE_PATHS.has(window.location.pathname)) {
+        void router.resolve();
+      }
+      return;
+    }
     if (event.kind === 'badges-unlocked') {
       void celebrateDialog(
         'Nouveau badge débloqué !',

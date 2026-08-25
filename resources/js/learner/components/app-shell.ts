@@ -1,5 +1,6 @@
 import { BaseComponent, define } from '../core/base-component';
 import { html, raw } from '../core/html';
+import { avatarHtml } from '../ui/avatar';
 import { sessionStore, syncStore } from '../stores';
 
 /**
@@ -151,7 +152,7 @@ export class AppShell extends BaseComponent {
             </div>
             ${raw(navLinks.join(''))}
             <div class="mt-auto px-2 py-3 flex items-center gap-3 border-t border-zinc-200 dark:border-zinc-800">
-              <img src="${user.avatar_url}" alt="" class="w-9 h-9 rounded-full object-cover" />
+              ${raw(avatarHtml(user, 'w-9 h-9 text-xs'))}
               <div class="min-w-0">
                 <p class="text-sm font-semibold truncate">${user.full_name}</p>
                 <p data-role="user-meta" class="text-xs text-zinc-500 truncate">Niveau ${user.xp.current_level} · ${user.xp.total_xp} XP</p>
@@ -183,7 +184,7 @@ export class AppShell extends BaseComponent {
                   <i class="bi bi-sun hidden dark:inline"></i>
                 </button>
                 <a data-link href="/profil" class="lg:hidden shrink-0" aria-label="Mon profil">
-                  <img src="${user.avatar_url}" alt="" class="w-8 h-8 rounded-full object-cover ring-2 ring-zinc-200 dark:ring-zinc-700" />
+                  ${raw(avatarHtml(user, 'w-8 h-8 text-[11px]', 'ring-2 ring-zinc-200 dark:ring-zinc-700'))}
                 </a>
               </div>
             </header>

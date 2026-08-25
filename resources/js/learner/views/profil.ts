@@ -5,6 +5,7 @@ import type { Preferences } from '../domain/types';
 import { badgesStore, preferencesStore, sessionStore, syncStore } from '../stores';
 import { clearLocalData, dispatch, sync } from '../sync/engine';
 import { applyPreferences } from '../theme';
+import { avatarHtml } from '../ui/avatar';
 import { confirmDialog } from '../ui/app-dialog';
 import { toast } from '../ui/app-toast';
 import { levelProgress } from './helpers';
@@ -22,7 +23,7 @@ export function mount(el: HTMLElement): void {
     <div class="max-w-xl mx-auto flex flex-col gap-5">
       <!-- Identité -->
       <section class="flex items-center gap-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-        <img src="${user.avatar_url}" alt="" class="w-16 h-16 rounded-full object-cover" />
+        ${raw(avatarHtml(user, 'w-16 h-16 text-xl'))}
         <div class="min-w-0 flex-1">
           <h2 class="font-extrabold text-lg truncate">${user.full_name}</h2>
           <p class="text-sm text-zinc-500 truncate">${user.email}</p>

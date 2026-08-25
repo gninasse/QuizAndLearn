@@ -24,7 +24,9 @@ import {
 export type SyncEvent =
   | { kind: 'badges-unlocked'; names: string[] }
   | { kind: 'action-rejected'; type: ActionType; message: string }
-  | { kind: 'session-expired' };
+  | { kind: 'session-expired' }
+  /** Les stores viennent d'être réhydratés après une sync (stale-while-revalidate). */
+  | { kind: 'data-refreshed' };
 
 type SyncListener = (event: SyncEvent) => void;
 
@@ -206,6 +208,7 @@ async function doSync(): Promise<void> {
 
     await hydrateFromDb();
     syncStore.update((s) => ({ ...s, lastSyncAt: new Date().toISOString() }));
+    emit({ kind: 'data-refreshed' });
   } catch (e) {
     if (e instanceof ApiError && (e.status === 401 || e.status === 419)) {
       emit({ kind: 'session-expired' });

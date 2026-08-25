@@ -12,6 +12,7 @@
  */
 
 import { clientsClaim } from 'workbox-core';
+import { ExpirationPlugin } from 'workbox-expiration';
 import { cleanupOutdatedCaches, createHandlerBoundToURL, precacheAndRoute } from 'workbox-precaching';
 import { NavigationRoute, registerRoute } from 'workbox-routing';
 import { CacheFirst, NetworkOnly } from 'workbox-strategies';
@@ -47,7 +48,14 @@ registerRoute(
       url.pathname.startsWith('/icons/') ||
       url.pathname.startsWith('/avatars/') ||
       url.pathname.startsWith('/storage/')),
-  new CacheFirst({ cacheName: 'learner-static-v1' }),
+  new CacheFirst({
+    cacheName: 'learner-static-v1',
+    plugins: [
+      // Cache-first borné : 200 entrées max, 30 jours — les médias
+      // pédagogiques restent disponibles hors-ligne sans gonfler à l'infini.
+      new ExpirationPlugin({ maxEntries: 200, maxAgeSeconds: 30 * 24 * 3600, purgeOnQuotaError: true }),
+    ],
+  }),
 );
 
 // Background Sync : préviens les clients ouverts de rejouer l'outbox.
