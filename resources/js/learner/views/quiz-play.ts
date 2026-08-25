@@ -482,7 +482,7 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
 
         <div class="flex gap-3 justify-center">
           <a data-link href="/quizzes/${state.quiz.id}" class="rounded-xl border border-zinc-300 dark:border-zinc-700 px-5 py-2.5 text-sm font-bold">Détails</a>
-          <a data-link href="/evaluations" class="rounded-xl bg-sky-600 hover:bg-sky-500 text-white px-5 py-2.5 text-sm font-bold">Retour aux évaluations</a>
+          <a data-link href="/entrainement" class="rounded-xl bg-sky-600 hover:bg-sky-500 text-white px-5 py-2.5 text-sm font-bold">Retour à l'entraînement</a>
         </div>
       </div>
     `;

@@ -37,7 +37,7 @@ class LearnerShellTest extends TestCase
     {
         $user = $this->makeLearnerUser();
 
-        foreach (['/articles', '/articles/12', '/evaluations', '/quizzes/3', '/quizzes/3/play', '/reviser', '/profil'] as $path) {
+        foreach (['/articles', '/articles/12', '/entrainement', '/examens', '/quizzes/3', '/quizzes/3/play', '/reviser', '/profil'] as $path) {
             $this->actingAs($user)->get($path)->assertStatus(200)->assertSee('id="app"', false);
         }
     }

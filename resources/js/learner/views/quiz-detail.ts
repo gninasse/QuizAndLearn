@@ -30,8 +30,8 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
 
   el.innerHTML = html`
     <div class="max-w-3xl mx-auto flex flex-col gap-5">
-      <a data-link href="/evaluations" class="text-sm font-semibold text-sky-600 dark:text-sky-400">
-        <i class="bi bi-arrow-left"></i> Évaluations
+      <a data-link href="/entrainement" class="text-sm font-semibold text-sky-600 dark:text-sky-400">
+        <i class="bi bi-arrow-left"></i> Entraînement
       </a>
 
       <header class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 flex flex-col gap-4">

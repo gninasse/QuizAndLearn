@@ -1,4 +1,4 @@
-import { escapeHtml, html, raw } from '../core/html';
+import { html, raw } from '../core/html';
 import { db } from '../db/schema';
 import { GAMIFICATION } from '../domain/gamification';
 import { isDue, review, statusFor, type Sm2State } from '../domain/sm2';
@@ -6,7 +6,6 @@ import type { DeckCard, DeckItem } from '../domain/types';
 import { decksStore, sessionStore } from '../stores';
 import { dispatch } from '../sync/engine';
 import { toast } from '../ui/app-toast';
-import { pluralize } from './helpers';
 
 /**
  * Révision par deck (système FlashcardDeck/FlashcardItem) :
@@ -24,73 +23,19 @@ const RATINGS = [
 export function mount(el: HTMLElement, params: Record<string, string>): void {
   const deckId = params.deckId ? Number(params.deckId) : null;
 
+  // La liste des decks vit désormais dans l'espace Entraînement.
   if (deckId === null) {
-    renderDeckList(el);
-  } else {
-    const deck = decksStore.get().find((d) => d.id === deckId);
-    if (!deck) {
-      el.innerHTML = '<p class="text-zinc-500 py-10 text-center">Deck introuvable.</p>';
-      return;
-    }
-    startSession(el, deck);
-  }
-}
-
-// -------------------------------------------------------- Liste des decks
-
-function renderDeckList(el: HTMLElement): void {
-  const decks = decksStore.get();
-
-  if (!decks.length) {
-    el.innerHTML = html`
-      <div class="text-center py-16 text-zinc-500">
-        <div class="text-4xl mb-3">🃏</div>
-        <p class="font-semibold">Aucun deck de révision</p>
-        <p class="text-sm mt-1">Les decks de flashcards assignés à vos groupes apparaîtront ici.</p>
-      </div>
-    `;
+    history.replaceState(null, '', '/entrainement?tab=cartes');
+    window.dispatchEvent(new PopStateEvent('popstate'));
     return;
   }
 
-  el.innerHTML = html`
-    <div class="flex flex-col gap-3">
-      ${raw(
-        decks
-          .map((deck) => {
-            const dueCount = deck.cards.filter((c) => isDue(c.review?.next_review)).length;
-            const mastered = deck.cards.filter((c) => c.review?.status === 'mastered').length;
-
-            return `
-              <div class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 flex flex-col gap-3">
-                <div class="flex items-start gap-3">
-                  <span class="w-11 h-11 shrink-0 rounded-xl bg-violet-100 dark:bg-violet-500/15 text-violet-600 dark:text-violet-400 flex items-center justify-center text-lg">
-                    <i class="bi bi-stack"></i>
-                  </span>
-                  <div class="min-w-0 flex-1">
-                    <p class="font-bold text-sm">${escapeHtml(deck.titre)}</p>
-                    ${deck.matiere ? `<p class="text-xs text-zinc-500">${escapeHtml(deck.matiere)}</p>` : ''}
-                    <p class="text-xs text-zinc-500 mt-1">
-                      ${deck.cards.length} carte(s) · ${mastered} maîtrisée(s)
-                    </p>
-                  </div>
-                  ${
-                    dueCount > 0
-                      ? `<span class="shrink-0 inline-flex items-center justify-center min-w-6 h-6 px-2 rounded-full bg-violet-600 text-white text-xs font-bold">${dueCount}</span>`
-                      : '<span class="shrink-0 text-emerald-500 text-lg"><i class="bi bi-check-circle-fill"></i></span>'
-                  }
-                </div>
-                <div class="flex gap-2">
-                  <a data-link href="/reviser/${deck.id}"
-                     class="flex-1 rounded-xl ${dueCount > 0 ? 'bg-violet-600 hover:bg-violet-500' : 'bg-zinc-400 dark:bg-zinc-700 hover:bg-zinc-500'} text-white text-center text-sm font-bold py-2.5">
-                    ${dueCount > 0 ? `Réviser ${dueCount} ${pluralize(dueCount, 'carte')}` : 'Réviser en avance'}
-                  </a>
-                </div>
-              </div>`;
-          })
-          .join(''),
-      )}
-    </div>
-  `;
+  const deck = decksStore.get().find((d) => d.id === deckId);
+  if (!deck) {
+    el.innerHTML = '<p class="text-zinc-500 py-10 text-center">Deck introuvable.</p>';
+    return;
+  }
+  startSession(el, deck);
 }
 
 // ------------------------------------------------------- Session de deck
@@ -133,7 +78,7 @@ function startSession(el: HTMLElement, deck: DeckItem): void {
     el.innerHTML = html`
       <div class="max-w-xl mx-auto flex flex-col gap-4">
         <div class="flex items-center gap-3">
-          <a data-link href="/reviser" class="text-sm font-semibold text-zinc-500 hover:text-red-500">
+          <a data-link href="/entrainement?tab=cartes" class="text-sm font-semibold text-zinc-500 hover:text-red-500">
             <i class="bi bi-x-lg"></i> Arrêter
           </a>
           <div class="flex-1 h-2 rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden">
@@ -277,7 +222,7 @@ function startSession(el: HTMLElement, deck: DeckItem): void {
         </div>
         <div class="flex gap-3 justify-center">
           <a data-link href="/reviser/${deck.id}" class="rounded-xl border border-zinc-300 dark:border-zinc-700 px-5 py-2.5 text-sm font-bold">Recommencer</a>
-          <a data-link href="/reviser" class="rounded-xl bg-violet-600 hover:bg-violet-500 text-white px-5 py-2.5 text-sm font-bold">Mes decks</a>
+          <a data-link href="/entrainement?tab=cartes" class="rounded-xl bg-violet-600 hover:bg-violet-500 text-white px-5 py-2.5 text-sm font-bold">Mes decks</a>
         </div>
       </div>
     `;

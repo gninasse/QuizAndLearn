@@ -307,7 +307,8 @@ Route::middleware(['auth', 'learner'])->name('learn.')->group(function () {
     foreach ([
         '/articles',
         '/articles/{id}',
-        '/evaluations',
+        '/entrainement',
+        '/examens',
         '/quizzes/{id}',
         '/quizzes/{id}/play',
         '/exams/{id}/play',

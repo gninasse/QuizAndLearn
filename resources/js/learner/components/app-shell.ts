@@ -18,12 +18,17 @@ const NAV: NavItem[] = [
   { path: '/', label: 'Accueil', icon: 'bi-house-door', match: (p) => p === '/' },
   { path: '/articles', label: 'Articles', icon: 'bi-journal-text', match: (p) => p.startsWith('/articles') },
   {
-    path: '/evaluations',
-    label: 'Évaluations',
-    icon: 'bi-patch-question',
-    match: (p) => p.startsWith('/evaluations') || p.startsWith('/quizzes') || p.startsWith('/exams'),
+    path: '/entrainement',
+    label: 'Entraînement',
+    icon: 'bi-lightning-charge',
+    match: (p) => p.startsWith('/entrainement') || p.startsWith('/quizzes') || p.startsWith('/reviser'),
   },
-  { path: '/reviser', label: 'Réviser', icon: 'bi-stack', match: (p) => p.startsWith('/reviser') },
+  {
+    path: '/examens',
+    label: 'Examens',
+    icon: 'bi-mortarboard',
+    match: (p) => p.startsWith('/examens') || p.startsWith('/exams'),
+  },
   { path: '/profil', label: 'Profil', icon: 'bi-person-circle', match: (p) => p.startsWith('/profil') },
 ];
 
@@ -156,8 +161,9 @@ export class AppShell extends BaseComponent {
 
           <div class="flex-1 min-w-0 flex flex-col min-h-dvh">
             <!-- Header -->
-            <header class="sticky top-0 z-40 bg-white/85 dark:bg-zinc-900/85 backdrop-blur border-b border-zinc-200 dark:border-zinc-800">
+            <header class="sticky top-0 z-40 bg-white/85 dark:bg-zinc-900/85 backdrop-blur border-b border-zinc-200/80 dark:border-zinc-800">
               <div class="flex items-center gap-3 px-4 py-3 max-w-5xl mx-auto w-full">
+                <span class="lg:hidden text-xl leading-none" aria-hidden="true">🎓</span>
                 <h1 data-role="title" class="font-bold text-lg truncate flex-1">${this.currentTitle}</h1>
                 <div data-role="sync" class="flex items-center gap-1.5 text-xs font-medium ${sync.online ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}">
                   <span class="relative flex h-2 w-2">
@@ -176,6 +182,9 @@ export class AppShell extends BaseComponent {
                   <i class="bi bi-moon-stars dark:hidden"></i>
                   <i class="bi bi-sun hidden dark:inline"></i>
                 </button>
+                <a data-link href="/profil" class="lg:hidden shrink-0" aria-label="Mon profil">
+                  <img src="${user.avatar_url}" alt="" class="w-8 h-8 rounded-full object-cover ring-2 ring-zinc-200 dark:ring-zinc-700" />
+                </a>
               </div>
             </header>
 

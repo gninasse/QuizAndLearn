@@ -26,6 +26,7 @@
         "workbox-strategies": "^7.4.1"
     },
     "dependencies": {
+        "@fontsource-variable/instrument-sans": "^5.3.0",
         "bootstrap-icons": "^1.13.1",
         "dexie": "^4.4.4"
     }

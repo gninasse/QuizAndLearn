@@ -38,7 +38,7 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
         <p class="text-sm text-zinc-500">
           Les examens surveillés ne peuvent être passés qu'en ligne, pour garantir l'intégrité de l'épreuve.
         </p>
-        <a data-link href="/evaluations?tab=exams" class="rounded-xl bg-sky-600 text-white font-bold px-5 py-2.5 text-sm mx-auto">Retour</a>
+        <a data-link href="/examens" class="rounded-xl bg-sky-600 text-white font-bold px-5 py-2.5 text-sm mx-auto">Retour</a>
       </div>
     `;
     return;
@@ -64,7 +64,7 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
       <button id="btn-start" class="rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold py-3">
         J'ai compris, commencer
       </button>
-      <a data-link href="/evaluations?tab=exams" class="text-center text-sm text-zinc-500">Annuler</a>
+      <a data-link href="/examens" class="text-center text-sm text-zinc-500">Annuler</a>
     </div>
   `;
 
@@ -111,7 +111,7 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
             result.message ?? "L'examen a été annulé pour violation des règles de sécurité.",
           );
           void sync();
-          window.location.href = '/evaluations?tab=exams';
+          window.location.href = '/examens';
         } else if (type === 'navigation') {
           toast(`⚠️ Sortie détectée (${result.violations_count}/3)`, 'warning');
         }
@@ -497,8 +497,8 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
                   )
                 : ''}
             </div>
-            <a data-link href="/evaluations?tab=exams" class="rounded-xl bg-sky-600 hover:bg-sky-500 text-white px-5 py-3 text-sm font-bold mx-auto">
-              Retour aux évaluations
+            <a data-link href="/examens" class="rounded-xl bg-sky-600 hover:bg-sky-500 text-white px-5 py-3 text-sm font-bold mx-auto">
+              Retour aux examens
             </a>
           </div>
         `;
@@ -508,7 +508,7 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
             <div class="text-5xl">⚠️</div>
             <p class="font-bold">La soumission a échoué.</p>
             <p class="text-sm text-zinc-500">${e instanceof ApiError ? e.message : 'Vérifiez votre connexion puis réessayez.'}</p>
-            <a data-link href="/evaluations?tab=exams" class="rounded-xl bg-sky-600 text-white font-bold px-5 py-2.5 text-sm mx-auto">Retour</a>
+            <a data-link href="/examens" class="rounded-xl bg-sky-600 text-white font-bold px-5 py-2.5 text-sm mx-auto">Retour</a>
           </div>
         `;
       }

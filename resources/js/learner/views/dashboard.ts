@@ -34,8 +34,8 @@ export function mount(el: HTMLElement): void {
     label: string,
   ): string => html`
     <a data-link href="${href}"
-       class="flex flex-col gap-2 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 hover:shadow-md transition-shadow">
-      <span class="w-10 h-10 rounded-xl flex items-center justify-center text-lg ${tint}">
+       class="group flex flex-col gap-2 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+      <span class="w-10 h-10 rounded-xl flex items-center justify-center text-lg ${tint} group-hover:scale-105 transition-transform">
         <i class="bi ${icon}"></i>
       </span>
       <span class="text-2xl font-extrabold tabular-nums">${value}</span>
@@ -46,7 +46,8 @@ export function mount(el: HTMLElement): void {
   el.innerHTML = html`
     <div class="flex flex-col gap-5">
       <!-- Carte XP / niveau / série -->
-      <section class="rounded-2xl bg-gradient-to-br from-sky-600 to-indigo-700 text-white p-5 shadow-lg">
+      <section class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-sky-600 via-blue-700 to-indigo-800 text-white p-5 sm:p-6 shadow-lg ring-1 ring-white/10">
+        <div class="pointer-events-none absolute -top-16 -right-16 w-48 h-48 rounded-full bg-white/10 blur-2xl" aria-hidden="true"></div>
         <div class="flex items-center justify-between gap-4">
           <div>
             <p class="text-sky-200 text-sm">Bonjour,</p>
@@ -80,10 +81,10 @@ export function mount(el: HTMLElement): void {
       <section class="grid grid-cols-2 sm:grid-cols-4 gap-3">
         ${raw(
           [
-            statCard('/evaluations', 'bi-patch-question', 'bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-400', pendingQuizzes.length, `Quiz à faire`),
+            statCard('/entrainement', 'bi-patch-question', 'bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-400', pendingQuizzes.length, `Quiz à faire`),
             statCard('/articles', 'bi-journal-text', 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400', unreadArticles.length, `Articles à lire`),
-            statCard('/reviser', 'bi-stack', 'bg-violet-100 text-violet-600 dark:bg-violet-500/15 dark:text-violet-400', dueCards.length, `Cartes à réviser`),
-            statCard('/evaluations?tab=exams', 'bi-mortarboard', 'bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400', openExams.length, `Examens ouverts`),
+            statCard('/entrainement?tab=cartes', 'bi-stack', 'bg-violet-100 text-violet-600 dark:bg-violet-500/15 dark:text-violet-400', dueCards.length, `Cartes à réviser`),
+            statCard('/examens', 'bi-mortarboard', 'bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400', openExams.length, `Examens ouverts`),
           ].join(''),
         )}
       </section>
