@@ -25,6 +25,9 @@ class ActivityTest extends TestCase
             'is_active' => true,
             'password' => bcrypt('password'),
         ]);
+
+        \Modules\Core\Models\Role::findOrCreate('admin');
+        $this->user->assignRole('admin');
         $this->actingAs($this->user);
     }
 

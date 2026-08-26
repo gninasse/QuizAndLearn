@@ -37,6 +37,9 @@ class GroupMembersTest extends TestCase
             'password' => bcrypt('password'),
         ]);
 
+        \Modules\Core\Models\Role::findOrCreate('admin');
+        $this->adminUser->assignRole('admin');
+
         // Create a group
         $this->group = Group::create([
             'name' => 'Original Group Name',

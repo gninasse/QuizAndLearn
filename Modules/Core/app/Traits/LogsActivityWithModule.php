@@ -20,6 +20,9 @@ trait LogsActivityWithModule
     {
         return LogOptions::defaults()
             ->logAll()
+            // Jamais de secrets dans le journal d'audit : les hashs de mots
+            // de passe sont attaquables hors-ligne par quiconque lit le journal.
+            ->logExcept(['password', 'remember_token'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs()
             ->useLogName(static::$activityModule);
