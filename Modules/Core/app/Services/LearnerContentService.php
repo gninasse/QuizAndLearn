@@ -81,6 +81,22 @@ class LearnerContentService
         ];
     }
 
+
+    /**
+     * Réécrit les URLs absolues des médias uploadés (/storage/…) en URLs
+     * relatives : le HTML stocké en base contient souvent le domaine du
+     * back-office (asset()), injoignable depuis un tunnel ou le mobile.
+     * Relatif = valable pour la PWA same-origin ET rebasable par les clients.
+     */
+    private function relativizeMediaUrls(?string $html): ?string
+    {
+        if (! $html) {
+            return $html;
+        }
+
+        return preg_replace('#https?://[^/"\'\s]+/storage/#i', '/storage/', $html);
+    }
+
     private function serializeUser(Learner $learner): array
     {
         $user = $learner->user;
@@ -115,7 +131,7 @@ class LearnerContentService
                     'id' => $art->id,
                     'title' => $art->title,
                     'category' => $art->category,
-                    'content' => $art->content,
+                    'content' => $this->relativizeMediaUrls($art->content),
                     'estimated_reading_time' => $art->estimated_reading_time,
                     'is_favorite' => $prog ? (bool) $prog->is_favorite : false,
                     'rating' => $prog ? (int) $prog->rating : 0,
@@ -180,7 +196,7 @@ class LearnerContentService
                     ])->values(),
                     'questions' => $qz->questions->map(fn ($q) => [
                         'id' => $q->id,
-                        'question_text' => $q->question_text,
+                        'question_text' => $this->relativizeMediaUrls($q->question_text),
                         'type' => $q->type,
                         'points' => $q->points,
                         'order' => $q->order,
@@ -220,8 +236,8 @@ class LearnerContentService
 
                         return [
                             'id' => $card->id,
-                            'recto' => $card->recto,
-                            'verso' => $card->verso,
+                            'recto' => $this->relativizeMediaUrls($card->recto),
+                            'verso' => $this->relativizeMediaUrls($card->verso),
                             'recto_media' => $card->recto_media,
                             'verso_media' => $card->verso_media,
                             'tags' => $card->tags,

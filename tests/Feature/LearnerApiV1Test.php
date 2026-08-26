@@ -234,6 +234,21 @@ class LearnerApiV1Test extends TestCase
             ->assertJsonMissing(['title' => 'Quiz étranger']);
     }
 
+    public function test_bootstrap_relativizes_absolute_media_urls(): void
+    {
+        $this->article->update([
+            'content' => '<p>Texte <img src="https://quizandlearn.local/storage/articles/media/photo.jpg"> et <audio src="/storage/a.mp3"></audio></p>',
+        ]);
+
+        $content = $this->actingAs($this->user)
+            ->getJson(route('learn.v1.bootstrap'))
+            ->json('articles.0.content');
+
+        $this->assertStringContainsString('src="/storage/articles/media/photo.jpg"', $content);
+        $this->assertStringNotContainsString('quizandlearn.local', $content);
+        $this->assertStringContainsString('src="/storage/a.mp3"', $content); // relatif inchangé
+    }
+
     // -------------------------------------------------------------- Changes
 
     public function test_changes_returns_delta_and_authorized_ids(): void

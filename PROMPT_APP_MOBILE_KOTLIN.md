@@ -54,6 +54,50 @@ L'UI ne lit JAMAIS le réseau directement. Flux de données :
    « Hors-ligne », avec pastille du nombre d'actions en attente.
 6. **Exception** : les EXAMENS sont online-only (intégrité) — §4.7.
 
+## 2-bis. Médias embarqués dans les contenus HTML (OBLIGATOIRE)
+
+Les champs HTML riches — `articles[].content`, `questions[].question_text`
+(quiz ET examens), `cards[].recto` / `cards[].verso` — peuvent contenir des
+balises `<img src="…">` et `<audio src="…">` (mp3/wav/ogg/m4a) uploadées par
+les formateurs. Ces fichiers sont **publics** (aucune authentification requise)
+et servis sous le chemin `/storage/…` du serveur. Règles à implémenter :
+
+1. **Normalisation des URLs (critique)** : le HTML stocké en base peut contenir
+   des URLs *relatives* (`/storage/articles/media/x.jpg`) **ou absolues avec un
+   autre domaine que l'API** (ex. `https://quizandlearn.local/storage/…`,
+   domaine local du back-office, injoignable depuis le mobile). Règle : pour
+   toute URL dont le chemin contient `/storage/`, **ignorer son origine et la
+   rebaser sur `{{BASE_URL}}`** → `{{BASE_URL}}/storage/…`. Les URLs relatives
+   sont préfixées par `{{BASE_URL}}`. Centraliser cette logique dans un
+   `MediaUrlResolver` unique.
+
+2. **Préchargement offline (pipeline de sync)** : après chaque bootstrap/delta,
+   un Worker « media-prefetch » (WorkManager, réseau requis, backoff) :
+   - extrait toutes les URLs `src` des contenus HTML présents en Room
+     (regex sur `<img|<audio|<source` — articles, questions, recto/verso) ;
+   - télécharge les fichiers absents dans `filesDir/media/{sha256(url)}.{ext}`
+     et tient une table Room `media_cache (url, local_path, size, last_used)` ;
+   - supprime les entrées dont le contenu parent n'existe plus + éviction LRU
+     au-delà de **300 Mo** ;
+   - tolère les échecs unitaires (un média manquant ne bloque pas la sync).
+
+3. **Rendu** : les contenus HTML sont affichés dans une **WebView** (JavaScript
+   désactivé, `WebViewClient.shouldInterceptRequest` sert les fichiers depuis
+   `media_cache` quand ils existent — c'est ce qui rend les médias disponibles
+   hors-ligne sans réécrire le HTML). En ligne et absent du cache → réseau puis
+   mise en cache. Hors-ligne et absent → placeholder gris « Média indisponible
+   hors-ligne » (image) / bouton désactivé (audio).
+   Injecter un CSS de base dans la WebView : `img{max-width:100%;height:auto;
+   border-radius:12px}` (les images se redimensionnent à la largeur de la
+   carte), `audio{width:100%}`, police et couleurs du thème (clair/sombre),
+   taille de police liée à la préférence utilisateur.
+
+4. **Audio** : lecteur natif des contrôles WebView suffisant ; un seul audio à
+   la fois (mettre les autres en pause). Pas de lecture automatique.
+
+5. Limites côté serveur (pour dimensionner le cache) : images ≤ 5 Mo,
+   audio ≤ 10 Mo par fichier.
+
 ## 3. Contrat API (existant — ne pas inventer d'autres endpoints)
 
 Base : `{{BASE_URL}}/api/mobile/v1` — JSON (`Accept: application/json`).
@@ -248,8 +292,9 @@ Room (même hors-ligne) puis delta sync en arrière-plan.
   `article_error_report` type "content" + toast « Signalement envoyé. »).
   **Barre de progression de lecture** collée sous la barre d'app, liée au scroll,
   monotone croissante ; envoyer `article_progress` par paliers (throttle ~3 s,
-  status "reading"). Rendu du **contenu HTML riche** (titres, listes, images
-  redimensionnées, audio) — sur Android, WebView embarquée ou rendu HTML Compose.
+  status "reading"). Rendu du **contenu HTML riche** (titres, listes, images, audio) via la
+  WebView du §2-bis — médias rebasés sur BASE_URL, cachés pour l'offline,
+  images redimensionnées à la largeur de la carte.
   Bouton « **Marquer comme lu (+15 XP)** » → status completed, +15 XP optimiste,
   toast « +15 XP — article terminé ! », remplacé par « ✓ Article lu ».
   **Notation 1–5 étoiles** → action `article_rate` + toast « Merci pour votre note ! ».
@@ -287,7 +332,8 @@ en ordre, Réponse libre), CTA « Commencer le quiz » / « Reprendre le quiz »
   appareil : vous pourrez reprendre plus tard. »), barre de progression
   (question courante / total), **chrono décompte** si le quiz a une durée
   (mm:ss, rouge ≤ 60 s, soumission automatique à 0).
-- Carte question : « Question n / total », points, **énoncé HTML riche**.
+- Carte question : « Question n / total », points, **énoncé HTML riche**
+  (peut contenir images/audio → rendu et cache du §2-bis).
 - Types (mêmes comportements que la PWA) :
   - `true_false` : deux grands boutons Vrai / Faux.
   - `mcq` simple : liste de boutons radio-like ; multiple (`options.multiple`
@@ -333,7 +379,7 @@ rejouer — les questions ratées lors de vos quiz apparaîtront ici. »
   maintenant) ; si aucune due, tout le deck (révision en avance). En-tête :
   « Arrêter », progression x/y. **Carte retournable avec animation de flip 3D** :
   face Question (accent violet, « Touchez pour retourner »), face Réponse
-  (accent émeraude) — contenu recto/verso en HTML riche. Après le flip, révéler
+  (accent émeraude) — contenu recto/verso en HTML riche (médias : §2-bis). Après le flip, révéler
   les 4 boutons : **À revoir (0, rouge) / Difficile (3, ambre) / Moyen (4, bleu)
   / Facile (5, émeraude)**.
 - À chaque évaluation : calcul SM-2 **local** (§6), mise à jour Room immédiate

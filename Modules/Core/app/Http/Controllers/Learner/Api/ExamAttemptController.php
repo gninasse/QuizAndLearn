@@ -84,7 +84,7 @@ class ExamAttemptController extends Controller
 
             return [
                 'id' => $q->id,
-                'question_text' => $q->question_text,
+                'question_text' => preg_replace('#https?://[^/"\'\s]+/storage/#i', '/storage/', $q->question_text),
                 'type' => $q->type,
                 'points' => $q->points,
                 'order' => $q->order,
