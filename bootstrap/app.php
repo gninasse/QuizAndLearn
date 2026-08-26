@@ -11,7 +11,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Tunnels/reverse-proxies (ngrok, etc.) : fait confiance aux en-têtes
+        // X-Forwarded-* pour générer des URLs https correctes derrière le proxy.
+        $middleware->trustProxies(at: '*');
+
         $middleware->alias([
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
