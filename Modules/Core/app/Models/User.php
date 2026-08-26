@@ -5,6 +5,7 @@ namespace Modules\Core\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 use Modules\Core\Traits\HasModulePermissions;
 use Modules\Core\Traits\LogsActivityWithModule;
 use Spatie\Activitylog\Traits\CausesActivity;
@@ -12,7 +13,7 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use CausesActivity, HasFactory, HasModulePermissions, HasRoles, LogsActivityWithModule, Notifiable {
+    use CausesActivity, HasApiTokens, HasFactory, HasModulePermissions, HasRoles, LogsActivityWithModule, Notifiable {
         tapActivity as tapActivityLogsActivityWithModule;
     }
 

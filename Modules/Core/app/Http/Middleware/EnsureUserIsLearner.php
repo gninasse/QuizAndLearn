@@ -15,7 +15,8 @@ class EnsureUserIsLearner
     public function handle(Request $request, Closure $next): Response
     {
         if (! Auth::check() || ! Auth::user()->learner()->exists()) {
-            if ($request->expectsJson()) {
+            // Requêtes JSON ou stateless (API mobile Sanctum) : 403 sec.
+            if ($request->expectsJson() || ! $request->hasSession()) {
                 return response()->json(['message' => 'Accès non autorisé.'], 403);
             }
 
