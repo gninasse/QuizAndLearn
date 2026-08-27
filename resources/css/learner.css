@@ -27,6 +27,55 @@ h1, h2, h3 {
     text-wrap: balance;
 }
 
+/* ------------------------------------------------------------------ */
+/* Ergonomie mobile / sensation « app native » (mode installé inclus)  */
+/* ------------------------------------------------------------------ */
+
+/* Pas de halo bleu au tap, pas de délai double-tap, pas de zoom pincement
+   accidentel sur les contrôles. */
+* {
+    -webkit-tap-highlight-color: transparent;
+}
+button, a, select, label {
+    touch-action: manipulation;
+}
+
+/* Pas de rebond/pull-to-refresh du navigateur : l'app gère sa propre sync. */
+html, body {
+    overscroll-behavior-y: none;
+}
+
+/* iOS zoome sur tout champ < 16px : on force 16px sur écrans tactiles. */
+@media (pointer: coarse) {
+    input, select, textarea {
+        font-size: 16px;
+    }
+}
+
+/* Retour tactile : légère pression sur les éléments interactifs. */
+@media (pointer: coarse) and (prefers-reduced-motion: no-preference) {
+    button:active,
+    a[data-link]:active {
+        transform: scale(0.97);
+        transition: transform 80ms ease;
+    }
+}
+
+/* Le chrome de l'app n'est pas sélectionnable (sensation native) —
+   le contenu pédagogique (.rich-content) le reste. */
+nav, header, .drag-handle {
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* Zones sûres (encoche / barre de geste) en mode installé. */
+header.sticky {
+    padding-top: env(safe-area-inset-top);
+}
+[data-role='conn-banner'] {
+    padding-top: calc(0.375rem + env(safe-area-inset-top));
+}
+
 /* Accessibilité : focus clavier visible partout, jamais au clic. */
 :focus-visible {
     outline: 2px solid var(--color-sky-500);

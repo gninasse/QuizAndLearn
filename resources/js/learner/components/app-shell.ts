@@ -2,6 +2,7 @@ import { BaseComponent, define } from '../core/base-component';
 import { html, raw } from '../core/html';
 import { isDue } from '../domain/sm2';
 import { avatarHtml } from '../ui/avatar';
+import { logoMark, logoWordmark } from '../ui/logo';
 import { articlesStore, decksStore, quizzesStore, sessionStore, syncStore } from '../stores';
 
 /**
@@ -187,10 +188,7 @@ export class AppShell extends BaseComponent {
         <div class="flex">
           <!-- Sidebar desktop -->
           <aside class="hidden lg:flex flex-col w-64 shrink-0 h-dvh sticky top-0 border-r border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 gap-1">
-            <div class="flex items-center gap-2.5 px-2 py-3 mb-2">
-              <span class="text-2xl">🎓</span>
-              <span class="font-extrabold text-lg tracking-tight">Learn<span class="text-sky-600">&</span>Quiz</span>
-            </div>
+            <div class="px-2 py-3 mb-2">${raw(logoWordmark('w-9 h-9', 'text-lg'))}</div>
             ${raw(navLinks.join(''))}
             <div class="mt-auto px-2 py-3 flex items-center gap-3 border-t border-zinc-200 dark:border-zinc-800">
               ${raw(avatarHtml(user, 'w-9 h-9 text-xs'))}
@@ -205,7 +203,7 @@ export class AppShell extends BaseComponent {
             <!-- Header -->
             <header class="sticky top-0 z-40 bg-white/85 dark:bg-zinc-900/85 backdrop-blur border-b border-zinc-200/80 dark:border-zinc-800">
               <div class="flex items-center gap-3 px-4 py-3 max-w-5xl mx-auto w-full">
-                <span class="lg:hidden text-xl leading-none" aria-hidden="true">🎓</span>
+                <span class="lg:hidden inline-flex" aria-hidden="true">${raw(logoMark('w-8 h-8', 'rounded-lg'))}</span>
                 <h1 data-role="title" class="font-bold text-lg truncate flex-1">${this.currentTitle}</h1>
                 <div data-role="sync" class="flex items-center gap-1.5 text-xs font-medium ${sync.online ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}">
                   <span class="relative flex h-2 w-2">

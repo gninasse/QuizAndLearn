@@ -1,6 +1,7 @@
 import { alertDialog } from './app-dialog';
 import { raw } from '../core/html';
 import { toast } from './app-toast';
+import { logoMark } from './logo';
 
 /**
  * Prompt d'installation maîtrisé :
@@ -89,7 +90,7 @@ export function maybeShowInstallBanner(): void {
       'fixed bottom-20 lg:bottom-6 inset-x-3 sm:inset-x-auto sm:right-6 sm:w-96 z-[80] ' +
       'rounded-2xl border border-sky-200 dark:border-sky-500/30 bg-white dark:bg-zinc-900 shadow-2xl p-4 flex items-start gap-3';
     banner.innerHTML = `
-      <span class="text-2xl" aria-hidden="true">🎓</span>
+      <span aria-hidden="true">${logoMark('w-11 h-11')}</span>
       <div class="flex-1 min-w-0">
         <p class="text-sm font-bold">Installer Learn&Quiz</p>
         <p class="text-xs text-zinc-500 mt-0.5">Accès depuis l'écran d'accueil, plein écran, et tout fonctionne hors-ligne.</p>

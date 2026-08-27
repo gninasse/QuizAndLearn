@@ -1,16 +1,18 @@
 import { api, ApiError, NetworkError } from '../api/client';
-import { html } from '../core/html';
+import { html, raw } from '../core/html';
 import { db } from '../db/schema';
 import { fullBootstrap, hydrateFromDb } from '../sync/engine';
 import { sessionStore } from '../stores';
 import { toast } from '../ui/app-toast';
+import { isStandalone } from '../ui/install';
+import { logoMark } from '../ui/logo';
 
 export function mount(el: HTMLElement): void {
   el.innerHTML = html`
     <div class="min-h-dvh flex items-center justify-center bg-gradient-to-br from-sky-950 via-zinc-950 to-zinc-900 px-4">
       <div class="w-full max-w-sm">
         <div class="text-center mb-8">
-          <div class="text-5xl mb-3">🎓</div>
+          <div class="mb-4 flex justify-center">${raw(logoMark('w-20 h-20', 'rounded-3xl'))}</div>
           <h1 class="text-2xl font-extrabold text-white tracking-tight">
             Learn<span class="text-sky-400">&</span>Quiz
           </h1>
@@ -37,9 +39,9 @@ export function mount(el: HTMLElement): void {
           </button>
         </form>
 
-        <p class="text-center text-xs text-zinc-500 mt-6">
-          Application installable — fonctionne aussi hors-ligne après la première connexion.
-        </p>
+        ${isStandalone()
+          ? ''
+          : raw('<p class="text-center text-xs text-zinc-500 mt-6">Application installable — fonctionne aussi hors-ligne après la première connexion.</p>')}
       </div>
     </div>
   `;

@@ -30,7 +30,7 @@
         {{-- Squelette de chargement remplacé au boot par la SPA. --}}
         <div class="min-h-dvh bg-zinc-50 dark:bg-zinc-950 flex flex-col">
             <div class="h-14 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 flex items-center px-4 gap-3">
-                <span class="text-xl">🎓</span>
+                <svg viewBox="0 0 64 64" style="width:32px;height:32px;border-radius:8px" aria-hidden="true"><defs><linearGradient id="lq-boot" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#0ea5e9"/><stop offset="55%" stop-color="#2563eb"/><stop offset="100%" stop-color="#4f46e5"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="url(#lq-boot)"/><path d="M32 16 L54 26 L32 36 L10 26 Z" fill="#fff"/><path d="M20 31.5 V40 q0 5 12 5 t12 -5 V31.5 L32 37 Z" fill="#fff" opacity="0.92"/><path d="M53 27 V38" stroke="#fbbf24" stroke-width="2.6" stroke-linecap="round"/><circle cx="53" cy="40.5" r="3.2" fill="#fbbf24"/></svg>
                 <div class="skeleton h-4 w-32 rounded-md"></div>
                 <div class="ml-auto skeleton h-8 w-8 rounded-full"></div>
             </div>
