@@ -280,6 +280,31 @@ class LearnerApiV1Test extends TestCase
             ->assertJsonPath('quizzes.authorized_ids', []);
     }
 
+    public function test_bootstrap_serializes_decimals_as_numbers(): void
+    {
+        // Une tentative avec score décimal (cast decimal:2 => string en interne).
+        \Modules\Core\Models\QuizAttempt::create([
+            'learner_id' => $this->learner->id,
+            'quiz_id' => $this->quiz->id,
+            'started_at' => now(),
+            'completed_at' => now(),
+            'attempt_number' => 1,
+            'status' => 'completed',
+            'score' => 83.33,
+            'points_earned' => 2,
+            'points_total' => 4,
+            'passed' => true,
+        ]);
+
+        $score = $this->actingAs($this->user)
+            ->getJson(route('learn.v1.bootstrap'))
+            ->json('quizzes.0.attempts.0.score');
+
+        // Nombre JSON, pas une chaîne — les clients typés (Kotlin) en dépendent.
+        $this->assertIsFloat($score);
+        $this->assertSame(83.33, $score);
+    }
+
     // ----------------------------------------------------------- Leaderboard
 
     public function test_leaderboard_ranks_peers_by_xp(): void
