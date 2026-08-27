@@ -185,17 +185,22 @@ async function mountAsync(el: HTMLElement, params: Record<string, string>): Prom
           <div class="flex flex-col gap-2">
             ${raw(
               answersList
-                .map((a) => {
+                .map((a, choiceIdx) => {
                   const selected = savedArray.includes(a.text);
+                  const letter = String.fromCharCode(65 + choiceIdx);
                   return `
                     <button data-choice="${escapeHtml(a.text)}" data-multiple="${isMultiple}"
-                            class="answer-choice text-left rounded-xl border-2 px-4 py-3.5 text-sm font-semibold transition-colors flex items-center gap-3 ${
+                            aria-pressed="${selected}"
+                            class="answer-choice text-left rounded-xl border-2 px-3.5 py-3 text-sm font-semibold transition-all flex items-center gap-3 ${
                               selected
-                                ? 'border-sky-500 bg-sky-50 dark:bg-sky-500/10'
+                                ? 'border-sky-500 bg-sky-50 dark:bg-sky-500/10 shadow-sm'
                                 : 'border-zinc-200 dark:border-zinc-700 hover:border-sky-300'
                             }">
-                      <i class="bi ${isMultiple ? (selected ? 'bi-check-square-fill text-sky-600' : 'bi-square') : selected ? 'bi-record-circle-fill text-sky-600' : 'bi-circle'}"></i>
-                      <span>${escapeHtml(a.text)}</span>
+                      <span class="w-7 h-7 shrink-0 rounded-lg flex items-center justify-center text-xs font-extrabold transition-colors ${
+                        selected ? 'bg-sky-600 text-white' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500'
+                      }">${selected && isMultiple ? '<i class="bi bi-check-lg"></i>' : letter}</span>
+                      <span class="flex-1">${escapeHtml(a.text)}</span>
+                      ${selected && !isMultiple ? '<i class="bi bi-check-circle-fill text-sky-600"></i>' : ''}
                     </button>`;
                 })
                 .join(''),
@@ -241,9 +246,12 @@ async function mountAsync(el: HTMLElement, params: Record<string, string>): Prom
               pairs
                 .map(
                   (pair, idx) => `
-                    <div class="flex flex-col sm:flex-row sm:items-center gap-2">
-                      <span class="sm:w-1/2 text-sm font-bold rounded-xl bg-zinc-100 dark:bg-zinc-800 px-4 py-3">${escapeHtml(pair.term)}</span>
-                      <select data-match="${idx}" class="answer-match sm:w-1/2 rounded-xl border-2 border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-3 text-sm">
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2 rounded-xl border border-zinc-100 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-800/40 p-2.5">
+                      <span class="sm:w-1/2 text-sm font-bold rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 px-4 py-2.5 flex items-center gap-2">
+                        <i class="bi bi-arrow-return-right text-sky-500 sm:hidden" aria-hidden="true"></i>${escapeHtml(pair.term)}
+                      </span>
+                      <i class="bi bi-arrow-right text-sky-500 hidden sm:block shrink-0" aria-hidden="true"></i>
+                      <select data-match="${idx}" class="answer-match sm:flex-1 rounded-lg border-2 border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2.5 text-sm">
                         <option value="">— Choisir —</option>
                         ${definitions
                           .map(
@@ -328,9 +336,9 @@ async function mountAsync(el: HTMLElement, params: Record<string, string>): Prom
             : ''}
         </div>
 
-        <div class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 flex flex-col gap-4">
+        <div class="question-card rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 flex flex-col gap-4 shadow-sm">
           <div class="flex items-center justify-between text-xs font-bold text-zinc-500">
-            <span>Question ${state.index + 1} / ${total}</span>
+            <span class="inline-flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-sky-500"></span>Question ${state.index + 1} / ${total}</span>
             <span>${question.points} pt${question.points > 1 ? 's' : ''}</span>
           </div>
           <!-- Énoncé riche (éditeur admin) : injection volontaire. -->

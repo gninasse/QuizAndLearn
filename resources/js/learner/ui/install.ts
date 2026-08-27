@@ -43,10 +43,9 @@ function isIos(): boolean {
   return /iphone|ipad|ipod/i.test(navigator.userAgent);
 }
 
-/** Installation possible via un des deux chemins (prompt natif ou guide iOS). */
+/** L'installation peut être proposée dès que l'app ne tourne pas en standalone. */
 export function canOfferInstall(): boolean {
-  if (isStandalone()) return false;
-  return deferredPrompt !== null || isIos();
+  return !isStandalone();
 }
 
 export async function triggerInstall(): Promise<void> {
@@ -72,7 +71,21 @@ export async function triggerInstall(): Promise<void> {
          </ol>`,
       ),
     );
+    return;
   }
+
+  // Navigateur sans beforeinstallprompt (ou pas encore déclenché) :
+  // guider vers le menu du navigateur.
+  await alertDialog(
+    "Installer l'application",
+    raw(
+      `<p class="text-sm text-zinc-600 dark:text-zinc-300">
+         Ouvrez le menu de votre navigateur (<i class="bi bi-three-dots-vertical"></i> en haut à droite)
+         puis choisissez <b>« Installer l'application »</b> ou
+         <b>« Ajouter à l'écran d'accueil »</b>.
+       </p>`,
+    ),
+  );
 }
 
 /**

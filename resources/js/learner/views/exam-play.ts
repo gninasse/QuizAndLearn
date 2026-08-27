@@ -241,14 +241,17 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
               ${raw(
                 choices
                   .map(
-                    (c) => `
-                      <button data-mcq="${escapeHtml(c.text)}" class="text-left rounded-xl border-2 px-4 py-3 text-sm font-semibold flex items-center gap-3 ${
+                    (c, choiceIdx) => `
+                      <button data-mcq="${escapeHtml(c.text)}" aria-pressed="${selected.includes(c.text)}"
+                              class="text-left rounded-xl border-2 px-3.5 py-3 text-sm font-semibold flex items-center gap-3 transition-all ${
                         selected.includes(c.text)
-                          ? 'border-amber-500 bg-amber-50 dark:bg-amber-500/10'
+                          ? 'border-amber-500 bg-amber-50 dark:bg-amber-500/10 shadow-sm'
                           : 'border-zinc-200 dark:border-zinc-700'
                       }">
-                        <i class="bi ${selected.includes(c.text) ? 'bi-check-square-fill text-amber-600' : 'bi-square'}"></i>
-                        <span>${escapeHtml(c.text)}</span>
+                        <span class="w-7 h-7 shrink-0 rounded-lg flex items-center justify-center text-xs font-extrabold ${
+                          selected.includes(c.text) ? 'bg-amber-600 text-white' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500'
+                        }">${selected.includes(c.text) ? '<i class="bi bi-check-lg"></i>' : String.fromCharCode(65 + choiceIdx)}</span>
+                        <span class="flex-1">${escapeHtml(c.text)}</span>
                       </button>`,
                   )
                   .join(''),
@@ -340,7 +343,7 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
             <span id="exam-timer" class="text-sm font-bold tabular-nums ${remaining <= 120 ? 'text-red-500' : ''}">${formatDuration(remaining)}</span>
           </div>
 
-          <div class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 flex flex-col gap-4">
+          <div class="question-card rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 flex flex-col gap-4 shadow-sm">
             <div class="flex items-center justify-between text-xs font-bold text-zinc-500">
               <span>Question ${index + 1} / ${total}</span>
               <span>${question.points} pt${question.points > 1 ? 's' : ''}</span>
