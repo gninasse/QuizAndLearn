@@ -305,6 +305,47 @@ class LearnerApiV1Test extends TestCase
         $this->assertSame(83.33, $score);
     }
 
+    public function test_empty_question_options_serialize_as_json_object(): void
+    {
+        Question::create([
+            'quiz_id' => $this->quiz->id,
+            'question_text' => 'Expliquez.',
+            'type' => 'open_text',
+            'points' => 2,
+            'order' => 2,
+            'options' => [],
+        ]);
+
+        $content = $this->actingAs($this->user)
+            ->getJson(route('learn.v1.bootstrap'))
+            ->content();
+
+        // Jamais "options":[] — les clients typés (Moshi) attendent un objet.
+        $this->assertStringNotContainsString('"options":[]', $content);
+        $this->assertStringContainsString('"options":{}', $content);
+    }
+
+    public function test_exam_start_true_false_options_stay_an_object(): void
+    {
+        $exam = \Modules\Core\Models\Exam::create([
+            'title' => 'Objet options', 'duration' => 10, 'passing_score' => 50,
+            'is_active' => true, 'max_attempts' => 3, 'note_max' => 20, 'created_by' => $this->user->id,
+        ]);
+        $exam->groups()->attach($this->group->id);
+        \Modules\Core\Models\ExamQuestion::create([
+            'exam_id' => $exam->id, 'question_text' => 'Vrai ?', 'type' => 'true_false',
+            'points' => 2, 'points_negatifs' => 0, 'order' => 1,
+            'options' => ['correct_answer' => 'true'], // vidé au strip -> doit rester {}
+        ]);
+
+        $content = $this->actingAs($this->user)
+            ->postJson(route('learn.v1.exams.attempts.store', $exam->id))
+            ->content();
+
+        $this->assertStringNotContainsString('"options":[]', $content);
+        $this->assertStringContainsString('"options":{}', $content);
+    }
+
     // ----------------------------------------------------------- Leaderboard
 
     public function test_leaderboard_ranks_peers_by_xp(): void

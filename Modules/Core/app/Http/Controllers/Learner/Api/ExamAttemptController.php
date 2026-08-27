@@ -88,7 +88,9 @@ class ExamAttemptController extends Controller
                 'type' => $q->type,
                 'points' => $q->points,
                 'order' => $q->order,
-                'options' => $options,
+                // Un true_false vidé de correct_answer deviendrait [] (array
+                // JSON) : les options sont toujours un objet.
+                'options' => empty($options) ? (object) [] : $options,
             ];
         });
 

@@ -219,7 +219,10 @@ class LearnerContentService
                         'type' => $q->type,
                         'points' => $q->points,
                         'order' => $q->order,
-                        'options' => $q->options ?? [],
+                        // (object) : un tableau PHP vide se sérialiserait en []
+                        // (array JSON) et casserait les clients typés qui
+                        // attendent un objet.
+                        'options' => empty($q->options) ? (object) [] : $q->options,
                     ])->values(),
                 ];
             });
