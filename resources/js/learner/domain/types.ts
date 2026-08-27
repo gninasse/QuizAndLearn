@@ -140,6 +140,16 @@ export interface ExamItem {
   attempts: ExamAttemptSummary[];
 }
 
+export type GroupStatus = 'active' | 'upcoming' | 'suspended' | 'closed';
+
+export interface GroupInfo {
+  id: number;
+  name: string;
+  status: GroupStatus;
+  start_date: string | null;
+  end_date: string | null;
+}
+
 export interface BadgeItem {
   id: number;
   name: string;
@@ -159,6 +169,7 @@ export interface Preferences {
 export interface BootstrapPayload {
   cursor: string;
   user: UserProfile;
+  groups: GroupInfo[];
   articles: ArticleItem[];
   quizzes: QuizItem[];
   decks: DeckItem[];
@@ -174,6 +185,7 @@ export interface CollectionDelta<T> {
 
 export interface ChangesPayload {
   cursor: string;
+  groups: GroupInfo[];
   articles: CollectionDelta<ArticleItem>;
   quizzes: CollectionDelta<QuizItem>;
   decks: CollectionDelta<DeckItem>;

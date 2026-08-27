@@ -5,10 +5,11 @@ import {
   badgesStore,
   decksStore,
   examsStore,
+  groupsStore,
   quizzesStore,
   sessionStore,
 } from '../stores';
-import { levelProgress, pluralize } from './helpers';
+import { formatDate, levelProgress, pluralize } from './helpers';
 
 export function mount(el: HTMLElement): void {
   const user = sessionStore.get();
@@ -25,6 +26,22 @@ export function mount(el: HTMLElement): void {
   const dueCards = decks.flatMap((d) => d.cards).filter((c) => isDue(c.review?.next_review));
   const openExams = exams.filter((e) => e.status === 'available' || e.status === 'in_progress');
   const progress = levelProgress(user.xp);
+
+
+  // Groupes non actifs : expliquer pourquoi du contenu a pu disparaître.
+  const inactiveGroups = groupsStore.get().filter((g) => g.status !== 'active');
+  const groupNotice = (g: (typeof inactiveGroups)[number]): string => {
+    switch (g.status) {
+      case 'closed':
+        return `La formation « ${escapeHtml(g.name)} » est terminée${g.end_date ? ` depuis le ${formatDate(g.end_date)}` : ''} — son contenu n'est plus disponible, votre historique est conservé.`;
+      case 'suspended':
+        return `Le groupe « ${escapeHtml(g.name)} » est momentanément suspendu — son contenu réapparaîtra à sa réactivation.`;
+      case 'upcoming':
+        return `La formation « ${escapeHtml(g.name)} » ouvrira le ${g.start_date ? formatDate(g.start_date) : 'bientôt'} — son contenu apparaîtra à ce moment-là.`;
+      default:
+        return '';
+    }
+  };
 
   const statCard = (
     href: string,
@@ -45,6 +62,23 @@ export function mount(el: HTMLElement): void {
 
   el.innerHTML = html`
     <div class="flex flex-col gap-5">
+      ${inactiveGroups.length
+        ? raw(
+            `<section class="flex flex-col gap-2">${inactiveGroups
+              .map(
+                (g) => `
+                  <div class="flex items-start gap-3 rounded-2xl border px-4 py-3 text-xs leading-relaxed ${
+                    g.status === 'upcoming'
+                      ? 'border-sky-200 dark:border-sky-500/30 bg-sky-50/70 dark:bg-sky-500/10 text-sky-800 dark:text-sky-200'
+                      : 'border-amber-200/70 dark:border-amber-500/25 bg-amber-50/70 dark:bg-amber-500/10 text-amber-800 dark:text-amber-200'
+                  }">
+                    <i class="bi ${g.status === 'upcoming' ? 'bi-hourglass-split' : g.status === 'closed' ? 'bi-flag' : 'bi-pause-circle'} text-base mt-0.5"></i>
+                    <p>${groupNotice(g)}</p>
+                  </div>`,
+              )
+              .join('')}</section>`,
+          )
+        : ''}
       <!-- Carte XP / niveau / série -->
       <section class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-sky-600 via-blue-700 to-indigo-800 text-white p-5 sm:p-6 shadow-lg ring-1 ring-white/10">
         <div class="pointer-events-none absolute -top-16 -right-16 w-48 h-48 rounded-full bg-white/10 blur-2xl" aria-hidden="true"></div>

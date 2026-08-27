@@ -253,7 +253,7 @@ class ActionController extends Controller
             throw new InvalidArgumentException('Quiz introuvable.');
         }
 
-        $groupIds = $learner->groups()->pluck('groups.id');
+        $groupIds = $learner->groups()->current()->pluck('groups.id');
         $isAssigned = $quiz->groups()->whereIn('groups.id', $groupIds)->exists();
         if (! $quiz->is_active || ! $isAssigned) {
             throw new InvalidArgumentException('Quiz non autorisé.');
@@ -303,7 +303,7 @@ class ActionController extends Controller
         }
 
         $deck = $card->deck;
-        $groupIds = $learner->groups()->pluck('groups.id');
+        $groupIds = $learner->groups()->current()->pluck('groups.id');
         $isAccessible = $deck->active
             && ($deck->is_public || $deck->groups()->whereIn('groups.id', $groupIds)->exists());
         if (! $isAccessible) {

@@ -1,6 +1,7 @@
 import Dexie, { type Table } from 'dexie';
 import type {
   ArticleItem,
+  GroupInfo,
   BadgeItem,
   DeckItem,
   ExamItem,
@@ -39,6 +40,8 @@ export class LearnerDb extends Dexie {
 
   badges!: Table<BadgeItem, number>;
 
+  groups!: Table<GroupInfo, number>;
+
   outbox!: Table<OutboxAction, number>;
 
   meta!: Table<MetaRow, string>;
@@ -67,6 +70,10 @@ export class LearnerDb extends Dexie {
     this.version(2).stores({
       drafts: 'quiz_id',
       mistakes: 'question_id, quiz_id',
+    });
+
+    this.version(3).stores({
+      groups: 'id',
     });
   }
 }

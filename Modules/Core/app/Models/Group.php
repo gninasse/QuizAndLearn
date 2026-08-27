@@ -53,6 +53,40 @@ class Group extends Model
     }
 
     /**
+     * Groupes « en cours » : actifs ET dans leur fenêtre de dates.
+     * C'est LE filtre du volet apprenant — un groupe suspendu, fermé
+     * (end_date dépassée) ou pas encore ouvert ne délivre plus de contenu.
+     */
+    public function scopeCurrent(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query->where('is_active', true)
+            ->where(function ($q) {
+                $q->whereNull('start_date')->orWhereDate('start_date', '<=', now());
+            })
+            ->where(function ($q) {
+                $q->whereNull('end_date')->orWhereDate('end_date', '>=', now());
+            });
+    }
+
+    /**
+     * Statut lisible du groupe pour le volet apprenant.
+     */
+    public function learnerStatus(): string
+    {
+        if (! $this->is_active) {
+            return 'suspended';
+        }
+        if ($this->end_date && $this->end_date->isPast() && ! $this->end_date->isToday()) {
+            return 'closed';
+        }
+        if ($this->start_date && $this->start_date->isFuture()) {
+            return 'upcoming';
+        }
+
+        return 'active';
+    }
+
+    /**
      * Obtenir les quiz assignés à ce groupe.
      */
     public function quizzes(): \Illuminate\Database\Eloquent\Relations\BelongsToMany

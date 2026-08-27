@@ -26,7 +26,7 @@ class ExamAttemptController extends Controller
     public function store(Request $request, int $examId): JsonResponse
     {
         $learner = Auth::user()->learner;
-        $groupIds = $learner->groups()->pluck('groups.id');
+        $groupIds = $learner->groups()->current()->pluck('groups.id');
 
         $exam = Exam::where('is_active', true)
             ->whereHas('groups', fn ($q) => $q->whereIn('group_id', $groupIds))

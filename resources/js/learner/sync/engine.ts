@@ -13,6 +13,7 @@ import type { ActionType, BootstrapPayload, ChangesPayload, CollectionDelta } fr
 import {
   articlesStore,
   badgesStore,
+  groupsStore,
   decksStore,
   examsStore,
   preferencesStore,
@@ -55,6 +56,7 @@ export async function hydrateFromDb(): Promise<boolean> {
   decksStore.set(await db.decks.toArray());
   examsStore.set(await db.exams.toArray());
   badgesStore.set(await db.badges.toArray());
+  groupsStore.set(await db.groups.toArray());
   await refreshPendingCount();
 
   return true;
@@ -63,7 +65,7 @@ export async function hydrateFromDb(): Promise<boolean> {
 async function persistBootstrap(payload: BootstrapPayload): Promise<void> {
   await db.transaction(
     'rw',
-    [db.profile, db.preferences, db.articles, db.quizzes, db.decks, db.exams, db.badges, db.meta],
+    [db.profile, db.preferences, db.articles, db.quizzes, db.decks, db.exams, db.badges, db.groups, db.meta],
     async () => {
       await db.profile.put({ ...payload.user, _key: 'me' });
       await db.preferences.put({ ...payload.preferences, _key: 'me' });
@@ -78,18 +80,33 @@ async function persistBootstrap(payload: BootstrapPayload): Promise<void> {
       await db.exams.bulkPut(payload.exams);
       await db.badges.clear();
       await db.badges.bulkPut(payload.badges);
+      await db.groups.clear();
+      await db.groups.bulkPut(payload.groups ?? []);
       await setMeta(META_CURSOR, payload.cursor);
     },
   );
 }
 
-async function applyChanges(delta: ChangesPayload): Promise<void> {
+/**
+ * Applique un delta. Renvoie true si un contenu autorisé est absent en local
+ * (ex. groupe réactivé : ses contenus inchangés ne sont pas dans `updated[]`
+ * mais reviennent dans `authorized_ids`) → un re-bootstrap complet s'impose.
+ */
+async function applyChanges(delta: ChangesPayload): Promise<boolean> {
+  let missingAuthorized = false;
+
   await db.transaction(
     'rw',
-    [db.articles, db.quizzes, db.decks, db.exams, db.badges, db.profile, db.meta],
+    [db.articles, db.quizzes, db.decks, db.exams, db.badges, db.groups, db.profile, db.meta],
     async () => {
       const apply = async <T>(
-        table: { bulkPut(items: T[]): Promise<unknown>; where(index: string): { noneOf(keys: number[]): { delete(): Promise<number> } } },
+        table: {
+          bulkPut(items: T[]): Promise<unknown>;
+          where(index: string): {
+            noneOf(keys: number[]): { delete(): Promise<number> };
+            anyOf(keys: number[]): { primaryKeys(): Promise<unknown[]> };
+          };
+        },
         d: CollectionDelta<T>,
       ): Promise<void> => {
         if (d.updated.length) {
@@ -97,6 +114,14 @@ async function applyChanges(delta: ChangesPayload): Promise<void> {
         }
         // Supprime tout ce qui n'est plus autorisé (désassignation, désactivation).
         await table.where('id').noneOf(d.authorized_ids).delete();
+
+        // Détecte les ids autorisés mais absents localement (réautorisation).
+        if (d.authorized_ids.length) {
+          const present = await table.where('id').anyOf(d.authorized_ids).primaryKeys();
+          if (present.length < d.authorized_ids.length) {
+            missingAuthorized = true;
+          }
+        }
       };
 
       await apply(db.articles, delta.articles);
@@ -106,6 +131,8 @@ async function applyChanges(delta: ChangesPayload): Promise<void> {
 
       await db.badges.clear();
       await db.badges.bulkPut(delta.badges);
+      await db.groups.clear();
+      await db.groups.bulkPut(delta.groups ?? []);
 
       const profile = await db.profile.get('me');
       if (profile) {
@@ -116,6 +143,8 @@ async function applyChanges(delta: ChangesPayload): Promise<void> {
       await setMeta(META_CURSOR, delta.cursor);
     },
   );
+
+  return missingAuthorized;
 }
 
 // ------------------------------------------------------ Warm cache médias
@@ -261,7 +290,13 @@ async function doSync(): Promise<void> {
     const cursor = await getMeta<string>(META_CURSOR);
     if (cursor) {
       const delta = await api.changes(cursor);
-      await applyChanges(delta);
+      const missingAuthorized = await applyChanges(delta);
+      if (missingAuthorized) {
+        // Contenu réautorisé (ex. groupe réactivé) absent en local :
+        // le delta ne redélivre pas l'inchangé → re-bootstrap complet.
+        const payload = await api.bootstrap();
+        await persistBootstrap(payload);
+      }
     } else {
       const payload = await api.bootstrap();
       await persistBootstrap(payload);
@@ -349,6 +384,7 @@ export async function clearLocalData(): Promise<void> {
     db.decks.clear(),
     db.exams.clear(),
     db.badges.clear(),
+    db.groups.clear(),
     db.outbox.clear(),
     db.meta.clear(),
   ]);

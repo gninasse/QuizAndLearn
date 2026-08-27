@@ -30,11 +30,12 @@ class LearnerContentService
     public function bootstrap(Learner $learner): array
     {
         $cursor = now();
-        $groupIds = $learner->groups()->pluck('groups.id');
+        $groupIds = $learner->groups()->current()->pluck('groups.id');
 
         return [
             'cursor' => $cursor->toIso8601String(),
             'user' => $this->serializeUser($learner),
+            'groups' => $this->groupsFor($learner),
             'articles' => $this->articlesFor($learner, $groupIds)->values(),
             'quizzes' => $this->quizzesFor($learner, $groupIds)->values(),
             'decks' => $this->decksFor($learner, $groupIds)->values(),
@@ -51,7 +52,7 @@ class LearnerContentService
     public function changes(Learner $learner, CarbonInterface $since): array
     {
         $cursor = now();
-        $groupIds = $learner->groups()->pluck('groups.id');
+        $groupIds = $learner->groups()->current()->pluck('groups.id');
 
         $articles = $this->articlesFor($learner, $groupIds);
         $quizzes = $this->quizzesFor($learner, $groupIds);
@@ -76,11 +77,29 @@ class LearnerContentService
                 'updated' => $exams->filter(fn ($e) => $e['updated_at'] > $since->toIso8601String())->values(),
                 'authorized_ids' => $exams->pluck('id')->values(),
             ],
+            'groups' => $this->groupsFor($learner),
             'badges' => $this->serializeBadges($learner),
             'xp' => $this->gamification->snapshot($learner),
         ];
     }
 
+
+
+    /**
+     * Groupes de l'apprenant avec leur statut — permet au client d'expliquer
+     * pourquoi un contenu a disparu (groupe suspendu/fermé) au lieu de le
+     * laisser s'évaporer silencieusement.
+     */
+    private function groupsFor(Learner $learner): array
+    {
+        return $learner->groups()->get()->map(fn ($group) => [
+            'id' => $group->id,
+            'name' => $group->name,
+            'status' => $group->learnerStatus(),
+            'start_date' => $group->start_date?->toDateString(),
+            'end_date' => $group->end_date?->toDateString(),
+        ])->values()->toArray();
+    }
 
     /**
      * Réécrit les URLs absolues des médias uploadés (/storage/…) en URLs
@@ -334,13 +353,16 @@ class LearnerContentService
 
     private function preferencesFor(Learner $learner): array
     {
-        $preferences = $learner->preferences ?? $learner->preferences()->create([
+        // firstOrCreate + setRelation : la relation en cache peut être périmée
+        // (null) si le même modèle sert plusieurs requêtes dans un cycle.
+        $preferences = $learner->preferences()->firstOrCreate([], [
             'locale' => 'fr',
             'theme' => 'light',
             'font_size' => 'medium',
             'sound_enabled' => true,
             'notifications_enabled' => ['new_quiz' => true, 'new_article' => true],
         ]);
+        $learner->setRelation('preferences', $preferences);
 
         return [
             'locale' => $preferences->locale,
