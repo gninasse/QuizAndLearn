@@ -4,7 +4,7 @@
   "description": "Quiz, articles, flashcards et examens — apprenez partout, même hors-ligne.",
   "lang": "fr",
   "start_url": "/",
-  "display": "standalone",
+  "display": "fullscreen",
   "background_color": "#09090b",
   "theme_color": "#0284c7",
   "orientation": "portrait",
@@ -61,7 +61,9 @@
   ],
   "id": "/",
   "display_override": [
-    "standalone"
+    "fullscreen",
+    "standalone",
+    "minimal-ui"
   ],
   "launch_handler": {
     "client_mode": "navigate-existing"

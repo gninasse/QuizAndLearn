@@ -32,9 +32,19 @@ export function captureInstallPrompt(): void {
   });
 }
 
+/**
+ * L'app tourne-t-elle installée (hors navigateur) ?
+ *
+ * Le manifeste demande `fullscreen` en priorité : il faut donc tester tous
+ * les modes installés, sinon `(display-mode: standalone)` seul renvoie faux
+ * en immersif et l'app se croirait encore dans un onglet.
+ * `navigator.standalone` couvre iOS, qui ignore `fullscreen`.
+ */
 export function isStandalone(): boolean {
+  const installedModes = ['fullscreen', 'standalone', 'minimal-ui'];
+
   return (
-    window.matchMedia('(display-mode: standalone)').matches ||
+    installedModes.some((mode) => window.matchMedia(`(display-mode: ${mode})`).matches) ||
     (navigator as { standalone?: boolean }).standalone === true
   );
 }

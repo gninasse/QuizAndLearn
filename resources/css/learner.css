@@ -76,6 +76,28 @@ header.sticky {
     padding-top: calc(0.375rem + env(safe-area-inset-top));
 }
 
+/* Mode immersif (display: fullscreen) : plus aucune barre système.
+   Les safe-area-insets retombent souvent à 0 alors que l'encoche et la
+   zone de geste restent physiquement là — on impose donc un minimum
+   pour que rien ne colle au bord de la dalle. */
+@media (display-mode: fullscreen) {
+    header.sticky {
+        padding-top: max(env(safe-area-inset-top), 0.75rem);
+    }
+    [data-role='conn-banner'] {
+        padding-top: max(calc(0.375rem + env(safe-area-inset-top)), 0.75rem);
+    }
+    /* Tab bar : au-dessus de la zone de geste, même quand l'inset vaut 0. */
+    nav.fixed.bottom-0 {
+        padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);
+    }
+    /* Marge de sécurité latérale en paysage (encoche sur le côté). */
+    #outlet {
+        padding-left: max(env(safe-area-inset-left), 1rem);
+        padding-right: max(env(safe-area-inset-right), 1rem);
+    }
+}
+
 /* ------------------------------------------------------------------ */
 /* Profondeur : fond ambiant + verre dépoli + halos colorés            */
 /* ------------------------------------------------------------------ */
