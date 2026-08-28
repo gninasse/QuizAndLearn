@@ -51,7 +51,7 @@ export function mount(el: HTMLElement): void {
     label: string,
   ): string => html`
     <a data-link href="${href}"
-       class="group flex flex-col gap-2 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+       class="lift group flex flex-col gap-2 rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-4 shadow-sm hover:shadow-lg">
       <span class="w-10 h-10 rounded-xl flex items-center justify-center text-lg ${tint} group-hover:scale-105 transition-transform">
         <i class="bi ${icon}"></i>
       </span>
@@ -80,7 +80,7 @@ export function mount(el: HTMLElement): void {
           )
         : ''}
       <!-- Carte XP / niveau / série -->
-      <section class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-sky-600 via-blue-700 to-indigo-800 text-white p-5 sm:p-6 shadow-lg ring-1 ring-white/10">
+      <section class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-sky-600 via-blue-700 to-indigo-800 text-white p-5 sm:p-6 glow-hero ring-1 ring-white/10">
         <div class="pointer-events-none absolute -top-16 -right-16 w-48 h-48 rounded-full bg-white/10 blur-2xl" aria-hidden="true"></div>
         <div class="flex items-center justify-between gap-4">
           <div>
@@ -139,7 +139,7 @@ export function mount(el: HTMLElement): void {
                     .map((quiz) =>
                       html`
                         <a data-link href="/quizzes/${quiz.id}"
-                           class="flex items-center gap-3 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 hover:shadow-md transition-shadow">
+                           class="lift flex items-center gap-3 rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-4 hover:shadow-lg">
                           <span class="w-10 h-10 shrink-0 rounded-xl bg-sky-100 dark:bg-sky-500/15 text-sky-600 dark:text-sky-400 flex items-center justify-center">
                             <i class="bi ${quiz.status === 'in_progress' ? 'bi-play-circle' : 'bi-patch-question'}"></i>
                           </span>
@@ -168,7 +168,7 @@ export function mount(el: HTMLElement): void {
               `<div class="flex flex-wrap gap-2">${badges
                 .map(
                   (b) =>
-                    `<span class="inline-flex items-center gap-1.5 rounded-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-3 py-1.5 text-sm font-semibold" title="${escapeHtml(b.description)}">${escapeHtml(b.icon)} ${escapeHtml(b.name)}</span>`,
+                    `<span class="inline-flex items-center gap-1.5 rounded-full panel-glass backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/70 px-3 py-1.5 text-sm font-semibold" title="${escapeHtml(b.description)}">${escapeHtml(b.icon)} ${escapeHtml(b.name)}</span>`,
                 )
                 .join('')}</div>`,
             )

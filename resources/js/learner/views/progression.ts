@@ -76,7 +76,7 @@ export function mount(el: HTMLElement): void {
       </a>
 
       <!-- Résumé -->
-      <section class="rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 shadow-sm">
+      <section class="rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-5 shadow-sm">
         <div class="grid grid-cols-2 sm:grid-cols-4 text-center gap-4">
           <div><p class="text-2xl font-extrabold tabular-nums">${user.xp.total_xp}</p><p class="text-xs text-zinc-500">XP total</p></div>
           <div><p class="text-2xl font-extrabold tabular-nums">${user.xp.current_level}</p><p class="text-xs text-zinc-500">Niveau</p></div>
@@ -95,7 +95,7 @@ export function mount(el: HTMLElement): void {
       </section>
 
       <!-- Activité -->
-      <section class="rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 shadow-sm">
+      <section class="rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-5 shadow-sm">
         <h3 class="font-bold text-sm mb-1">Activité des 12 dernières semaines</h3>
         <p class="text-xs text-zinc-500 mb-3">${attempts.length} quiz complété(s) · ${masteredCards}/${totalCards} cartes maîtrisées</p>
         <div class="grid grid-flow-col grid-rows-7 gap-1 justify-start overflow-x-auto pb-1" role="img"
@@ -114,7 +114,7 @@ export function mount(el: HTMLElement): void {
       <!-- Meilleurs scores -->
       ${perQuiz.length
         ? raw(html`
-            <section class="rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 shadow-sm">
+            <section class="rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-5 shadow-sm">
               <h3 class="font-bold text-sm mb-3">Mes meilleurs scores</h3>
               <div class="flex flex-col gap-2.5">
                 ${raw(
@@ -139,7 +139,7 @@ export function mount(el: HTMLElement): void {
         : ''}
 
       <!-- Classement -->
-      <section class="rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 shadow-sm">
+      <section class="rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-5 shadow-sm">
         <h3 class="font-bold text-sm mb-3"><i class="bi bi-trophy text-amber-500"></i> Classement de mes groupes</h3>
         <div id="leaderboard-zone" class="text-sm text-zinc-500">
           <div class="flex flex-col gap-2">

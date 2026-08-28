@@ -61,7 +61,7 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
           <li><i class="bi bi-clock mr-1"></i> Durée : <b>${exam.duration} minutes</b> — soumission automatique à la fin du temps.</li>
         </ul>
       </div>
-      <button id="btn-start" class="rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold py-3">
+      <button id="btn-start" class="rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 glow-amber">
         J'ai compris, commencer
       </button>
       <a data-link href="/examens" class="text-center text-sm text-zinc-500">Annuler</a>
@@ -343,7 +343,7 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
             <span id="exam-timer" class="text-sm font-bold tabular-nums ${remaining <= 120 ? 'text-red-500' : ''}">${formatDuration(remaining)}</span>
           </div>
 
-          <div class="question-card rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 flex flex-col gap-4 shadow-sm">
+          <div class="question-card rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-5 flex flex-col gap-4 shadow-sm">
             <div class="flex items-center justify-between text-xs font-bold text-zinc-500">
               <span>Question ${index + 1} / ${total}</span>
               <span>${question.points} pt${question.points > 1 ? 's' : ''}</span>
@@ -359,7 +359,7 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
             </button>
             <span class="flex-1 text-center text-xs text-zinc-500">${Object.keys(answers).length}/${total} répondues</span>
             ${index === total - 1
-              ? raw('<button id="btn-submit" class="rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 text-sm font-bold">Soumettre</button>')
+              ? raw('<button id="btn-submit" class="rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 text-sm font-bold glow-emerald">Soumettre</button>')
               : raw('<button id="btn-next" class="rounded-xl bg-amber-600 hover:bg-amber-500 text-white px-5 py-2.5 text-sm font-bold"><i class="bi bi-arrow-right"></i></button>')}
           </div>
         </div>
@@ -486,7 +486,7 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
             <h2 class="text-2xl font-extrabold">
               ${timeUp ? 'Temps écoulé !' : result.passed ? 'Examen réussi !' : 'Examen terminé'}
             </h2>
-            <div class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 flex flex-col gap-3">
+            <div class="rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-6 flex flex-col gap-3">
               <p class="text-5xl font-extrabold tabular-nums ${result.passed ? 'text-emerald-500' : 'text-red-500'}">
                 ${result.note_sur_vingt}<span class="text-xl text-zinc-400">/${exam!.note_max}</span>
               </p>

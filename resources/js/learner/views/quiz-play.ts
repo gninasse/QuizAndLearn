@@ -336,7 +336,7 @@ async function mountAsync(el: HTMLElement, params: Record<string, string>): Prom
             : ''}
         </div>
 
-        <div class="question-card rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 flex flex-col gap-4 shadow-sm">
+        <div class="question-card rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-5 flex flex-col gap-4 shadow-sm">
           <div class="flex items-center justify-between text-xs font-bold text-zinc-500">
             <span class="inline-flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-sky-500"></span>Question ${state.index + 1} / ${total}</span>
             <span>${question.points} pt${question.points > 1 ? 's' : ''}</span>
@@ -353,8 +353,8 @@ async function mountAsync(el: HTMLElement, params: Record<string, string>): Prom
           </button>
           <span class="flex-1 text-center text-xs text-zinc-500">${answered}/${total} répondues</span>
           ${state.index === total - 1
-            ? raw('<button id="btn-finish" class="rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 text-sm font-bold">Terminer <i class="bi bi-check-lg"></i></button>')
-            : raw('<button id="btn-next" class="rounded-xl bg-sky-600 hover:bg-sky-500 text-white px-5 py-2.5 text-sm font-bold">Suivant <i class="bi bi-arrow-right"></i></button>')}
+            ? raw('<button id="btn-finish" class="rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 text-sm font-bold glow-emerald">Terminer <i class="bi bi-check-lg"></i></button>')
+            : raw('<button id="btn-next" class="rounded-xl bg-sky-600 hover:bg-sky-500 text-white px-5 py-2.5 text-sm font-bold glow-sky">Suivant <i class="bi bi-arrow-right"></i></button>')}
         </div>
       </div>
     `;
@@ -574,7 +574,7 @@ async function mountAsync(el: HTMLElement, params: Record<string, string>): Prom
               : 'Quiz terminé'}
         </h2>
 
-        <div class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 flex flex-col gap-4">
+        <div class="rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-6 flex flex-col gap-4">
           <p class="text-5xl font-extrabold tabular-nums ${result.passed ? 'text-emerald-500' : 'text-red-500'}">
             ${result.scorePercent} %
           </p>
@@ -613,7 +613,7 @@ async function mountAsync(el: HTMLElement, params: Record<string, string>): Prom
 
         ${showCorrections
           ? raw(html`
-              <details class="text-left rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4">
+              <details class="text-left rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-4">
                 <summary class="font-bold text-sm cursor-pointer">Voir le détail des réponses</summary>
                 <div class="mt-3 flex flex-col gap-2">
                   ${raw(
@@ -642,7 +642,7 @@ async function mountAsync(el: HTMLElement, params: Record<string, string>): Prom
           ${state.practice
             ? raw('<a data-link href="/quizzes/erreurs/play" class="rounded-xl border border-zinc-300 dark:border-zinc-700 px-5 py-2.5 text-sm font-bold">Recommencer</a>')
             : raw(`<a data-link href="/quizzes/${state.quiz.id}" class="rounded-xl border border-zinc-300 dark:border-zinc-700 px-5 py-2.5 text-sm font-bold">Détails</a>`)}
-          <a data-link href="/entrainement" class="rounded-xl bg-sky-600 hover:bg-sky-500 text-white px-5 py-2.5 text-sm font-bold">Retour à l'entraînement</a>
+          <a data-link href="/entrainement" class="rounded-xl bg-sky-600 hover:bg-sky-500 text-white px-5 py-2.5 text-sm font-bold glow-sky">Retour à l'entraînement</a>
         </div>
       </div>
     `;

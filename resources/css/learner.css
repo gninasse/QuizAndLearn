@@ -76,6 +76,103 @@ header.sticky {
     padding-top: calc(0.375rem + env(safe-area-inset-top));
 }
 
+/* ------------------------------------------------------------------ */
+/* Profondeur : fond ambiant + verre dépoli + halos colorés            */
+/* ------------------------------------------------------------------ */
+
+/* Halos diffus fixes derrière toute l'app : ils donnent au verre dépoli
+   quelque chose à floutter (sans eux, backdrop-filter n'a aucun effet
+   visible sur un aplat). Purement décoratifs, hors flux, non cliquables. */
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+        radial-gradient(42rem 30rem at 8% -8%, rgb(14 165 233 / 0.10), transparent 60%),
+        radial-gradient(38rem 26rem at 108% 12%, rgb(139 92 246 / 0.09), transparent 60%),
+        radial-gradient(34rem 24rem at 50% 108%, rgb(245 158 11 / 0.07), transparent 60%);
+}
+.dark body::before {
+    background:
+        radial-gradient(42rem 30rem at 8% -8%, rgb(14 165 233 / 0.16), transparent 60%),
+        radial-gradient(38rem 26rem at 108% 12%, rgb(139 92 246 / 0.14), transparent 60%),
+        radial-gradient(34rem 24rem at 50% 108%, rgb(245 158 11 / 0.10), transparent 60%);
+}
+
+/* Panneau en verre dépoli : surfaces translucides qui laissent
+   transparaître les halos. Le flou lui-même est appliqué par l'utilitaire
+   Tailwind `backdrop-blur-xl` posé sur les mêmes éléments (Tailwind gère
+   le préfixage ; une déclaration manuelle ici serait réécrite par
+   Lightning CSS en version préfixée uniquement).
+   La saturation renforce les couleurs vues à travers le verre. */
+.panel-glass {
+    background-color: rgb(255 255 255 / 0.72);
+    --tw-backdrop-saturate: saturate(1.4);
+}
+.dark .panel-glass {
+    background-color: rgb(24 24 27 / 0.68);
+}
+/* Repli : sans flou possible, on garde une surface opaque lisible. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .panel-glass {
+        background-color: rgb(255 255 255);
+    }
+    .dark .panel-glass {
+        background-color: rgb(24 24 27);
+    }
+}
+
+/* Halos colorés (glow) sur les éléments d'accent — l'ombre prend la
+   teinte de l'élément au lieu du noir : sensation « produit ». */
+.glow-sky {
+    box-shadow:
+        0 8px 24px -8px rgb(2 132 199 / 0.45),
+        0 2px 8px -2px rgb(2 132 199 / 0.25);
+}
+.glow-violet {
+    box-shadow:
+        0 8px 24px -8px rgb(124 58 237 / 0.45),
+        0 2px 8px -2px rgb(124 58 237 / 0.25);
+}
+.glow-amber {
+    box-shadow:
+        0 8px 24px -8px rgb(217 119 6 / 0.45),
+        0 2px 8px -2px rgb(217 119 6 / 0.25);
+}
+.glow-emerald {
+    box-shadow:
+        0 8px 24px -8px rgb(5 150 105 / 0.45),
+        0 2px 8px -2px rgb(5 150 105 / 0.25);
+}
+/* Halo ample sous les grandes surfaces (carte héro). */
+.glow-hero {
+    box-shadow:
+        0 20px 50px -20px rgb(37 99 235 / 0.55),
+        0 8px 20px -12px rgb(79 70 229 / 0.4);
+}
+
+/* Fluidité générale : tout élément interactif glisse au lieu de sauter. */
+@media (prefers-reduced-motion: no-preference) {
+    a,
+    button,
+    select,
+    input,
+    textarea,
+    [role='button'],
+    .panel-glass {
+        transition-property: color, background-color, border-color, box-shadow, transform, opacity;
+        transition-duration: 180ms;
+        transition-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    /* Le survol soulève très légèrement les surfaces cliquables. */
+    a[data-link]:hover .lift,
+    .lift:hover {
+        transform: translateY(-2px);
+    }
+}
+
 /* Accessibilité : focus clavier visible partout, jamais au clic. */
 :focus-visible {
     outline: 2px solid var(--color-sky-500);

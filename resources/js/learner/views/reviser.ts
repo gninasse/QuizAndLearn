@@ -218,14 +218,14 @@ function startSession(el: HTMLElement, deck: DeckItem): void {
       <div class="max-w-md mx-auto text-center py-10 flex flex-col gap-5">
         <div class="text-6xl">🧠</div>
         <h2 class="text-2xl font-extrabold">Session terminée !</h2>
-        <div class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 grid grid-cols-3 gap-4">
+        <div class="rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-6 grid grid-cols-3 gap-4">
           <div><p class="text-2xl font-extrabold tabular-nums">${stats.studied}</p><p class="text-xs text-zinc-500">révisées</p></div>
           <div><p class="text-2xl font-extrabold tabular-nums text-emerald-500">${stats.mastered}</p><p class="text-xs text-zinc-500">maîtrisées</p></div>
           <div><p class="text-2xl font-extrabold tabular-nums text-amber-500">+${stats.studied * GAMIFICATION.XP_CARD_REVIEW}</p><p class="text-xs text-zinc-500">XP</p></div>
         </div>
         <div class="flex gap-3 justify-center">
           <a data-link href="/reviser/${deck.id}" class="rounded-xl border border-zinc-300 dark:border-zinc-700 px-5 py-2.5 text-sm font-bold">Recommencer</a>
-          <a data-link href="/entrainement?tab=cartes" class="rounded-xl bg-violet-600 hover:bg-violet-500 text-white px-5 py-2.5 text-sm font-bold">Mes decks</a>
+          <a data-link href="/entrainement?tab=cartes" class="rounded-xl glow-violet bg-violet-600 hover:bg-violet-500 text-white px-5 py-2.5 text-sm font-bold">Mes decks</a>
         </div>
       </div>
     `;

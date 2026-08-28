@@ -23,7 +23,7 @@ export function mount(el: HTMLElement): void {
   el.innerHTML = html`
     <div class="max-w-xl mx-auto flex flex-col gap-5">
       <!-- Identité -->
-      <section class="flex items-center gap-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+      <section class="flex items-center gap-4 rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-5">
         ${raw(avatarHtml(user, 'w-16 h-16 text-xl'))}
         <div class="min-w-0 flex-1">
           <h2 class="font-extrabold text-lg truncate">${user.full_name}</h2>
@@ -33,7 +33,7 @@ export function mount(el: HTMLElement): void {
       </section>
 
       <!-- Statistiques -->
-      <section class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 flex flex-col gap-4">
+      <section class="rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-5 flex flex-col gap-4">
         <div class="grid grid-cols-3 text-center gap-3">
           <div><p class="text-2xl font-extrabold tabular-nums">${user.xp.total_xp}</p><p class="text-xs text-zinc-500">XP total</p></div>
           <div><p class="text-2xl font-extrabold tabular-nums">${user.xp.current_level}</p><p class="text-xs text-zinc-500">Niveau</p></div>
@@ -51,7 +51,7 @@ export function mount(el: HTMLElement): void {
       </section>
 
       <!-- Badges -->
-      <section class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+      <section class="rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-5">
         <h3 class="font-bold text-sm mb-3">Badges</h3>
         <div class="grid grid-cols-2 gap-2">
           ${raw(
@@ -76,7 +76,7 @@ export function mount(el: HTMLElement): void {
       </section>
 
       <!-- Préférences -->
-      <section class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 flex flex-col gap-4">
+      <section class="rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-5 flex flex-col gap-4">
         <h3 class="font-bold text-sm">Préférences</h3>
 
         <div class="flex items-center justify-between">
@@ -127,7 +127,7 @@ export function mount(el: HTMLElement): void {
       </section>
 
       <!-- Sécurité -->
-      <section class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 flex flex-col gap-3">
+      <section class="rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-5 flex flex-col gap-3">
         <h3 class="font-bold text-sm">Sécurité</h3>
         <p class="text-xs text-zinc-500">Le changement de mot de passe nécessite une connexion internet.</p>
         <button id="btn-password" class="rounded-xl border border-zinc-300 dark:border-zinc-700 font-bold text-sm py-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-800">
@@ -138,7 +138,7 @@ export function mount(el: HTMLElement): void {
       <!-- Application -->
       ${canOfferInstall()
         ? raw(`
-          <section class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 flex flex-col gap-3">
+          <section class="rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-5 flex flex-col gap-3">
             <h3 class="font-bold text-sm">Application</h3>
             <p class="text-xs text-zinc-500">Installez Learn&Quiz sur votre écran d'accueil : plein écran, hors-ligne, comme une vraie application.</p>
             <button id="btn-install" class="rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-sm py-2.5">
@@ -148,7 +148,7 @@ export function mount(el: HTMLElement): void {
         : ''}
 
       <!-- Synchronisation -->
-      <section class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 flex flex-col gap-3">
+      <section class="rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-5 flex flex-col gap-3">
         <h3 class="font-bold text-sm">Synchronisation</h3>
         <p class="text-xs text-zinc-500">
           ${syncState.pendingActions > 0

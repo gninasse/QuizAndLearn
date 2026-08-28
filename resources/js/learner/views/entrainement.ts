@@ -24,7 +24,7 @@ function quizCard(quiz: QuizItem): string {
 
   return html`
     <a data-link href="/quizzes/${quiz.id}"
-       class="group flex items-center gap-3.5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 shadow-sm hover:shadow-md hover:border-sky-200 dark:hover:border-sky-500/30 transition-all">
+       class="group flex items-center gap-3.5 rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-4 shadow-sm hover:shadow-md hover:border-sky-200 dark:hover:border-sky-500/30 transition-all">
       <span class="w-11 h-11 shrink-0 rounded-xl bg-sky-100 dark:bg-sky-500/15 text-sky-600 dark:text-sky-400 flex items-center justify-center text-lg group-hover:scale-105 transition-transform">
         <i class="bi bi-patch-question"></i>
       </span>
@@ -46,7 +46,7 @@ function deckCard(deck: DeckItem): string {
   const progress = deck.cards.length ? Math.round((mastered / deck.cards.length) * 100) : 0;
 
   return html`
-    <div class="rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 shadow-sm flex flex-col gap-3">
+    <div class="rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-4 shadow-sm flex flex-col gap-3">
       <div class="flex items-start gap-3.5">
         <span class="w-11 h-11 shrink-0 rounded-xl bg-violet-100 dark:bg-violet-500/15 text-violet-600 dark:text-violet-400 flex items-center justify-center text-lg">
           <i class="bi bi-stack"></i>

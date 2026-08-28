@@ -178,7 +178,7 @@ export class AppShell extends BaseComponent {
     );
 
     return html`
-      <div class="min-h-dvh bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
+      <div class="min-h-dvh text-zinc-900 dark:text-zinc-100">
         <!-- Bannière hors-ligne -->
         <div data-role="conn-banner"
              class="${sync.online ? 'hidden' : ''} bg-amber-500 text-amber-950 text-center text-xs font-bold py-1.5 px-4 sticky top-0 z-50">
@@ -187,7 +187,7 @@ export class AppShell extends BaseComponent {
 
         <div class="flex">
           <!-- Sidebar desktop -->
-          <aside class="hidden lg:flex flex-col w-64 shrink-0 h-dvh sticky top-0 border-r border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 gap-1">
+          <aside class="hidden lg:flex flex-col w-64 shrink-0 h-dvh sticky top-0 border-r border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-4 gap-1">
             <div class="px-2 py-3 mb-2">${raw(logoWordmark('w-9 h-9', 'text-lg'))}</div>
             ${raw(navLinks.join(''))}
             <div class="mt-auto px-2 py-3 flex items-center gap-3 border-t border-zinc-200 dark:border-zinc-800">
@@ -201,7 +201,7 @@ export class AppShell extends BaseComponent {
 
           <div class="flex-1 min-w-0 flex flex-col min-h-dvh">
             <!-- Header -->
-            <header class="sticky top-0 z-40 bg-white/85 dark:bg-zinc-900/85 backdrop-blur border-b border-zinc-200/80 dark:border-zinc-800">
+            <header class="sticky top-0 z-40 panel-glass backdrop-blur-xl border-b border-zinc-200/70 dark:border-zinc-800/70">
               <div class="flex items-center gap-3 px-4 py-3 max-w-5xl mx-auto w-full">
                 <span class="lg:hidden inline-flex" aria-hidden="true">${raw(logoMark('w-8 h-8', 'rounded-lg'))}</span>
                 <h1 data-role="title" class="font-bold text-lg truncate flex-1">${this.currentTitle}</h1>
@@ -233,7 +233,7 @@ export class AppShell extends BaseComponent {
         </div>
 
         <!-- Tab bar mobile -->
-        <nav class="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 dark:bg-zinc-900/95 backdrop-blur border-t border-zinc-200 dark:border-zinc-800 flex pb-[env(safe-area-inset-bottom)]">
+        <nav class="lg:hidden fixed bottom-0 inset-x-0 z-40 panel-glass backdrop-blur-xl border-t border-zinc-200/70 dark:border-zinc-800/70 flex pb-[env(safe-area-inset-bottom)]">
           ${raw(tabLinks.join(''))}
         </nav>
       </div>

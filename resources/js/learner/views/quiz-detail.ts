@@ -34,7 +34,7 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
         <i class="bi bi-arrow-left"></i> Entraînement
       </a>
 
-      <header class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 flex flex-col gap-4">
+      <header class="rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-5 flex flex-col gap-4">
         <h2 class="text-xl font-extrabold leading-tight">${quiz.title}</h2>
         ${quiz.description ? raw(`<p class="text-sm text-zinc-600 dark:text-zinc-300">${html`${quiz.description}`}</p>`) : ''}
 
@@ -62,7 +62,7 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
               '<p class="rounded-xl bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-sm font-semibold px-4 py-3"><i class="bi bi-slash-circle"></i> Nombre maximum de tentatives atteint.</p>',
             )
           : raw(
-              `<a data-link href="/quizzes/${quiz.id}/play" class="rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-center font-bold py-3">
+              `<a data-link href="/quizzes/${quiz.id}/play" class="rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-center font-bold py-3 glow-sky">
                  ${quiz.status === 'in_progress' ? 'Reprendre le quiz' : 'Commencer le quiz'}
                </a>
                ${remaining !== null ? `<p class="text-xs text-center text-zinc-500">${remaining} ${pluralize(remaining, 'tentative restante', 'tentatives restantes')}</p>` : ''}`,
@@ -77,7 +77,7 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
             [...byType.entries()]
               .map(([type, count]) => {
                 const meta = TYPE_LABELS[type] ?? { label: type, icon: 'bi-question-circle' };
-                return `<div class="flex items-center gap-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-2.5">
+                return `<div class="flex items-center gap-2.5 rounded-xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl px-3 py-2.5">
                           <i class="bi ${meta.icon} text-sky-600 dark:text-sky-400"></i>
                           <span class="text-sm font-semibold flex-1">${meta.label}</span>
                           <span class="text-sm font-bold tabular-nums text-zinc-500">${count}</span>
@@ -100,7 +100,7 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
                     .reverse()
                     .map(
                       (att) => `
-                        <div class="flex items-center gap-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-3">
+                        <div class="flex items-center gap-3 rounded-xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl px-4 py-3">
                           <span class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold ${att.passed ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400' : 'bg-red-100 text-red-500 dark:bg-red-500/15 dark:text-red-400'}">
                             ${att.passed ? '<i class="bi bi-check-lg"></i>' : '<i class="bi bi-x-lg"></i>'}
                           </span>

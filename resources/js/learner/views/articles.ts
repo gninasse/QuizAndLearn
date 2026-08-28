@@ -19,7 +19,7 @@ function articleCard(article: ArticleItem): string {
 
   return html`
     <a data-link href="/articles/${article.id}"
-       class="flex flex-col gap-2 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 hover:shadow-md transition-shadow">
+       class="flex flex-col gap-2 rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-4 hover:shadow-md transition-shadow">
       <div class="flex items-center gap-2">
         ${article.category
           ? raw(`<span class="text-[11px] font-bold uppercase tracking-wide text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-500/10 rounded-full px-2.5 py-0.5">${escapeHtml(article.category)}</span>`)

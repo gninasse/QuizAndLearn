@@ -21,7 +21,7 @@ function examCard(exam: ExamItem): string {
   const lastAttempt = exam.attempts[exam.attempts.length - 1];
 
   return html`
-    <div class="rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm overflow-hidden flex flex-col">
+    <div class="rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl shadow-sm overflow-hidden flex flex-col">
       <div class="h-1 bg-gradient-to-r from-amber-500 to-orange-500"></div>
       <div class="p-4 flex flex-col gap-3 flex-1">
         <div class="flex items-start gap-3.5">
@@ -57,7 +57,7 @@ function examCard(exam: ExamItem): string {
 
         ${playable
           ? raw(
-              `<a data-link href="/exams/${exam.id}/play" class="mt-auto rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-center font-bold text-sm py-2.5 transition-colors">${exam.status === 'in_progress' ? "Reprendre l'examen" : "Commencer l'examen"}</a>`,
+              `<a data-link href="/exams/${exam.id}/play" class="mt-auto rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-center font-bold text-sm py-2.5 glow-amber transition-colors">${exam.status === 'in_progress' ? "Reprendre l'examen" : "Commencer l'examen"}</a>`,
             )
           : ''}
       </div>
