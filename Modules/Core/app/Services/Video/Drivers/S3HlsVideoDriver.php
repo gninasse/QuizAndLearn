@@ -3,6 +3,7 @@
 namespace Modules\Core\Services\Video\Drivers;
 
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
@@ -21,7 +22,14 @@ use Throwable;
  */
 class S3HlsVideoDriver implements AfterStoreHook, VideoDriver
 {
-    public function __construct(private string $disk = 'videos') {}
+    /**
+     * @param  ?string  $healthDisk  disque du test de connexion (délais courts) ; par défaut $disk
+     */
+    public function __construct(
+        private string $disk = 'videos',
+        private ?string $healthDisk = null,
+        private string $ffmpeg = 'ffmpeg',
+    ) {}
 
     public function name(): string
     {
@@ -65,8 +73,20 @@ class S3HlsVideoDriver implements AfterStoreHook, VideoDriver
 
     public function healthCheck(): array
     {
+        $storage = $this->storageCheck();
+        $ffmpeg = $this->ffmpegCheck();
+
+        return [
+            'ok' => $storage['ok'] && $ffmpeg['ok'],
+            'message' => $storage['message'].' '.$ffmpeg['message'],
+        ];
+    }
+
+    /** @return array{ok: bool, message: string} */
+    private function storageCheck(): array
+    {
         try {
-            $disk = Storage::disk($this->disk);
+            $disk = Storage::disk($this->healthDisk ?? $this->disk);
             $path = 'healthcheck/'.Str::uuid().'.txt';
             $disk->put($path, 'ok');
             $disk->delete($path);
@@ -78,5 +98,20 @@ class S3HlsVideoDriver implements AfterStoreHook, VideoDriver
 
             return ['ok' => false, 'message' => 'Stockage S3 inaccessible. Consultez les journaux.'];
         }
+    }
+
+    /** Le binaire configuré (FFMPEG_BINARY) doit répondre à « -version ». */
+    private function ffmpegCheck(): array
+    {
+        try {
+            $ok = Process::timeout(15)->run([$this->ffmpeg, '-version'])->successful();
+        } catch (Throwable $e) {
+            report($e);
+            $ok = false;
+        }
+
+        return $ok
+            ? ['ok' => true, 'message' => 'ffmpeg disponible.']
+            : ['ok' => false, 'message' => 'ffmpeg introuvable ou inutilisable (FFMPEG_BINARY). Consultez les journaux.'];
     }
 }

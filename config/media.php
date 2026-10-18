@@ -23,6 +23,9 @@ return [
         'signed_ttl' => 900, // secondes (15 min) pour les URL signées externes
         's3_hls' => [
             'disk' => env('VIDEO_S3_DISK', 'videos'),
+            // Disque du test de connexion (mêmes accès, délais courts).
+            // Sans VIDEO_S3_HEALTH_DISK, un disque personnalisé est testé tel quel.
+            'health_disk' => env('VIDEO_S3_HEALTH_DISK', env('VIDEO_S3_DISK', 'videos') === 'videos' ? 'videos_health' : null),
             'ffmpeg' => env('FFMPEG_BINARY', 'ffmpeg'),
         ],
         'bunny' => [

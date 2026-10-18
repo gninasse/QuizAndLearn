@@ -22,7 +22,11 @@ class VideoManager
     public function __construct()
     {
         $this->factories['local'] = fn () => new LocalVideoDriver;
-        $this->factories['s3_hls'] = fn () => new S3HlsVideoDriver((string) config('media.video.s3_hls.disk', 'videos'));
+        $this->factories['s3_hls'] = fn () => new S3HlsVideoDriver(
+            (string) config('media.video.s3_hls.disk', 'videos'),
+            config('media.video.s3_hls.health_disk'),
+            (string) config('media.video.s3_hls.ffmpeg', 'ffmpeg'),
+        );
         $this->factories['bunny'] = fn () => new BunnyVideoDriver((array) config('media.video.bunny', []));
     }
 

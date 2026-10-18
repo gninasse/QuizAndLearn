@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
@@ -29,6 +30,7 @@ class VideoDriverS3HlsTest extends TestCase
         Storage::fake('videos')->buildTemporaryUrlsUsing(
             fn (string $path, $expiration) => 'https://s3.test/'.$path.'?exp='.$expiration->getTimestamp().'&sig=abc'
         );
+        Storage::fake('videos_health');
         $this->user = User::create([
             'name' => 'Awa', 'last_name' => 'Test', 'user_name' => 'awa',
             'email' => 'awa@example.com', 'is_active' => true, 'password' => bcrypt('password'),
@@ -164,12 +166,27 @@ class VideoDriverS3HlsTest extends TestCase
 
     public function test_health_check(): void
     {
+        Process::fake();
         $result = app(VideoManager::class)->driver('s3_hls')->healthCheck();
         $this->assertTrue($result['ok']);
-        $this->assertSame([], Storage::disk('videos')->files('healthcheck'));
+        $this->assertStringContainsString('ffmpeg disponible', $result['message']);
+        // Test de connexion sur le disque dédié (délais courts), sans résidu.
+        $this->assertSame([], Storage::disk('videos_health')->files('healthcheck'));
+        Process::assertRan(fn ($process) => $process->command === ['ffmpeg', '-version']);
 
         Storage::shouldReceive('disk')->with('videos')->andThrow(new RuntimeException('boom'));
         $driver = new S3HlsVideoDriver('videos');
         $this->assertFalse($driver->healthCheck()['ok']);
+    }
+
+    public function test_health_check_reports_missing_ffmpeg(): void
+    {
+        Process::fake(['*' => Process::result(errorOutput: '/opt/secret/ffmpeg: not found', exitCode: 127)]);
+        $result = (new S3HlsVideoDriver('videos', null, '/opt/secret/ffmpeg'))->healthCheck();
+
+        $this->assertFalse($result['ok']);
+        $this->assertStringContainsString('Stockage S3 accessible.', $result['message']);
+        $this->assertStringContainsString('ffmpeg introuvable', $result['message']);
+        $this->assertStringNotContainsString('/opt/secret', $result['message']);
     }
 }

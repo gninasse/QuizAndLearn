@@ -1,5 +1,18 @@
 <?php
 
+$videoS3 = [
+    'driver' => 's3',
+    'key' => env('VIDEO_S3_KEY'),
+    'secret' => env('VIDEO_S3_SECRET'),
+    'region' => env('VIDEO_S3_REGION', 'us-east-1'),
+    'bucket' => env('VIDEO_S3_BUCKET'),
+    'endpoint' => env('VIDEO_S3_ENDPOINT'),
+    'use_path_style_endpoint' => env('VIDEO_S3_PATH_STYLE', false),
+    'visibility' => 'private',
+    'throw' => true,
+    'report' => false,
+];
+
 return [
 
     /*
@@ -63,19 +76,15 @@ return [
         ],
 
         // Vidéos du pilote s3_hls (S3, MinIO, R2… via VIDEO_S3_ENDPOINT).
-        'videos' => [
-            'driver' => 's3',
-            'key' => env('VIDEO_S3_KEY'),
-            'secret' => env('VIDEO_S3_SECRET'),
-            'region' => env('VIDEO_S3_REGION', 'us-east-1'),
-            'bucket' => env('VIDEO_S3_BUCKET'),
-            'endpoint' => env('VIDEO_S3_ENDPOINT'),
-            'use_path_style_endpoint' => env('VIDEO_S3_PATH_STYLE', false),
-            'visibility' => 'private',
-            // Délais courts : un point d'accès injoignable ne doit pas bloquer le back-office.
+        // Délais généreux : envoi d'originaux volumineux, segments HLS.
+        'videos' => $videoS3 + [
+            'http' => ['connect_timeout' => 10, 'timeout' => 600],
+        ],
+
+        // Même stockage, délais courts : réservé au test de connexion du
+        // back-office, qu'un point d'accès injoignable ne doit pas bloquer.
+        'videos_health' => $videoS3 + [
             'http' => ['connect_timeout' => 5, 'timeout' => 15],
-            'throw' => true,
-            'report' => false,
         ],
 
     ],
