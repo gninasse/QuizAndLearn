@@ -68,6 +68,18 @@ export async function loadGuestSettings(): Promise<ShowcaseSettings | null> {
   return settings;
 }
 
+/**
+ * Recharge les réglages vitrine depuis le serveur (ex. demandes fermées entre
+ * deux visites) et met le cache IndexedDB à jour ; sans effet hors session invité.
+ */
+export async function refreshGuestSettings(): Promise<ShowcaseSettings | null> {
+  if (!isGuest()) return null;
+  const fresh = stripSuccess(await api.showcaseSettings()) as ShowcaseSettings;
+  await setMeta(META_SHOWCASE_SETTINGS, fresh);
+  settings = fresh;
+  return fresh;
+}
+
 function stripSuccess<T extends { success?: boolean }>(payload: T): Omit<T, 'success'> {
   const { success: _success, ...rest } = payload;
   return rest;

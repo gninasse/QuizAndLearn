@@ -18,12 +18,12 @@ class AccessRequest extends Model
     protected $fillable = [
         'first_name', 'last_name', 'phone', 'whatsapp', 'email', 'organization',
         'group_id', 'message', 'consent_at', 'consent_text', 'status', 'notes',
-        'ip', 'user_agent', 'learner_id', 'handled_by',
+        'ip', 'user_agent', 'learner_id', 'handled_by', 'extra_fields',
     ];
 
     protected function casts(): array
     {
-        return ['consent_at' => 'datetime'];
+        return ['consent_at' => 'datetime', 'extra_fields' => 'array'];
     }
 
     public function group(): BelongsTo

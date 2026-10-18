@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
 use Modules\Core\Mail\NewAccessRequestMail;
 use Modules\Core\Models\AccessRequest;
+use Modules\Core\Models\Group;
 use Modules\Core\Services\ShowcaseSettings;
 use Modules\Core\Support\PhoneNumber;
 
@@ -34,23 +35,85 @@ class AccessRequestSubmitController extends Controller
             return ShowcaseController::disabledResponse();
         }
 
-        $data = $request->validate([
-            'first_name' => ['required', 'string', 'max:100'],
-            'last_name' => ['required', 'string', 'max:100'],
-            'phone' => ['required', 'string', 'max:30'],
+        if (! $this->settings->accessRequestsOpen()) {
+            return response()->json([
+                'success' => false,
+                'code' => 'access_requests_closed',
+                'message' => 'Les demandes d\'accès sont fermées pour le moment.',
+            ], 403);
+        }
+
+        $config = $this->settings->accessRequest();
+        $modes = $config['fields'];
+
+        $optional = [
             'whatsapp_same' => ['nullable', 'boolean'],
             'whatsapp' => ['nullable', 'string', 'max:30'],
             'email' => ['nullable', 'email', 'max:255'],
             'organization' => ['nullable', 'string', 'max:255'],
             'group_id' => ['nullable', 'integer', Rule::exists('groups', 'id')->where('open_for_requests', true)->where('is_active', true)],
             'message' => ['nullable', 'string', 'max:2000'],
+        ];
+        // Mode de chaque champ réglable ; « group » s'applique à group_id.
+        $modeOf = ['whatsapp_same' => 'whatsapp', 'whatsapp' => 'whatsapp', 'email' => 'email', 'organization' => 'organization', 'group_id' => 'group', 'message' => 'message'];
+
+        $rules = [
+            'first_name' => ['required', 'string', 'max:100'],
+            'last_name' => ['required', 'string', 'max:100'],
+            'phone' => ['required', 'string', 'max:30'],
             'consent' => ['accepted'],
             'website' => ['nullable', 'string'],
             'elapsed_ms' => ['nullable', 'integer', 'min:0'],
-        ], [
+        ];
+        $hidden = [];
+        foreach ($optional as $name => $fieldRules) {
+            $mode = $modes[$modeOf[$name]] ?? 'optional';
+            if ($mode === 'hidden') {
+                $hidden[] = $name;
+
+                continue;
+            }
+            // Groupe obligatoire seulement s'il existe un groupe proposable (même condition que la PWA).
+            if ($mode === 'required' && $name === 'group_id' && ! Group::openForRequests()->exists()) {
+                $mode = 'optional';
+            }
+            if ($mode === 'required' && $name !== 'whatsapp_same') {
+                $fieldRules = $name === 'whatsapp'
+                    ? ['required_unless:whatsapp_same,true', ...array_slice($fieldRules, 1)]
+                    : ['required', ...array_slice($fieldRules, 1)];
+            }
+            $rules[$name] = $fieldRules;
+        }
+
+        $customFields = [];
+        foreach ($config['custom_fields'] as $field) {
+            $key = $field['key'];
+            $customFields[$key] = $field;
+            $fieldRules = [$field['required'] ? 'required' : 'nullable', 'string'];
+            $fieldRules[] = match ($field['type']) {
+                'select' => Rule::in($field['options'] ?? []),
+                'textarea' => 'max:2000',
+                default => 'max:255',
+            };
+            $rules['extra.'.$key] = $fieldRules;
+        }
+
+        $data = $request->validate($rules, [
             'consent.accepted' => 'Vous devez accepter le traitement de vos informations.',
             'group_id.exists' => ucfirst(term('this_group')).' n\'accepte pas de demandes.',
         ]);
+        // Champ masqué envoyé malgré tout : ignoré, jamais stocké.
+        foreach ($hidden as $name) {
+            unset($data[$name]);
+        }
+
+        $extraFields = [];
+        foreach ($customFields as $key => $field) {
+            $value = $data['extra'][$key] ?? null;
+            if (is_string($value) && trim($value) !== '') {
+                $extraFields[] = ['key' => $key, 'label' => $field['label'], 'value' => trim($value)];
+            }
+        }
 
         $country = $this->settings->defaultCountryCode();
         $phone = PhoneNumber::normalize($data['phone'], $country);
@@ -71,6 +134,7 @@ class AccessRequestSubmitController extends Controller
         $response = response()->json([
             'success' => true,
             'message' => 'Demande envoyée.',
+            'confirmation' => $config['confirmation'],
             'phone' => $phone,
             'registration' => $this->settings->publicPayload()['registration'],
         ], 201);
@@ -88,6 +152,7 @@ class AccessRequestSubmitController extends Controller
             'organization' => $data['organization'] ?? null,
             'group_id' => $data['group_id'] ?? null,
             'message' => $data['message'] ?? null,
+            'extra_fields' => $extraFields !== [] ? $extraFields : null,
             'ip' => $request->ip(),
             'user_agent' => $request->userAgent(),
         ];
@@ -151,6 +216,11 @@ class AccessRequestSubmitController extends Controller
                 $existing->{$field} = $incoming;
                 $changed[] = $field;
             }
+        }
+
+        if (empty($existing->extra_fields) && ! empty($attributes['extra_fields'])) {
+            $existing->extra_fields = $attributes['extra_fields'];
+            $changed[] = 'extra_fields';
         }
 
         $message = $attributes['message'] ?? null;
