@@ -69,6 +69,9 @@ class Quiz extends Model
 
     protected static function booted(): void
     {
+        static::saved(fn () => \Modules\Core\Services\ShowcaseMedia::flush());
+        static::deleted(fn () => \Modules\Core\Services\ShowcaseMedia::flush());
+
         static::deleting(function (Quiz $quiz) {
             foreach ($quiz->questions as $q) {
                 $q->delete();

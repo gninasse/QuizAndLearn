@@ -62,6 +62,9 @@ class Article extends Model
 
     protected static function booted(): void
     {
+        static::saved(fn () => \Modules\Core\Services\ShowcaseMedia::flush());
+        static::deleted(fn () => \Modules\Core\Services\ShowcaseMedia::flush());
+
         static::deleting(function (Article $article) {
             foreach ($article->media as $mediaItem) {
                 \Illuminate\Support\Facades\Storage::disk('public')->delete($mediaItem->file_path);

@@ -49,6 +49,9 @@ class FlashcardItem extends Model
 
     protected static function booted(): void
     {
+        static::saved(fn () => \Modules\Core\Services\ShowcaseMedia::flush());
+        static::deleted(fn () => \Modules\Core\Services\ShowcaseMedia::flush());
+
         static::deleting(function (FlashcardItem $item) {
             $fields = [$item->recto, $item->verso];
             foreach ($fields as $content) {
