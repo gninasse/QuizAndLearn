@@ -360,6 +360,8 @@ Route::prefix('api/learner/v1')->name('learn.v1.')->group(function () {
         Route::get('/changes', [\Modules\Core\Http\Controllers\Learner\Api\ContentController::class, 'changes'])->name('changes');
         Route::get('/leaderboard', [\Modules\Core\Http\Controllers\Learner\Api\ContentController::class, 'leaderboard'])->name('leaderboard');
 
+        Route::get('/videos/{ref}/playback', [\Modules\Core\Http\Controllers\Learner\Api\VideoPlaybackController::class, 'show'])->name('videos.playback');
+
         Route::post('/actions', [\Modules\Core\Http\Controllers\Learner\Api\ActionController::class, 'store'])->name('actions');
 
         Route::post('/push-subscriptions', [\Modules\Core\Http\Controllers\Learner\Api\PushSubscriptionController::class, 'store'])->name('push.store');
@@ -378,6 +380,7 @@ Route::prefix('api/learner/v1')->name('learn.v1.')->group(function () {
 Route::prefix('api/showcase/v1')->name('showcase.v1.')->middleware('throttle:60,1')->group(function () {
     Route::get('/content', [\Modules\Core\Http\Controllers\Showcase\ShowcaseController::class, 'content'])->name('content');
     Route::get('/settings', [\Modules\Core\Http\Controllers\Showcase\ShowcaseController::class, 'settings'])->name('settings');
+    Route::get('/videos/{ref}/playback', [\Modules\Core\Http\Controllers\Learner\Api\VideoPlaybackController::class, 'guest'])->name('videos.playback');
     Route::post('/access-requests', [\Modules\Core\Http\Controllers\Showcase\AccessRequestSubmitController::class, 'store'])
         ->middleware('throttle:5,60,access-requests')
         ->name('access-requests.store');

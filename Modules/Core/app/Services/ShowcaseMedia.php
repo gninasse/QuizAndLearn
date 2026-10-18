@@ -16,6 +16,9 @@ class ShowcaseMedia
 {
     public const CACHE_KEY = 'showcase.media';
 
+    /** Préfixe des références vidéo dans la même liste en cache. */
+    private const VIDEO_PREFIX = 'video:';
+
     /**
      * @return array<string, true> chemins relatifs au disque public
      */
@@ -27,6 +30,11 @@ class ShowcaseMedia
     public static function allows(string $path): bool
     {
         return isset(self::paths()[$path]);
+    }
+
+    public static function allowsVideo(string $ref): bool
+    {
+        return isset(self::paths()[self::VIDEO_PREFIX.strtolower($ref)]);
     }
 
     public static function flush(): void
@@ -44,6 +52,9 @@ class ShowcaseMedia
             foreach (self::extract($html) as $path) {
                 $found[$path] = true;
             }
+            foreach (self::extractVideoRefs($html) as $ref) {
+                $found[self::VIDEO_PREFIX.$ref] = true;
+            }
         };
 
         Question::whereHas('quiz', fn ($q) => $q->where('is_showcase', true)->where('is_active', true))
@@ -60,6 +71,19 @@ class ShowcaseMedia
             });
 
         return $found;
+    }
+
+    /**
+     * @return list<string> références (uuid, minuscules) des data-video-ref
+     */
+    private static function extractVideoRefs(?string $html): array
+    {
+        if (! $html) {
+            return [];
+        }
+        preg_match_all('#\bdata-video-ref\s*=\s*["\']([0-9a-fA-F-]{36})["\']#', $html, $m);
+
+        return array_map('strtolower', $m[1]);
     }
 
     /**

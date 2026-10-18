@@ -81,6 +81,21 @@ class CoreController extends Controller
                 'file.uploaded' => 'Le fichier dépasse la taille autorisée par le serveur (upload_max_filesize).',
             ]);
 
+            if ($type === 'video') {
+                $videos = app(\Modules\Core\Services\Video\VideoManager::class);
+                $video = $videos->store($file, $request->user());
+
+                return response()->json([
+                    'success' => true,
+                    // Pilote local : URL /storage (compatibilité) ; externe : null.
+                    'url' => $video->driver === 'local' ? asset('storage/'.$video->location) : null,
+                    'ref' => $video->ref,
+                    'status' => $video->status,
+                    'type' => $type,
+                    'name' => $file->getClientOriginalName(),
+                ]);
+            }
+
             // Store the file in public/uploads/media
             $path = $file->store('uploads/media', 'public');
             $url = asset('storage/'.$path);

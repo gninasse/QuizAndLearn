@@ -24,6 +24,7 @@ class ResolveImpersonation
         'learn.v1.bootstrap',
         'learn.v1.changes',
         'learn.v1.leaderboard',
+        'learn.v1.videos.playback',
     ];
 
     public const END_ROUTE = 'learn.v1.impersonation.end';

@@ -24,7 +24,7 @@ class ImpersonationTest extends TestCase
 
     private const HEADER = 'X-Impersonation-Token';
 
-    private const WHITELIST = ['learn.v1.me', 'learn.v1.bootstrap', 'learn.v1.changes', 'learn.v1.leaderboard'];
+    private const WHITELIST = ['learn.v1.me', 'learn.v1.bootstrap', 'learn.v1.changes', 'learn.v1.leaderboard', 'learn.v1.videos.playback'];
 
     private User $superAdmin;
 
