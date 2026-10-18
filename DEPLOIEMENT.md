@@ -246,13 +246,37 @@ Désactivées tant que les clés VAPID sont absentes (aucun envoi, bouton masqu�
    php artisan push:vapid
    ```
    Copier les deux lignes `VAPID_PUBLIC_KEY=` et `VAPID_PRIVATE_KEY=` dans le `.env`, ajouter
-   `VAPID_SUBJECT=mailto:contact@votre-domaine` (et au besoin `PUSH_TIMEZONE`, par défaut le
-   fuseau de l'application), puis `php artisan config:cache`. Ne jamais régénérer les clés en
+   `VAPID_SUBJECT=mailto:contact@votre-domaine` (obligatoire : sans sujet, rien n'est envoyé)
+   et **`PUSH_TIMEZONE` explicitement** (ex. `PUSH_TIMEZONE=Africa/Abidjan`) : le fuseau de
+   l'application vaut `UTC`, et c'est ce fuseau qui fixe la plage silencieuse (21 h–7 h) et
+   l'heure des rappels. Puis `php artisan config:cache`. Ne jamais régénérer les clés en
    production : tous les abonnements existants deviendraient invalides.
 3. Le planificateur (`schedule:run`, voir §7) doit tourner chaque minute.
 4. Un worker de file doit tourner en continu : `php artisan queue:work --tries=3` (supervisé).
 5. Migrer : `php artisan migrate` (tables `push_subscriptions`, `push_deliveries`,
    `push_assignment_snapshots`).
+6. Seuls les services push des navigateurs sont acceptés à l'abonnement (liste
+   `allowed_hosts` de `config/push.php` : Google/FCM, Mozilla, Apple, Windows). Un
+   apprenant garde au plus 10 navigateurs abonnés (les moins récemment utilisés sont retirés).
+   Une notification restée plus d'une heure en file, ou qui arriverait de nuit (sauf
+   examen), est abandonnée.
+
+**Recette manuelle (après déploiement, sur un vrai téléphone et un navigateur de bureau) :**
+
+- [ ] Profil apprenant → « Recevoir les notifications » : la permission n'est demandée qu'au clic ;
+      l'interrupteur passe à « activé ».
+- [ ] Back-office, Réglages généraux → « Envoyer une notification de test » : la notification
+      « Notification de test » arrive sur l'appareil (application fermée comprise).
+- [ ] Clic sur la notification, PWA déjà ouverte : l'onglet apprenant passe au premier plan et
+      affiche la page visée ; un onglet back-office ouvert dans le même navigateur n'est **pas** détourné.
+- [ ] Clic sur la notification, PWA fermée : une fenêtre s'ouvre sur la page visée.
+- [ ] Charge utile invalide (DevTools → Application → Service workers → « Push » avec un texte
+      quelconque) : une notification générique « Learn&Quiz — Nouvelle notification » s'affiche,
+      le clic ouvre l'accueil.
+- [ ] Déconnexion puis connexion d'un autre apprenant sur le même navigateur : les notifications
+      suivantes vont au nouvel apprenant uniquement.
+- [ ] Désactivation dans le profil : plus aucune notification (nouvel envoi de test depuis ce
+      compte → « Aucun abonnement »).
 
 ## 7 bis. Mode découverte
 
