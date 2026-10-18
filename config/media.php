@@ -27,6 +27,8 @@ return [
             // Sans VIDEO_S3_HEALTH_DISK, un disque personnalisé est testé tel quel.
             'health_disk' => env('VIDEO_S3_HEALTH_DISK', env('VIDEO_S3_DISK', 'videos') === 'videos' ? 'videos_health' : null),
             'ffmpeg' => env('FFMPEG_BINARY', 'ffmpeg'),
+            // File des conversions HLS (worker dédié, cf. DEPLOIEMENT.md).
+            'queue' => env('VIDEO_QUEUE', 'videos'),
         ],
         'bunny' => [
             'library_id' => env('BUNNY_STREAM_LIBRARY_ID'),

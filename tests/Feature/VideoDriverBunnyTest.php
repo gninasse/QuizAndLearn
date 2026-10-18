@@ -84,6 +84,26 @@ class VideoDriverBunnyTest extends TestCase
         ]);
     }
 
+    public function test_failed_upload_deletes_created_video(): void
+    {
+        $this->fakeHttp([
+            'video.bunnycdn.com/library/1234/videos' => Http::response(['guid' => self::GUID], 200),
+            'video.bunnycdn.com/library/1234/videos/'.self::GUID => fn ($r) => $r->method() === 'PUT'
+                ? Http::response('', 500)
+                : Http::response(['success' => true], 200),
+        ]);
+
+        try {
+            app(VideoManager::class)->store(UploadedFile::fake()->create('cours.mp4', 10, 'video/mp4'), $this->user);
+            $this->fail('Exception attendue.');
+        } catch (RuntimeException $e) {
+            $this->assertStringContainsString('500', $e->getMessage());
+        }
+
+        Http::assertSent(fn ($r) => $r->method() === 'DELETE' && $r->url() === 'https://video.bunnycdn.com/library/1234/videos/'.self::GUID);
+        $this->assertSame(0, Video::count());
+    }
+
     public function test_status_mapping(): void
     {
         $driver = app(VideoManager::class)->driver('bunny');

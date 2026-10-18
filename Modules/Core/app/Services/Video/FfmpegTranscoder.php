@@ -26,6 +26,9 @@ class FfmpegTranscoder implements Transcoder
             throw new RuntimeException('ffmpeg a échoué : '.mb_substr($process->getErrorOutput(), -500));
         }
 
-        return glob(rtrim($outputDir, '/').'/{index.m3u8,seg_*.ts}', GLOB_BRACE) ?: [];
+        // Deux globs plutôt que GLOB_BRACE, absent de certaines libc (Alpine/musl).
+        $dir = rtrim($outputDir, '/');
+
+        return array_merge(glob($dir.'/index.m3u8') ?: [], glob($dir.'/seg_*.ts') ?: []);
     }
 }

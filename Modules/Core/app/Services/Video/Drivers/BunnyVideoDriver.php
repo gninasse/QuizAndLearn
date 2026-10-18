@@ -60,12 +60,17 @@ class BunnyVideoDriver implements VideoDriver
             $uploaded = $this->request(3600)
                 ->withBody(Utils::streamFor($stream), 'application/octet-stream')
                 ->put($this->videosUrl($guid));
+            $this->ensureOk($uploaded, 'envoi de la vidéo');
+        } catch (Throwable $e) {
+            // Pas d'entrée orpheline dans la bibliothèque Bunny.
+            $this->deleteQuietly($guid);
+
+            throw $e;
         } finally {
             if (is_resource($stream)) {
                 fclose($stream);
             }
         }
-        $this->ensureOk($uploaded, 'envoi de la vidéo');
 
         return ['location' => $guid, 'status' => 'processing', 'ref' => $guid];
     }
@@ -140,6 +145,16 @@ class BunnyVideoDriver implements VideoDriver
         return $response->successful()
             ? ['ok' => true, 'message' => 'Bunny Stream accessible.']
             : ['ok' => false, 'message' => 'Bunny Stream a répondu HTTP '.$response->status().'.'];
+    }
+
+    /** Suppression au mieux (nettoyage après un envoi raté) : aucune erreur remontée. */
+    private function deleteQuietly(string $guid): void
+    {
+        try {
+            $this->request(15)->delete($this->videosUrl($guid));
+        } catch (Throwable $e) {
+            report($e);
+        }
     }
 
     private function request(int $timeout = 60): PendingRequest

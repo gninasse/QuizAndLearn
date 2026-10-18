@@ -71,7 +71,7 @@ class VideoDriverS3HlsTest extends TestCase
         $this->assertSame('processing', $video->status);
         $this->assertSame("originals/{$video->ref}.mp4", $video->location);
         Storage::disk('videos')->assertExists($video->location);
-        Queue::assertPushed(TranscodeVideoToHls::class, fn ($j) => $j->video->is($video) && $j->tries === 1 && $j->timeout === 3600);
+        Queue::assertPushed(TranscodeVideoToHls::class, fn ($j) => $j->video->is($video) && $j->tries === 1 && $j->timeout === 4000 && $j->queue === 'videos');
     }
 
     public function test_job_uploads_hls_and_marks_ready(): void
@@ -99,6 +99,23 @@ class VideoDriverS3HlsTest extends TestCase
         $this->assertSame('failed', $video->fresh()->status);
         Storage::disk('videos')->assertMissing("hls/{$video->ref}/index.m3u8");
         $this->assertDirectoryDoesNotExist(storage_path("app/tmp/hls-{$video->ref}"));
+    }
+
+    public function test_failed_hook_marks_failed_and_cleans_partial_output(): void
+    {
+        Queue::fake();
+        $video = $this->storeVideo();
+        Storage::disk('videos')->put("hls/{$video->ref}/seg_0000.ts", 'partiel');
+        $tmp = TranscodeVideoToHls::tmpDir($video);
+        mkdir($tmp, 0777, true);
+        file_put_contents("{$tmp}/original.mp4", 'x');
+
+        (new TranscodeVideoToHls($video))->failed(new RuntimeException('timeout'));
+
+        $this->assertSame('failed', $video->fresh()->status);
+        Storage::disk('videos')->assertMissing("hls/{$video->ref}/seg_0000.ts");
+        Storage::disk('videos')->assertExists($video->location);
+        $this->assertDirectoryDoesNotExist($tmp);
     }
 
     public function test_playlist_rewrites_segments_to_signed_urls(): void

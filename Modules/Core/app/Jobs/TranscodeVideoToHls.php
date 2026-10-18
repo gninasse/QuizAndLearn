@@ -21,17 +21,22 @@ class TranscodeVideoToHls implements ShouldQueue
 
     public int $tries = 1;
 
-    public int $timeout = 3600;
+    /** Supérieur au délai d'ffmpeg (3600 s) : le job peut nettoyer après un échec ffmpeg. */
+    public int $timeout = 4000;
 
     public bool $deleteWhenMissingModels = true;
 
-    public function __construct(public Video $video) {}
+    public function __construct(public Video $video)
+    {
+        // File dédiée : une conversion longue ne retarde pas les notifications push.
+        $this->onQueue((string) config('media.video.s3_hls.queue', 'videos'));
+    }
 
     public function handle(Transcoder $transcoder, VideoManager $manager): void
     {
         $video = $this->video;
         $disk = Storage::disk((string) config('media.video.s3_hls.disk', 'videos'));
-        $tmp = storage_path("app/tmp/hls-{$video->ref}");
+        $tmp = self::tmpDir($video);
         $files = new Filesystem;
 
         try {
@@ -64,9 +69,37 @@ class TranscodeVideoToHls implements ShouldQueue
             $video->update(['status' => 'ready']);
         } catch (Throwable $e) {
             Log::error('Conversion HLS échouée', ['video' => $video->ref, 'error' => $e->getMessage()]);
-            $video->update(['status' => 'failed']);
+            $this->markFailed();
         } finally {
             $files->deleteDirectory($tmp);
         }
+    }
+
+    /**
+     * Appelé par le worker quand le job échoue hors de handle() (délai
+     * dépassé, processus tué) : statut « failed » et aucun résidu.
+     */
+    public function failed(?Throwable $e = null): void
+    {
+        Log::error('Conversion HLS interrompue', ['video' => $this->video->ref, 'error' => $e?->getMessage()]);
+        (new Filesystem)->deleteDirectory(self::tmpDir($this->video));
+        $this->markFailed();
+    }
+
+    public static function tmpDir(Video $video): string
+    {
+        return storage_path("app/tmp/hls-{$video->ref}");
+    }
+
+    private function markFailed(): void
+    {
+        try {
+            // Segments éventuellement déjà envoyés : jamais de HLS partiel.
+            Storage::disk((string) config('media.video.s3_hls.disk', 'videos'))
+                ->deleteDirectory("hls/{$this->video->ref}");
+        } catch (Throwable $e) {
+            report($e);
+        }
+        $this->video->update(['status' => 'failed']);
     }
 }
