@@ -1,4 +1,5 @@
 import { html, raw } from '../core/html';
+import { t } from '../core/terms';
 import { isGuest } from '../guest/guest-session';
 import { lockedCardHtml } from '../guest/guest-ui';
 import type { ExamItem } from '../domain/types';
@@ -82,7 +83,7 @@ export function mount(el: HTMLElement): void {
       <div class="text-center py-16 text-zinc-500">
         <div class="text-4xl mb-3">🎓</div>
         <p class="font-semibold">Aucun examen programmé</p>
-        <p class="text-sm mt-1">Les examens de vos groupes apparaîtront ici.</p>
+        <p class="text-sm mt-1">Les examens de vos ${t('groups')} apparaîtront ici.</p>
       </div>
     `;
     return;

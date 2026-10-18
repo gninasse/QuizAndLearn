@@ -1,4 +1,5 @@
 import { escapeHtml, html, raw } from '../core/html';
+import { t } from '../core/terms';
 import { db } from '../db/schema';
 import { isDue } from '../domain/sm2';
 import type { DeckItem, QuizItem } from '../domain/types';
@@ -135,7 +136,7 @@ export function mount(el: HTMLElement): void {
     if (active === 'cartes') {
       return decks.length
         ? `<div class="grid sm:grid-cols-2 gap-3">${decks.map(deckCard).join('')}</div>`
-        : emptyState('🃏', 'Aucun deck de révision', 'Les decks assignés à vos groupes apparaîtront ici.');
+        : emptyState('🃏', 'Aucun deck de révision', `Les decks assignés à vos ${t('groups')} apparaîtront ici.`);
     }
     const rows = filteredQuizzes();
     return (
@@ -144,7 +145,7 @@ export function mount(el: HTMLElement): void {
         ? `<div class="flex flex-col gap-3">${rows.map(quizCard).join('')}</div>`
         : quizzes.length
           ? '<p class="text-center py-10 text-sm text-zinc-500">Aucun quiz ne correspond.</p>'
-          : emptyState('❓', 'Aucun quiz assigné', 'Les quiz assignés à vos groupes apparaîtront ici.'))
+          : emptyState('❓', 'Aucun quiz assigné', `Les quiz assignés à vos ${t('groups')} apparaîtront ici.`))
     );
   };
 

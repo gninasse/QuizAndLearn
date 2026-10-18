@@ -1,5 +1,6 @@
 import { api } from '../api/client';
 import { escapeHtml, html, raw } from '../core/html';
+import { t } from '../core/terms';
 import { isGuest } from '../guest/guest-session';
 import { lockedCardHtml } from '../guest/guest-ui';
 import { getMeta, setMeta } from '../db/schema';
@@ -147,7 +148,7 @@ export function mount(el: HTMLElement): void {
 
       <!-- Classement -->
       <section class="rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-5 shadow-sm">
-        <h3 class="font-bold text-sm mb-3"><i class="bi bi-trophy text-amber-500"></i> Classement de mes groupes</h3>
+        <h3 class="font-bold text-sm mb-3"><i class="bi bi-trophy text-amber-500"></i> Classement de mes ${t('groups')}</h3>
         <div id="leaderboard-zone" class="text-sm text-zinc-500">
           <div class="flex flex-col gap-2">
             <div class="skeleton h-10 rounded-xl"></div>

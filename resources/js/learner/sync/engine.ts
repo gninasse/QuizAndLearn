@@ -7,7 +7,8 @@
  */
 
 import { api, ApiError, NetworkError } from '../api/client';
-import { db, getMeta, setMeta, META_CURSOR } from '../db/schema';
+import { db, getMeta, setMeta, META_CURSOR, META_TERMS } from '../db/schema';
+import { resetTerms, setTerms } from '../core/terms';
 import * as outbox from '../db/outbox';
 import { isGuest, leaveGuestMode, refreshGuestContent } from '../guest/guest-session';
 import type { ActionType, BootstrapPayload, ChangesPayload, CollectionDelta } from '../domain/types';
@@ -54,6 +55,8 @@ export async function hydrateFromDb(): Promise<boolean> {
   const profile = await db.profile.get('me');
   if (!profile) return false;
 
+  setTerms(await getMeta(META_TERMS));
+
   sessionStore.set(profile);
   preferencesStore.set((await db.preferences.get('me')) ?? preferencesStore.get());
   articlesStore.set(await db.articles.toArray());
@@ -88,6 +91,7 @@ async function persistBootstrap(payload: BootstrapPayload): Promise<void> {
       await db.groups.clear();
       await db.groups.bulkPut(payload.groups ?? []);
       await setMeta(META_CURSOR, payload.cursor);
+      if (payload.terms) await setMeta(META_TERMS, payload.terms);
     },
   );
 }
@@ -138,6 +142,7 @@ async function applyChanges(delta: ChangesPayload): Promise<boolean> {
       await db.badges.bulkPut(delta.badges);
       await db.groups.clear();
       await db.groups.bulkPut(delta.groups ?? []);
+      if (delta.terms) await setMeta(META_TERMS, delta.terms);
 
       const profile = await db.profile.get('me');
       if (profile) {
@@ -433,5 +438,6 @@ export async function clearLocalData(): Promise<void> {
   warmedUrls.clear();
   await globalThis.caches?.delete('learner-static-v1').catch(() => false);
   sessionStore.set(null);
+  resetTerms();
   await updateAppBadge(0);
 }

@@ -1,4 +1,5 @@
 import { escapeHtml, html, raw } from '../core/html';
+import { fe, tc } from '../core/terms';
 import { guestSettings, isGuest } from '../guest/guest-session';
 import { lockedCardHtml } from '../guest/guest-ui';
 import { isDue } from '../domain/sm2';
@@ -42,7 +43,7 @@ export function mount(el: HTMLElement): void {
       case 'closed':
         return `La formation « ${escapeHtml(g.name)} » est terminée${g.end_date ? ` depuis le ${formatDate(g.end_date)}` : ''} — son contenu n'est plus disponible, votre historique est conservé.`;
       case 'suspended':
-        return `Le groupe « ${escapeHtml(g.name)} » est momentanément suspendu — son contenu réapparaîtra à sa réactivation.`;
+        return `${escapeHtml(tc('the_group'))} « ${escapeHtml(g.name)} » est momentanément suspendu${fe()} — son contenu réapparaîtra à sa réactivation.`;
       case 'upcoming':
         return `La formation « ${escapeHtml(g.name)} » ouvrira le ${g.start_date ? formatDate(g.start_date) : 'bientôt'} — son contenu apparaîtra à ce moment-là.`;
       default:

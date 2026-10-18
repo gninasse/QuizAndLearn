@@ -1,4 +1,5 @@
 import { escapeHtml, html, raw } from '../core/html';
+import { t } from '../core/terms';
 import { articlesStore } from '../stores';
 import type { ArticleItem } from '../domain/types';
 import { formatDate } from './helpers';
@@ -59,7 +60,7 @@ export function mount(el: HTMLElement): void {
       <div class="text-center py-16 text-zinc-500">
         <div class="text-4xl mb-3">📚</div>
         <p class="font-semibold">Aucun article disponible</p>
-        <p class="text-sm mt-1">Les articles assignés à vos groupes apparaîtront ici.</p>
+        <p class="text-sm mt-1">Les articles assignés à vos ${t('groups')} apparaîtront ici.</p>
       </div>
     `;
     return;

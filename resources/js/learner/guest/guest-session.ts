@@ -8,7 +8,7 @@
 
 import { api } from '../api/client';
 import { pendingCount } from '../db/outbox';
-import { db, getMeta, setMeta } from '../db/schema';
+import { db, getMeta, setMeta, META_TERMS } from '../db/schema';
 import type {
   ArticleItem,
   DeckItem,
@@ -89,6 +89,7 @@ export async function enterGuestMode(): Promise<void> {
     await db.quizzes.bulkPut(content.quizzes);
     await db.decks.bulkPut(content.decks);
     await setMeta(META_SHOWCASE_SETTINGS, showcaseSettings);
+    if (showcaseSettings.terms) await setMeta(META_TERMS, showcaseSettings.terms);
   });
 
   settings = showcaseSettings;

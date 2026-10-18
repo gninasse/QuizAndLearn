@@ -180,6 +180,8 @@ export interface BootstrapPayload {
   exams: ExamItem[];
   badges: BadgeItem[];
   preferences: Preferences;
+  /** Libellés configurables du terme « groupe » (voir core/terms.ts). */
+  terms?: Record<string, string>;
 }
 
 // ------------------------------------------------- Vitrine (mode découverte)
@@ -220,6 +222,7 @@ export interface ShowcaseSettings {
   default_country_code: string;
   privacy_url: string;
   groups: ShowcaseGroup[];
+  terms?: Record<string, string>;
 }
 
 /** POST /api/showcase/v1/access-requests */
@@ -261,6 +264,7 @@ export interface ChangesPayload {
   exams: CollectionDelta<ExamItem>;
   badges: BadgeItem[];
   xp: XpSnapshot;
+  terms?: Record<string, string>;
 }
 
 // ---------------------------------------------------------------- Actions

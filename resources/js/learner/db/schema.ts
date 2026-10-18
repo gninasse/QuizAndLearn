@@ -92,3 +92,5 @@ export async function setMeta(key: string, value: unknown): Promise<void> {
 }
 
 export const META_CURSOR = 'sync_cursor';
+/** Libellés du terme « groupe » (voir core/terms.ts). */
+export const META_TERMS = 'terms';
