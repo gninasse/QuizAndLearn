@@ -17,6 +17,8 @@ import { cleanupOutdatedCaches, createHandlerBoundToURL, precacheAndRoute } from
 import { NavigationRoute, registerRoute } from 'workbox-routing';
 import { CacheFirst, NetworkOnly } from 'workbox-strategies';
 
+import { pickLearnerClient } from './sw-clients';
+
 declare const self: ServiceWorkerGlobalScope;
 
 self.skipWaiting();
@@ -149,11 +151,12 @@ self.addEventListener('notificationclick', (event) => {
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (clients) => {
-      const client = clients.find((c) => new URL(c.url).origin === self.location.origin);
+      // Jamais un onglet back-office : seule une fenêtre apprenant est réutilisée.
+      const client = pickLearnerClient(clients as readonly WindowClient[], self.location.origin);
       if (client) {
         try {
           await client.focus();
-          await (client as WindowClient).navigate(target);
+          await client.navigate(target);
           return;
         } catch {
           /* client non contrôlé : navigate() est refusé, repli sur openWindow */

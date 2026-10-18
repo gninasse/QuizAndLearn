@@ -7,7 +7,8 @@ const apiMock = vi.hoisted(() => ({
 }));
 vi.mock('../api/client', () => ({ api: apiMock }));
 
-import { disablePush, enablePush, pushState, pushSupport, urlBase64ToUint8Array } from './push';
+import type { UserProfile } from '../domain/types';
+import { disablePush, enablePush, pushState, pushSupport, resyncPushSubscription, urlBase64ToUint8Array } from './push';
 
 type Anything = Record<string, unknown>;
 
@@ -153,5 +154,67 @@ describe('disablePush', () => {
   it('is a no-op without push support', async () => {
     await expect(disablePush()).resolves.toBeUndefined();
     expect(apiMock.unsubscribePush).not.toHaveBeenCalled();
+  });
+});
+
+describe('resyncPushSubscription', () => {
+  const learner = { id: 1, name: 'Awa', is_guest: false } as unknown as UserProfile;
+
+  it('re-POSTs the existing browser subscription for the signed-in learner', async () => {
+    installPush({ permission: 'granted', existing: fakeSubscription('https://push.example/shared') });
+    await resyncPushSubscription(learner, false);
+    expect(apiMock.subscribePush).toHaveBeenCalledWith({
+      endpoint: 'https://push.example/shared',
+      keys: { p256dh: 'P', auth: 'A' },
+    });
+  });
+
+  it('does nothing without a browser subscription', async () => {
+    installPush({ permission: 'granted' });
+    await resyncPushSubscription(learner, false);
+    expect(apiMock.subscribePush).not.toHaveBeenCalled();
+  });
+
+  it('never runs in guest mode, consultation, with a provisional password or without a session', async () => {
+    const { pushManager } = installPush({ permission: 'granted', existing: fakeSubscription() });
+    await resyncPushSubscription({ ...learner, is_guest: true }, false);
+    await resyncPushSubscription(learner, true);
+    await resyncPushSubscription({ ...learner, must_change_password: true }, false);
+    await resyncPushSubscription(null, false);
+    expect(pushManager.getSubscription).not.toHaveBeenCalled();
+    expect(apiMock.subscribePush).not.toHaveBeenCalled();
+  });
+
+  it('does not touch the push manager when permission is not granted', async () => {
+    const { pushManager } = installPush({ permission: 'default', existing: fakeSubscription() });
+    await resyncPushSubscription(learner, false);
+    expect(pushManager.getSubscription).not.toHaveBeenCalled();
+  });
+
+  it('never throws when the server refuses, and keeps the browser subscription', async () => {
+    const existing = fakeSubscription();
+    installPush({ permission: 'granted', existing });
+    apiMock.subscribePush.mockRejectedValue(new Error('offline'));
+    await expect(resyncPushSubscription(learner, false)).resolves.toBeUndefined();
+    expect(existing.unsubscribe).not.toHaveBeenCalled();
+  });
+
+  it('gives up when the service worker never becomes ready', async () => {
+    vi.useFakeTimers();
+    try {
+      installPush({ permission: 'granted' });
+      Object.defineProperty(navigator, 'serviceWorker', { value: { ready: new Promise(() => undefined) }, configurable: true });
+      const done = resyncPushSubscription(learner, false);
+      await vi.advanceTimersByTimeAsync(5000);
+      await expect(done).resolves.toBeUndefined();
+      expect(apiMock.subscribePush).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('is a no-op without push support', async () => {
+    await expect(resyncPushSubscription(learner, false)).resolves.toBeUndefined();
+    expect(apiMock.subscribePush).not.toHaveBeenCalled();
   });
 });

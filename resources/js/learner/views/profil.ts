@@ -232,7 +232,7 @@ async function renderPushCard(el: HTMLElement, publicKey: string): Promise<void>
         <span class="absolute top-1 ${on ? 'left-6' : 'left-1'} w-5 h-5 rounded-full bg-white transition-all"></span>
       </button>
     </div>
-    ${on ? raw('<p class="text-xs text-zinc-500">Nouveaux contenus, révisions et examens. Au plus 2 par jour, jamais la nuit.</p>') : ''}`;
+    ${on ? raw('<p class="text-xs text-zinc-500">Nouveaux contenus, révisions et examens. Jamais la nuit.</p>') : ''}`;
 
   const toggle = card.querySelector<HTMLButtonElement>('[data-push-switch]');
   toggle?.addEventListener('click', () => {

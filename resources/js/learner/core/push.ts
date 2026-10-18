@@ -7,6 +7,7 @@
  */
 
 import { api } from '../api/client';
+import type { UserProfile } from '../domain/types';
 import { isStandalone } from '../ui/install';
 
 export type PushSupport = 'supported' | 'ios-install-needed' | 'unsupported';
@@ -40,6 +41,40 @@ async function currentSubscription(): Promise<PushSubscription | null> {
   return registration.pushManager.getSubscription();
 }
 
+function subscriptionBody(subscription: PushSubscription): { endpoint: string; keys: { p256dh: string; auth: string } } {
+  const json = subscription.toJSON() as { endpoint?: string; keys?: { p256dh?: string; auth?: string } };
+  return {
+    endpoint: json.endpoint ?? subscription.endpoint,
+    keys: { p256dh: json.keys?.p256dh ?? '', auth: json.keys?.auth ?? '' },
+  };
+}
+
+const RESYNC_TIMEOUT_MS = 5000;
+
+/**
+ * Navigateur partagé : après une connexion (ou au démarrage avec une session),
+ * l'abonnement déjà présent dans ce navigateur est renvoyé au serveur, qui le
+ * réaffecte à l'apprenant connecté. Ainsi, après une session expirée sans
+ * déconnexion explicite, l'apprenant précédent ne reçoit plus rien ici.
+ *
+ * Jamais en mode découverte, en consultation ni avec un mot de passe provisoire
+ * (l'API le refuserait). À appeler sans attendre : ne lève jamais, ne bloque rien.
+ */
+export async function resyncPushSubscription(user: UserProfile | null, consultation: boolean): Promise<void> {
+  try {
+    if (!user || user.is_guest || user.must_change_password || consultation) return;
+    if (pushSupport() !== 'supported' || Notification.permission !== 'granted') return;
+    const subscription = await Promise.race([
+      currentSubscription(),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), RESYNC_TIMEOUT_MS)),
+    ]);
+    if (!subscription) return;
+    await api.subscribePush(subscriptionBody(subscription));
+  } catch {
+    /* jamais bloquant : l'état serveur sera rattrapé à la prochaine connexion */
+  }
+}
+
 export async function pushState(): Promise<'on' | 'off' | 'denied'> {
   if (pushSupport() !== 'supported') return 'off';
   if (Notification.permission === 'denied') return 'denied';
@@ -61,12 +96,8 @@ export async function enablePush(publicKey: string): Promise<'on' | 'denied' | '
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(publicKey) as BufferSource,
     });
-    const json = subscription.toJSON() as { endpoint?: string; keys?: { p256dh?: string; auth?: string } };
     try {
-      await api.subscribePush({
-        endpoint: json.endpoint ?? subscription.endpoint,
-        keys: { p256dh: json.keys?.p256dh ?? '', auth: json.keys?.auth ?? '' },
-      });
+      await api.subscribePush(subscriptionBody(subscription));
     } catch (e) {
       // Le serveur ne connaît pas cet abonnement : ne pas le garder côté navigateur.
       await subscription.unsubscribe().catch(() => undefined);
