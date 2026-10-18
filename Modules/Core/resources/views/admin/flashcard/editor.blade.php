@@ -39,7 +39,7 @@
       <span class="text-truncate" style="max-width: 180px;" id="sidebarDeckTitle">{{ $deck->titre }}</span>
     </div>
     <span class="badge {{ $deck->active ? 'bg-success' : 'bg-secondary' }}" id="sidebarStatusBadge">
-      {{ $deck->active ? 'Actif' : 'Draft Mode' }}
+      {{ $deck->active ? 'Actif' : 'Brouillon' }}
     </span>
     @include('core::admin._showcase_switch', ['showcaseType' => 'deck', 'showcaseItem' => $deck])
   </div>
@@ -75,7 +75,7 @@
       <input type="text" placeholder="Rechercher des cartes..." id="cardSearch">
     </div>
     <div class="secondary-nav">
-      <a href="{{ route('cores.dashboard') }}" class="secondary-nav-link">Dashboard</a>
+      <a href="{{ route('cores.dashboard') }}" class="secondary-nav-link">Tableau de bord</a>
       <a href="{{ route('cores.flashcard-decks.index') }}" class="secondary-nav-link">Flashcards</a>
     </div>
   </div>
@@ -110,7 +110,7 @@
           </div>
           <div class="d-flex gap-2">
             <button class="btn btn-sm btn-outline-dark" id="btnPrintDeck" style="border-radius: 8px;">
-              <i class="bi bi-print me-1"></i> Imprimer (A4)
+              <i class="bi bi-printer me-1"></i> Imprimer (A4)
             </button>
             <button class="btn btn-sm btn-primary" id="btnAddCard" style="border-radius: 8px;">
               <i class="bi bi-plus-circle me-1"></i> Ajouter une carte
@@ -262,7 +262,7 @@
         <input type="hidden" id="cardId" name="card_id">
         <div class="modal-header">
           <h5 class="modal-title" id="modalCardLabel">Ajouter une Flashcard</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
         </div>
         <div class="modal-body">
           <div class="mb-3">
@@ -345,7 +345,7 @@
         <h6 class="modal-title fw-bold" id="modalPreviewCardLabel" style="color: var(--green-dark);">
           <i class="bi bi-eye-fill me-1"></i> Aperçu de la Flashcard
         </h6>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
       </div>
       <div class="modal-body p-4 bg-light d-flex justify-content-center">
         <!-- 3D Card Scene -->
@@ -385,7 +385,7 @@
         <h5 class="modal-title fw-bold" id="modal-print-deck-label" style="color: #1e6f5c;">
           <i class="bi bi-printer-fill me-2"></i> Aperçu Avant Impression - Format A4
         </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
       </div>
       <div class="modal-body p-0 bg-light" style="height: 70vh;">
         <iframe id="print-iframe-loader" src="" style="width: 100%; height: 100%; border: none;"></iframe>

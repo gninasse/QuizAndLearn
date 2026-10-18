@@ -4,7 +4,7 @@
 @section('header', 'Gestion des Formateurs')
 
 @section('breadcrumb')
-    <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+    <li class="breadcrumb-item"><a href="{{ route('cores.dashboard') }}">Accueil</a></li>
     <li class="breadcrumb-item active" aria-current="page">Formateurs</li>
 @endsection
 

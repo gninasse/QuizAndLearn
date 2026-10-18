@@ -4,7 +4,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="modalTitle">Créer un examen</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
             </div>
             <form id="examForm">
                 @csrf
@@ -13,7 +13,7 @@
                 <div class="modal-body">
                     <!-- Title -->
                     <div class="form-group mb-3">
-                        <label for="title" class="form-label font-weight-bold">Titre de l'examen <span class="text-danger">*</span></label>
+                        <label for="title" class="form-label fw-semibold">Titre de l'examen <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" id="title" name="title" required placeholder="Ex: Examen de Mathématiques Semestre 1">
                     </div>
                     
@@ -81,27 +81,27 @@
                         </select>
                     </div>
 
-                    <h5 class="border-bottom pb-2 mb-3"><i class="fas fa-shield-alt text-danger me-2"></i>Paramètres de Sécurité et Triche</h5>
+                    <h5 class="border-bottom pb-2 mb-3"><i class="fas fa-shield-alt text-danger me-2"></i>Sécurité et anti-triche</h5>
                     
                     <div class="row mb-3">
                         <div class="col-md-4 col-sm-12">
                             <div class="form-check form-switch mb-2">
                                 <input class="form-check-input" type="checkbox" id="plein_ecran_force" name="plein_ecran_force" value="1" checked>
-                                <label class="form-check-label font-weight-bold" for="plein_ecran_force">Plein écran forcé</label>
+                                <label class="form-check-label fw-semibold" for="plein_ecran_force">Plein écran forcé</label>
                             </div>
                             <small class="text-muted d-block mb-3">Exige le mode plein écran pour démarrer et continuer l'examen.</small>
                         </div>
                         <div class="col-md-4 col-sm-12">
                             <div class="form-check form-switch mb-2">
                                 <input class="form-check-input" type="checkbox" id="anti_capture_strict" name="anti_capture_strict" value="1" checked>
-                                <label class="form-check-label font-weight-bold" for="anti_capture_strict">Anti-capture strict</label>
+                                <label class="form-check-label fw-semibold" for="anti_capture_strict">Anti-capture strict</label>
                             </div>
                             <small class="text-muted d-block mb-3">Détecte et bloque les captures ou impressions d'écran.</small>
                         </div>
                         <div class="col-md-4 col-sm-12">
                             <div class="form-check form-switch mb-2">
                                 <input class="form-check-input" type="checkbox" id="navigation_interdite" name="navigation_interdite" value="1" checked>
-                                <label class="form-check-label font-weight-bold" for="navigation_interdite">Navigation interdite</label>
+                                <label class="form-check-label fw-semibold" for="navigation_interdite">Navigation interdite</label>
                             </div>
                             <small class="text-muted d-block mb-3">Bloque ou enregistre les changements d'onglets (Alt+Tab).</small>
                         </div>
@@ -121,18 +121,18 @@
                         <div class="col-md-6 col-sm-12">
                             <div class="form-check form-switch mb-2 mt-4">
                                 <input class="form-check-input" type="checkbox" id="classement_visible" name="classement_visible" value="1" checked>
-                                <label class="form-check-label font-weight-bold" for="classement_visible">Classement visible</label>
+                                <label class="form-check-label fw-semibold" for="classement_visible">Classement visible</label>
                             </div>
                             <div class="form-check form-switch mb-2">
                                 <input class="form-check-input" type="checkbox" id="classement_anonyme" name="classement_anonyme" value="1">
-                                <label class="form-check-label font-weight-bold" for="classement_anonyme">Classement anonyme</label>
+                                <label class="form-check-label fw-semibold" for="classement_anonyme">Classement anonyme</label>
                             </div>
                         </div>
                     </div>
 
                     <div class="form-check form-switch mb-3 mt-4 border-top pt-3">
                         <input class="form-check-input" type="checkbox" id="is_active" name="is_active" value="1" checked>
-                        <label class="form-check-label font-weight-bold text-success" for="is_active">Actif (Publié et visible par les apprenants éligibles)</label>
+                        <label class="form-check-label fw-semibold text-success" for="is_active">Actif (Publié et visible par les apprenants éligibles)</label>
                     </div>
                 </div>
 

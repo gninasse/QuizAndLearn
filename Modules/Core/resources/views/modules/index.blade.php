@@ -309,7 +309,7 @@
                     $('#ajax-alert').html(
                         '<div class="alert alert-success alert-dismissible fade show" role="alert">' + 
                             (response.message || 'Opération réussie') +
-                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>' +
                         '</div>'
                     );
                     
@@ -326,7 +326,7 @@
                     $('#ajax-alert').html(
                         '<div class="alert alert-danger alert-dismissible fade show" role="alert">' + 
                             errorMsg +
-                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>' +
                         '</div>'
                     );
                     

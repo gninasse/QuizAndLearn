@@ -4,7 +4,7 @@
 @section('header', 'Concepteur de Quiz')
 
 @section('breadcrumb')
-    <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+    <li class="breadcrumb-item"><a href="{{ route('cores.dashboard') }}">Accueil</a></li>
     <li class="breadcrumb-item"><a href="{{ route('cores.quizzes.index') }}">Quiz</a></li>
     <li class="breadcrumb-item active" aria-current="page">Concepteur</li>
 @endsection

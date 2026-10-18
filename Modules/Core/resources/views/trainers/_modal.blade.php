@@ -4,7 +4,7 @@
         <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
             <div class="modal-header border-0 bg-light py-3">
                 <h5 class="modal-title fw-bold" id="modalTitle" style="color: var(--green-dark);">Ajouter un formateur</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
             </div>
             <form id="trainerForm" enctype="multipart/form-data">
                 @csrf

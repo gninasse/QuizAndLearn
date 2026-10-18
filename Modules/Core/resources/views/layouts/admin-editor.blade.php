@@ -53,13 +53,13 @@
           <li class="menu-item {{ request()->routeIs('cores.dashboard') ? 'active' : '' }}">
             <a href="{{ route('cores.dashboard') }}" class="menu-link">
               <i class="bi bi-speedometer2"></i>
-              <span>Dashboard</span>
+              <span>Tableau de bord</span>
             </a>
           </li>
           <li class="menu-item {{ request()->routeIs('cores.quizzes.*') ? 'active' : '' }}">
             <a href="{{ route('cores.quizzes.index') }}" class="menu-link">
               <i class="bi bi-question-circle-fill"></i>
-              <span>Quizzes</span>
+              <span>Quiz</span>
             </a>
           </li>
           <li class="menu-item {{ request()->routeIs('cores.articles.*') ? 'active' : '' }}">
@@ -77,10 +77,10 @@
       <!-- Topbar -->
       <header class="admin-topbar">
         <div class="d-flex align-items-center gap-3">
-          <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle Sidebar">
+          <button class="sidebar-toggle" id="sidebarToggle" aria-label="Afficher ou masquer le menu">
             <i class="bi bi-list"></i>
           </button>
-          <h4 class="mb-0 fw-bold d-none d-sm-block">@yield('page-title', 'Editeur')</h4>
+          <h4 class="mb-0 fw-bold d-none d-sm-block">@yield('page-title', 'Éditeur')</h4>
         </div>
         
         <div class="topbar-right">
@@ -90,16 +90,6 @@
             </span>
           @endauth
           
-          <div class="topbar-icons">
-            <button class="topbar-btn" aria-label="Aide">
-              <i class="bi bi-question-circle"></i>
-            </button>
-            <button class="topbar-btn" aria-label="Notifications">
-              <i class="bi bi-bell"></i>
-              <span class="badge-dot"></span>
-            </button>
-          </div>
-          
           <div class="dropdown">
             <button class="user-avatar-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
               <img src="{{ auth()->user() && auth()->user()->avatar ? asset('storage/' . auth()->user()->avatar) : asset('adminlte/assets/img/avatar5.png') }}" alt="Avatar">
@@ -107,7 +97,7 @@
             <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2" style="border-radius: var(--radius-sm);">
               <li>
                 <a class="dropdown-item py-2" href="{{ route('cores.profile') }}">
-                  <i class="bi bi-person me-2"></i> Mon Profil
+                  <i class="bi bi-person me-2"></i> Mon profil
                 </a>
               </li>
               <li><hr class="dropdown-divider"></li>

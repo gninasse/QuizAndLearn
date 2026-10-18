@@ -4,7 +4,7 @@
 @section('header', 'Gestion des Quiz')
 
 @section('breadcrumb')
-    <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+    <li class="breadcrumb-item"><a href="{{ route('cores.dashboard') }}">Accueil</a></li>
     <li class="breadcrumb-item active" aria-current="page">Quiz</li>
 @endsection
 
@@ -82,7 +82,7 @@
                 <h5 class="modal-title fw-bold" id="modal-print-quiz-label" style="color: #1e6f5c;">
                     <i class="bi bi-printer-fill me-2"></i> Aperçu Avant Impression - Format A4
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
             </div>
             <div class="modal-body p-0 bg-light" style="height: 70vh;">
                 <iframe id="print-iframe-loader" src="" style="width: 100%; height: 100%; border: none;"></iframe>

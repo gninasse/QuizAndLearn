@@ -1,8 +1,8 @@
 @extends('core::layouts.admin-editor')
 
-@section('title', 'Exam Editor - ' . $exam->title)
+@section('title', 'Édition de l\'examen — ' . $exam->title)
 
-@section('page-title', 'Exam Editor - ' . $exam->title)
+@section('page-title', 'Édition de l\'examen — ' . $exam->title)
 
 @push('css')
   <link rel="stylesheet" href="{{ asset('css/admin/quiz-editor.css') }}">
@@ -20,7 +20,7 @@
       <span class="text-truncate" style="max-width: 180px;" id="sidebarExamTitle">{{ $exam->title }}</span>
     </div>
     <span class="badge {{ $exam->is_active ? 'bg-success' : 'bg-secondary' }}" id="sidebarStatusBadge">
-      {{ $exam->is_active ? 'Actif' : 'Draft Mode' }}
+      {{ $exam->is_active ? 'Actif' : 'Brouillon' }}
     </span>
     
     <button class="sidebar-publish-btn" id="btnPublishExam">
@@ -55,8 +55,8 @@
   </li>
   <li class="menu-item">
     <a href="{{ route('cores.editor.exams.supervision', $exam->id) }}" class="menu-link text-danger">
-      <i class="bi bi-desktop"></i>
-      <span>Supervision Live</span>
+      <i class="bi bi-display"></i>
+      <span>Supervision en direct</span>
     </a>
   </li>
 @endsection
@@ -66,12 +66,8 @@
   
   <!-- Secondary Topbar -->
   <div class="secondary-topbar">
-    <div class="secondary-search">
-      <i class="bi bi-search"></i>
-      <input type="text" placeholder="Rechercher des ressources..." id="resourceSearch">
-    </div>
     <div class="secondary-nav">
-      <a href="{{ route('cores.dashboard') }}" class="secondary-nav-link">Dashboard</a>
+      <a href="{{ route('cores.dashboard') }}" class="secondary-nav-link">Tableau de bord</a>
       <a href="{{ route('cores.exams.index') }}" class="secondary-nav-link">Examens</a>
       <a href="{{ route('cores.editor.exams.supervision', $exam->id) }}" class="btn btn-sm btn-danger py-2 px-3" style="border-radius: 8px; border: none;">
         <i class="bi bi-display"></i> Supervision en direct
@@ -109,10 +105,7 @@
           </div>
           <div class="d-flex gap-2">
             <button class="btn btn-sm btn-outline-dark" id="btnPrintExam" style="border-radius: 8px;">
-              <i class="bi bi-print me-1"></i> Imprimer (A4)
-            </button>
-            <button class="btn btn-sm btn-outline-secondary" id="btnReorderQuestions" style="border-radius: 8px;">
-              <i class="bi bi-arrow-down-up me-1"></i> Réordonner
+              <i class="bi bi-printer me-1"></i> Imprimer (A4)
             </button>
             <button class="btn btn-sm btn-primary" id="btnAddQuestion" style="border-radius: 8px;">
               <i class="bi bi-plus-circle me-1"></i> Ajouter
@@ -265,7 +258,7 @@
           <h5 class="modal-title fw-bold" id="questionEditorModalLabel" style="color: var(--green-dark);">
             <i class="bi bi-pencil-square me-2"></i><span id="modalQuestionTitleText">Ajouter une Question</span>
           </h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
         </div>
         <div class="modal-body p-4">
           <form id="formQuestion" data-question-id="">
@@ -393,7 +386,7 @@
         <h5 class="modal-title fw-bold" id="modal-print-exam-label" style="color: #1a365d;">
           <i class="bi bi-printer-fill me-2"></i> Aperçu Avant Impression - Format A4
         </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
       </div>
       <div class="modal-body p-0 bg-light" style="height: 70vh;">
         <iframe id="print-iframe-loader" src="" style="width: 100%; height: 100%; border: none;"></iframe>
@@ -514,7 +507,7 @@
                 if (res.success) {
                     const active = res.is_active;
                     $('#paramIsActive').prop('checked', active);
-                    $('#sidebarStatusBadge').text(active ? 'Actif' : 'Draft Mode')
+                    $('#sidebarStatusBadge').text(active ? 'Actif' : 'Brouillon')
                         .removeClass('bg-success bg-secondary')
                         .addClass(active ? 'bg-success' : 'bg-secondary');
                     

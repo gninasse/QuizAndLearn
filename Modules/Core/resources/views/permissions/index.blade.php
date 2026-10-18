@@ -3,7 +3,7 @@
 @section('header', 'Matrice des permissions')
 
 @section('breadcrumb')
-    <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+    <li class="breadcrumb-item"><a href="{{ route('cores.dashboard') }}">Accueil</a></li>
     <li class="breadcrumb-item active" aria-current="page">Matrice des permissions</li>
 @endsection
 
