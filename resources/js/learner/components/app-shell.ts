@@ -156,6 +156,27 @@ export class AppShell extends BaseComponent {
     if (label) {
       label.textContent = user.is_guest === true ? 'Mode découverte' : `Niveau ${user.xp.current_level} · ${user.xp.total_xp} XP`;
     }
+    if (isConsultation()) this.patchConsultationNotices(user);
+  }
+
+  /** Rafraîchit l'avis d'état du compte consulté (suspension…) sans re-rendu complet. */
+  private patchConsultationNotices(user: UserProfile): void {
+    const banner = this.querySelector('[data-role="consultation-banner"]');
+    if (!banner) return;
+    const notices = consultationNotices(user);
+    const existing = this.querySelector('[data-role="consultation-notice"]');
+    if (notices.length === 0) {
+      existing?.remove();
+    } else if (existing) {
+      existing.innerHTML = html`<i class="bi bi-exclamation-triangle mr-1"></i>${notices.join(' · ')}`;
+    } else {
+      banner.insertAdjacentHTML(
+        'afterend',
+        html`<div data-role="consultation-notice"
+               class="bg-amber-100 dark:bg-amber-500/15 text-amber-900 dark:text-amber-200 text-center text-xs font-semibold py-1 px-4"><i class="bi bi-exclamation-triangle mr-1"></i>${notices.join(' · ')}</div>`,
+      );
+    }
+    this.measureTopStack();
   }
 
   /** Le header collant se place sous les bandeaux du haut (pas de chevauchement). */

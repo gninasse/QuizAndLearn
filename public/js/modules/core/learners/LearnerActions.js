@@ -59,15 +59,30 @@ export class LearnerActions {
 
     impersonate(learnerId) {
         const url = $('#btn-impersonate-learner').data('url').replace('__ID__', learnerId);
+        // Ouverture synchrone (activation utilisateur conservée, Safari).
+        const tab = window.open('', '_blank');
         $.ajax({
             url,
             method: 'POST',
             success: (response) => {
                 if (response.success && response.url) {
-                    window.open(response.url, '_blank', 'noopener');
+                    if (tab) {
+                        tab.opener = null;
+                        tab.location.href = response.url;
+                    } else {
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'Consultation prête',
+                            html: `<a href="${response.url}" target="_blank" rel="noopener">Ouvrir l'espace de l'apprenant</a>`,
+                            showConfirmButton: false
+                        });
+                    }
+                } else {
+                    tab?.close();
                 }
             },
             error: (xhr) => {
+                tab?.close();
                 Swal.fire({
                     icon: 'error',
                     title: 'Erreur',

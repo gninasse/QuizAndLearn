@@ -336,7 +336,9 @@ Route::get('/sw.js', function () {
 // API Apprenant v1 (session + cookie + CSRF, SPA same-origin)
 // -------------------------------------------------------------------------
 Route::prefix('api/learner/v1')->name('learn.v1.')->group(function () {
-    Route::post('/session', [\Modules\Core\Http\Controllers\Learner\Api\SessionController::class, 'store'])->name('session.store');
+    Route::post('/session', [\Modules\Core\Http\Controllers\Learner\Api\SessionController::class, 'store'])
+        ->middleware('impersonation')
+        ->name('session.store');
 
     // Fin de consultation « Voir en tant que » : hors auth/learner, l'en-tête suffit.
     Route::delete('/impersonation', [ImpersonationController::class, 'end'])

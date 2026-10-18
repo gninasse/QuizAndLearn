@@ -61,7 +61,18 @@ class ImpersonationService
             ->with(['admin', 'learner.user'])
             ->first();
 
-        if (! $session || ! $session->isOpen() || (int) $session->admin_id !== (int) $webUser->getKey()) {
+        if (! $session || (int) $session->admin_id !== (int) $webUser->getKey()) {
+            return null;
+        }
+
+        // Expirée mais jamais fermée : on la clôture (journal) au passage.
+        if ($session->ended_at === null && ! $session->expires_at->isFuture()) {
+            $this->end($session);
+
+            return null;
+        }
+
+        if (! $session->isOpen()) {
             return null;
         }
 
@@ -84,7 +95,10 @@ class ImpersonationService
             return;
         }
 
-        $session->forceFill(['ended_at' => now()])->save();
+        // Durée plafonnée à l'expiration : une session oubliée ne gonfle pas l'audit.
+        $endedAt = now()->min($session->expires_at);
+
+        $session->forceFill(['ended_at' => $endedAt])->save();
 
         $this->log('impersonation_ended', $session, $session->admin, [
             'duration_seconds' => (int) $session->created_at->diffInSeconds($session->ended_at, true),

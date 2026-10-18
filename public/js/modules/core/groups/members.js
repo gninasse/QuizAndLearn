@@ -63,11 +63,25 @@ const notify = (message, icon = 'success') =>
 const fail = (error) => Swal.fire('Erreur', error.message || 'Une erreur est survenue.', 'error');
 
 async function impersonate(learner) {
+    // Ouverture synchrone (activation utilisateur conservée, Safari) ; l'URL est
+    // renseignée après la requête.
+    const tab = window.open('', '_blank');
     try {
         const result = await request('POST', urls.impersonate.replace('__ID__', learner.learner_id));
-        window.open(result.url, '_blank', 'noopener');
+        if (tab) {
+            tab.opener = null;
+            tab.location.href = result.url;
+        } else {
+            Swal.fire({
+                icon: 'info',
+                title: 'Consultation prête',
+                html: `<a href="${result.url}" target="_blank" rel="noopener">Ouvrir l'espace de l'apprenant</a>`,
+                showConfirmButton: false,
+            });
+        }
         void load();
     } catch (error) {
+        tab?.close();
         fail(error);
     }
 }

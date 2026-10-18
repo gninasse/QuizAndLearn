@@ -207,7 +207,7 @@ class ImpersonationTest extends TestCase
         foreach (Route::getRoutes() as $route) {
             $name = $route->getName();
             if (! $name || ! str_starts_with($name, 'learn.v1.')
-                || in_array($name, [...self::WHITELIST, 'learn.v1.impersonation.end', 'learn.v1.session.store'], true)) {
+                || in_array($name, [...self::WHITELIST, 'learn.v1.impersonation.end'], true)) {
                 continue;
             }
 
@@ -356,5 +356,36 @@ class ImpersonationTest extends TestCase
         $this->assertSame($this->superAdmin->id, (int) $ended->causer_id);
         $this->assertSame($session->id, $ended->properties['session_id']);
         $this->assertSame(300, $ended->properties['duration_seconds']);
+    }
+
+    public function test_expired_session_is_closed_at_expiry_via_resolve(): void
+    {
+        $token = $this->start();
+        $session = ImpersonationSession::sole();
+
+        Carbon::setTestNow(now()->addHours(3));
+        $this->asAdmin($token)->getJson('/api/learner/v1/bootstrap')
+            ->assertForbidden()->assertJsonPath('code', 'impersonation_ended');
+        Carbon::setTestNow();
+
+        $session->refresh();
+        $this->assertTrue($session->ended_at->equalTo($session->expires_at));
+        $ended = Activity::where('description', 'impersonation_ended')->sole();
+        $this->assertLessThanOrEqual(1800, $ended->properties['duration_seconds']);
+    }
+
+    public function test_stale_session_ended_by_new_start_is_capped_at_expiry(): void
+    {
+        $this->start();
+        $first = ImpersonationSession::sole();
+
+        Carbon::setTestNow(now()->addHours(3));
+        $this->start();
+        Carbon::setTestNow();
+
+        $first->refresh();
+        $this->assertTrue($first->ended_at->equalTo($first->expires_at));
+        $ended = Activity::where('description', 'impersonation_ended')->sole();
+        $this->assertLessThanOrEqual(1800, $ended->properties['duration_seconds']);
     }
 }

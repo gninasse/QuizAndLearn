@@ -66,6 +66,24 @@ class ImpersonationEntryPointsTest extends TestCase
             ->getJson($url)->assertOk()->assertJsonPath('can_impersonate', false);
     }
 
+    public function test_non_super_admin_gets_no_last_consultation(): void
+    {
+        $superAdmin = $this->makeUser('root', 'super-admin');
+        ImpersonationSession::create([
+            'admin_id' => $superAdmin->id,
+            'learner_id' => $this->learner->id,
+            'token_hash' => hash('sha256', 'abc'),
+            'expires_at' => now()->addMinutes(30),
+        ]);
+
+        $response = $this->actingAs($this->makeUser('boss', 'admin'))
+            ->getJson(route('cores.groups.members.data', $this->group->id))
+            ->assertOk()
+            ->assertJsonPath('can_impersonate', false);
+
+        $this->assertNull($response->json('learners.0.last_consultation'));
+    }
+
     public function test_members_data_includes_last_consultation(): void
     {
         $admin = $this->makeUser('root', 'super-admin');

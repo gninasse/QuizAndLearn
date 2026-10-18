@@ -98,6 +98,8 @@ async function boot(): Promise<void> {
     loginPath: '/connexion',
     defaultPath: '/',
     onNavigate: (route) => {
+      // Consultation : jamais d'écran de connexion.
+      if (consultation && route.path === '/connexion') void router.go('/', true);
       redirectIfPasswordChangeRequired();
       dismissLightbox();
       shell.setTitle(route.title);
