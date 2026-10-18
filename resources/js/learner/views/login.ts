@@ -1,8 +1,8 @@
 import { api, ApiError, NetworkError } from '../api/client';
 import { html, raw } from '../core/html';
 import { db } from '../db/schema';
-import { enterGuestMode } from '../guest/guest-session';
-import { fullBootstrap, hydrateFromDb } from '../sync/engine';
+import { enterGuestMode, isGuest } from '../guest/guest-session';
+import { clearLocalData, fullBootstrap, hydrateFromDb } from '../sync/engine';
 import { sessionStore } from '../stores';
 import { toast } from '../ui/app-toast';
 import { isStandalone } from '../ui/install';
@@ -129,6 +129,9 @@ export function mount(el: HTMLElement): void {
 
       try {
         const response = await api.login(String(data.get('login')), String(data.get('password')));
+        // Session invité encore active : rien de la vitrine (contenus, réglages,
+        // brouillons, erreurs) ne doit rester sous le vrai profil.
+        if (isGuest()) await clearLocalData();
         await db.profile.put({ ...response.user, _key: 'me' });
         sessionStore.set(response.user);
 

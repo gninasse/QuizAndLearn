@@ -11,8 +11,8 @@ vi.mock('../api/client', () => ({
   ApiError: class extends Error {},
   NetworkError: class extends Error {},
 }));
-vi.mock('../guest/guest-session', () => ({ enterGuestMode }));
-vi.mock('../sync/engine', () => ({ fullBootstrap: vi.fn(), hydrateFromDb: vi.fn() }));
+vi.mock('../guest/guest-session', () => ({ enterGuestMode, isGuest: () => false }));
+vi.mock('../sync/engine', () => ({ fullBootstrap: vi.fn(), hydrateFromDb: vi.fn(), clearLocalData: vi.fn() }));
 vi.mock('../db/schema', () => ({ db: { profile: { put: vi.fn() } } }));
 
 import { mount } from './login';
