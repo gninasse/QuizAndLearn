@@ -115,6 +115,7 @@ Route::middleware(['auth', 'staff'])->group(function () {
         Route::get('/parametres', [GeneralSettingsController::class, 'edit'])->name('settings.general');
         Route::put('/parametres', [GeneralSettingsController::class, 'save'])->name('settings.general.save');
         Route::post('/parametres/notifications/test', [GeneralSettingsController::class, 'sendPushTest'])->name('settings.push.test');
+        Route::post('/parametres/videos/test', [GeneralSettingsController::class, 'testVideo'])->name('settings.video.test');
 
         Route::get('/showcase/settings', [ShowcaseAdminController::class, 'settings'])->name('showcase.settings');
         Route::put('/showcase/settings', [ShowcaseAdminController::class, 'saveSettings'])->name('showcase.settings.save');
@@ -349,6 +350,17 @@ Route::prefix('api/learner/v1')->name('learn.v1.')->group(function () {
         ->middleware('impersonation')
         ->name('impersonation.end');
 
+    // Playlist HLS d'une vidéo s3_hls. Volontairement HORS groupe auth : apprenants
+    // ET invités vitrine doivent pouvoir la charger (le lecteur HLS n'envoie ni
+    // cookie ni jeton). L'autorisation est la signature temporaire (15 min)
+    // délivrée par /videos/{ref}/playback, lui-même protégé (session ou jeton
+    // invité + référence vitrine). Nom de fichier restreint à *.m3u8.
+    Route::get('/videos/{ref}/hls/{file}', [\Modules\Core\Http\Controllers\Learner\Api\VideoPlaybackController::class, 'hlsPlaylist'])
+        ->where('ref', '[0-9a-fA-F-]{36}')
+        ->where('file', '[A-Za-z0-9_-]+\.m3u8')
+        ->middleware('signed')
+        ->name('videos.hls');
+
     // `impersonation` AVANT `auth` : en consultation, l'apprenant devient
     // l'utilisateur de la requête (lecture seule, liste blanche).
     Route::middleware(['impersonation', 'auth', 'learner'])->group(function () {
@@ -359,6 +371,8 @@ Route::prefix('api/learner/v1')->name('learn.v1.')->group(function () {
         Route::get('/bootstrap', [\Modules\Core\Http\Controllers\Learner\Api\ContentController::class, 'bootstrap'])->name('bootstrap');
         Route::get('/changes', [\Modules\Core\Http\Controllers\Learner\Api\ContentController::class, 'changes'])->name('changes');
         Route::get('/leaderboard', [\Modules\Core\Http\Controllers\Learner\Api\ContentController::class, 'leaderboard'])->name('leaderboard');
+
+        Route::get('/videos/{ref}/playback', [\Modules\Core\Http\Controllers\Learner\Api\VideoPlaybackController::class, 'show'])->name('videos.playback');
 
         Route::post('/actions', [\Modules\Core\Http\Controllers\Learner\Api\ActionController::class, 'store'])->name('actions');
 
@@ -378,6 +392,7 @@ Route::prefix('api/learner/v1')->name('learn.v1.')->group(function () {
 Route::prefix('api/showcase/v1')->name('showcase.v1.')->middleware('throttle:60,1')->group(function () {
     Route::get('/content', [\Modules\Core\Http\Controllers\Showcase\ShowcaseController::class, 'content'])->name('content');
     Route::get('/settings', [\Modules\Core\Http\Controllers\Showcase\ShowcaseController::class, 'settings'])->name('settings');
+    Route::get('/videos/{ref}/playback', [\Modules\Core\Http\Controllers\Learner\Api\VideoPlaybackController::class, 'guest'])->name('videos.playback');
     Route::post('/access-requests', [\Modules\Core\Http\Controllers\Showcase\AccessRequestSubmitController::class, 'store'])
         ->middleware('throttle:5,60,access-requests')
         ->name('access-requests.store');

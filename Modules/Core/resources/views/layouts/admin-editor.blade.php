@@ -130,6 +130,11 @@
   <script src="{{ asset('plugins/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
   <script src="{{ asset('plugins/select2/js/select2.full.min.js') }}"></script>
   <script src="{{ asset('plugins/sweetalert2/sweetalert2.all.min.js') }}"></script>
+  <script>
+    window.VIDEO_EMBEDS_ENABLED = {{ app(\Modules\Core\Services\Video\VideoSettings::class)->embedsEnabled() ? 'true' : 'false' }};
+    window.VIDEO_EMBED_PROVIDERS = @json(app(\Modules\Core\Services\Video\VideoSettings::class)->providers());
+  </script>
+  <script src="{{ asset('js/admin/video-embed.js') }}"></script>
   <script src="{{ asset('js/admin/utils.js') }}"></script>
   
   <!-- Sidebar Toggle Script -->

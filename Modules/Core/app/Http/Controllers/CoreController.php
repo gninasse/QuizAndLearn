@@ -81,6 +81,21 @@ class CoreController extends Controller
                 'file.uploaded' => 'Le fichier dépasse la taille autorisée par le serveur (upload_max_filesize).',
             ]);
 
+            if ($type === 'video') {
+                $videos = app(\Modules\Core\Services\Video\VideoManager::class);
+                $video = $videos->store($file, $request->user());
+
+                return response()->json([
+                    'success' => true,
+                    // Pilote local : URL /storage (compatibilité) ; externe : null.
+                    'url' => $video->driver === 'local' ? asset('storage/'.$video->location) : null,
+                    'ref' => $video->ref,
+                    'status' => $video->status,
+                    'type' => $type,
+                    'name' => $file->getClientOriginalName(),
+                ]);
+            }
+
             // Store the file in public/uploads/media
             $path = $file->store('uploads/media', 'public');
             $url = asset('storage/'.$path);
@@ -91,10 +106,20 @@ class CoreController extends Controller
                 'type' => $type,
                 'name' => $file->getClientOriginalName(),
             ]);
-        } catch (\Exception $e) {
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Messages de validation rédigés pour l'utilisateur : renvoyés tels quels.
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
+            ], 422);
+        } catch (\Exception $e) {
+            // Erreur de pilote ou de stockage : le détail (hôte, bucket, clé…)
+            // reste dans les journaux, jamais dans l'éditeur.
+            report($e);
+
+            return response()->json([
+                'success' => false,
+                'message' => "Échec de l'envoi du média. Réessayez ou contactez l'administrateur.",
             ], 422);
         }
     }

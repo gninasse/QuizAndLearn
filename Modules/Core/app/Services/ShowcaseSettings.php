@@ -274,6 +274,7 @@ class ShowcaseSettings
             'default_country_code' => $this->defaultCountryCode(),
             'access_request' => $this->accessRequest(),
             'privacy_url' => $this->privacyUrl() ?? '/confidentialite',
+            'video' => app(\Modules\Core\Services\Video\VideoSettings::class)->toArray(),
         ];
     }
 

@@ -72,6 +72,13 @@ $(function() {
             .html('<i class="bi bi-camera-video"></i>');
         $img.after($audio);
         $audio.after($video);
+        if (window.VIDEO_EMBEDS_ENABLED !== false && window.parseVideoEmbed) {
+            const $embed = $img.clone()
+                .attr('data-cmd', 'video-embed')
+                .attr('title', 'Insérer une vidéo YouTube / Vimeo')
+                .html('<i class="bi bi-youtube"></i>');
+            $video.after($embed);
+        }
     });
 });
 
@@ -127,9 +134,42 @@ window.insertWysiwygTag = function($textarea, cmd) {
             return;
         case 'video':
             uploadAndInsertMedia('video/mp4,video/webm,video/ogg,video/quicktime,.mp4,.m4v,.webm,.ogv,.mov', 'la vidéo', function(res) {
+                // Par référence : le lecteur obtient une source (éventuellement signée) à la lecture.
+                if (res.ref && /^[0-9a-f-]{36}$/i.test(res.ref)) {
+                    return `<video data-video-ref="${res.ref}" controls playsinline preload="metadata" class="my-2 w-100"></video>`;
+                }
                 return `<video controls playsinline preload="metadata" src="${res.url}" class="my-2 w-100"></video>`;
             });
             return;
+        case 'video-embed':
+            promptVideoEmbed(function(html) {
+                el.value = text.substring(0, start) + html + text.substring(end);
+                el.focus();
+                el.selectionStart = el.selectionEnd = start + html.length;
+                $textarea.trigger('input');
+            });
+            return;
+    }
+
+    // Demande un lien YouTube / Vimeo, le valide avec le parseur partagé et fournit l'embed de marque.
+    function promptVideoEmbed(onHtml) {
+        Swal.fire({
+            title: 'Insérer une vidéo YouTube / Vimeo',
+            input: 'url',
+            inputLabel: 'Lien de la vidéo',
+            inputPlaceholder: 'https://www.youtube.com/watch?v=…',
+            showCancelButton: true,
+            confirmButtonText: 'Insérer',
+            cancelButtonText: 'Annuler',
+            inputValidator: (value) => {
+                if (!value) return 'Vous devez saisir une URL !';
+                return window.videoEmbedError(value, window.VIDEO_EMBED_PROVIDERS) || undefined;
+            }
+        }).then((result) => {
+            if (!result.isConfirmed) return;
+            const parsed = window.parseVideoEmbed(result.value);
+            if (parsed) onHtml(window.buildVideoEmbedHtml(parsed));
+        });
     }
 
     // Téléverse un fichier vers /cores/media/upload puis insère le HTML rendu.

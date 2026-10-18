@@ -31,8 +31,26 @@ export interface UserProfile {
   is_guest?: boolean;
   /** Web Push : clé VAPID publique, null si les notifications sont inactives. */
   push?: { public_key: string | null };
+  /** Vidéos externes (YouTube / Vimeo) autorisées par l'administrateur. */
+  video?: { embeds: VideoEmbedPolicy };
   xp: XpSnapshot;
 }
+
+/** Réglage admin `video.embeds` (exposé par /me, le bootstrap et la vitrine). */
+export interface VideoEmbedPolicy {
+  enabled: boolean;
+  providers: string[];
+}
+
+/** GET …/videos/{ref}/playback : 200 (source) ou 202 (conversion en cours). */
+export interface VideoPlaybackSource {
+  type: 'mp4' | 'hls';
+  url: string;
+  /** Échéance ISO de l'URL signée ; null = URL permanente (pilote local). */
+  expires_at: string | null;
+}
+
+export type VideoPlaybackResponse = VideoPlaybackSource | { status: 'processing' };
 
 export interface ArticleItem {
   id: number;
@@ -262,6 +280,7 @@ export interface ShowcaseSettings {
   privacy_url: string;
   groups: ShowcaseGroup[];
   terms?: Record<string, string>;
+  video?: { embeds: VideoEmbedPolicy };
 }
 
 /** POST /api/showcase/v1/access-requests */

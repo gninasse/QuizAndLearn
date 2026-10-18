@@ -8,6 +8,9 @@
  * - /api/learner/* → network-only : les données vivent dans IndexedDB,
  *   jamais dans le cache HTTP (une seule source de vérité hors-ligne).
  * - /cores/* et /admin/* : jamais interceptés (back-office).
+ * - Vidéos : jamais en cache — ni les sources de lecture (/api/…/videos/…/
+ *   playback), ni les playlists HLS signées (/videos/…/hls/…, *.m3u8), ni
+ *   les segments (*.ts), ni les lecteurs YouTube / Vimeo (en ligne uniquement).
  * - Background Sync : réveille l'app (clients ouverts) pour rejouer l'outbox.
  */
 
@@ -18,6 +21,7 @@ import { NavigationRoute, registerRoute } from 'workbox-routing';
 import { CacheFirst, NetworkOnly } from 'workbox-strategies';
 
 import { pickLearnerClient } from './sw-clients';
+import { isVideoStreamRequest } from './sw-video';
 
 declare const self: ServiceWorkerGlobalScope;
 
@@ -37,6 +41,15 @@ registerRoute(
   }),
 );
 
+// Vidéos (en ligne uniquement) : réseau seul, jamais de cache — sources de
+// lecture et playlists HLS signées (15 min : un cache servirait des URL
+// expirées). Les hôtes YouTube / Vimeo / segments S3 (autre origine) ne sont
+// pas routés : le navigateur va au réseau, aucune règle de cache ne les vise.
+registerRoute(
+  ({ url }) => url.origin === self.location.origin && isVideoStreamRequest(url),
+  new NetworkOnly(),
+);
+
 // Données : réseau uniquement — IndexedDB est la seule source hors-ligne.
 registerRoute(({ url }) => url.pathname.startsWith('/api/'), new NetworkOnly());
 
@@ -50,6 +63,7 @@ registerRoute(
     url.origin === self.location.origin &&
     request.destination !== 'video' &&
     !VIDEO_PATH.test(url.pathname) &&
+    !isVideoStreamRequest(url) &&
     (request.destination === 'image' ||
       request.destination === 'font' ||
       url.pathname.startsWith('/plugins/') ||

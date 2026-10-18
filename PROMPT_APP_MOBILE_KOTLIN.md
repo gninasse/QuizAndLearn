@@ -633,3 +633,88 @@ dans le back-office : `404 {"success":false,"message":"Le mode découverte est d
 - Elles sont **purgées** à la sortie du mode découverte, à l'expiration irrécupérable du
   jeton et **avant toute connexion réelle** (aucune donnée invité ne doit survivre
   dans une session apprenant). Inversement, la déconnexion d'un apprenant ne crée pas de session invité.
+
+---
+
+## Mise à jour — vidéos par référence et lecteur de marque YouTube / Vimeo (octobre 2026)
+
+Les contenus HTML (articles, énoncés, recto/verso) peuvent désormais contenir trois
+formes de vidéo. Les anciennes `<video src="/storage/…">` restent valables (pilote
+`local`, inchangé).
+
+### A. Vidéo hébergée par la plateforme : `<video data-video-ref="uuid">`
+
+1. Le HTML ne contient **qu'une référence** (aucune URL) :
+   `<video data-video-ref="0b6f…" controls playsinline preload="metadata"></video>`.
+2. Source de lecture, demandée au moment de l'affichage (**en ligne uniquement**,
+   jamais mise en cache, jamais préchargée par le worker média) :
+   - apprenant : `GET /api/learner/v1/videos/{ref}/playback` (`Authorization: Bearer`) ;
+   - invité (mode découverte) : `GET /api/showcase/v1/videos/{ref}/playback` avec l'en-tête
+     `X-Guest-Token` (la vidéo doit figurer dans un contenu vitrine, sinon `403`).
+3. Réponses :
+   - `200 {"type":"mp4"|"hls","url":"…","expires_at":"ISO 8601"|null}` → lire `url`
+     avec **ExoPlayer** (`mp4` : progressive ; `hls` : `HlsMediaSource`). Selon le pilote :
+     - `local` : `url` **relative** `/storage/uploads/media/…` → la rebaser sur
+       `{{BASE_URL}}` et l'ouvrir avec l'en-tête **`Authorization: Bearer <token>`**
+       (invité : `X-Guest-Token`) via `DefaultHttpDataSource.Factory().setDefaultRequestProperties(…)` :
+       sans lui, `/storage` répond `403` ;
+     - `s3_hls` : `url` **absolue**
+       `{{BASE_URL}}/api/learner/v1/videos/{ref}/hls/index.m3u8?expires=…&signature=…`
+       (y compris pour les invités). La playlist signée ne demande ni cookie ni jeton —
+       ne pas y ajouter d'en-tête ni modifier la requête (la signature couvre l'URL
+       entière) ; ses segments sont des URL S3 signées absolues ;
+     - `bunny` : `url` **absolue** sur le CDN Bunny (`https://vz-….b-cdn.net/bcdn_token=…/{guid}/playlist.m3u8`),
+       sans en-tête d'authentification. Attention : si l'option Bunny **« Block empty
+       referrer »** (Allowed Domains) est active, ExoPlayer, qui n'envoie pas de
+       `Referer`, est refusé (`403`). Soit l'administrateur laisse cette option
+       désactivée (la signature par jeton suffit), soit l'application envoie
+       `Referer: {{BASE_URL}}/` via `setDefaultRequestProperties`.
+   - `202 {"status":"processing"}` → placeholder « Vidéo en cours de préparation »,
+     nouvel essai après 30 s (3 fois au plus).
+   - `404` / `410 {"status":"failed"}` → placeholder « Vidéo indisponible ».
+   - Hors ligne → « Vidéo disponible en ligne uniquement. ».
+4. **Renouvellement (obligatoire)** : une URL signée (pilotes `s3_hls`, `bunny`) expire
+   **15 minutes** après sa délivrance. 60 s avant `expires_at`, ou sur erreur réseau /
+   HTTP 403 du lecteur (`PlaybackException` source), redemander `/playback`, remplacer
+   la `MediaItem` et **reprendre à la même position** (`seekTo(previousPosition)`) dans
+   le même état lecture / pause, sans afficher d'erreur. Plus de 3 échecs consécutifs →
+   « Vidéo indisponible ». `expires_at: null` (pilote local) → aucun renouvellement.
+5. Aucun bouton de téléchargement, de partage, de PiP ni de Cast ; filigrane nominatif
+   (nom · matricule · date) superposé au lecteur.
+
+### B. Vidéo YouTube / Vimeo : `<div class="brand-video" data-embed="…" data-id="…">`
+
+1. Forme stockée : `<div class="brand-video" data-embed="youtube|vimeo" data-id="ID"
+   [data-hash="HASH"]>` — jamais d'URL complète. Les **anciens** contenus peuvent encore
+   contenir une iframe brute `<iframe src="https://www.youtube.com/embed/ID…">` ou
+   `https://player.vimeo.com/video/ID?h=HASH` : en extraire l'identifiant (et le hash
+   Vimeo), **ne jamais afficher l'iframe d'origine**, la remplacer par le lecteur de marque.
+2. Réglage admin : `user.video.embeds = {enabled, providers}` (bootstrap et `/me`) ;
+   en mode découverte `video.embeds` à la racine de `/api/showcase/v1/settings`.
+   Embeds désactivés ou fournisseur absent de `providers` → « Vidéo indisponible ».
+3. Lecteur : une **WebView dédiée** (JavaScript activé pour elle seule, jamais pour la
+   WebView de contenu) chargeant l'iframe du fournisseur **avec exactement les mêmes
+   paramètres que la PWA** :
+   - YouTube : `https://www.youtube-nocookie.com/embed/{ID}?enablejsapi=1&controls=0&rel=0&modestbranding=1&disablekb=1&fs=0&playsinline=1&iv_load_policy=3`
+     piloté par l'API IFrame (`https://www.youtube.com/iframe_api`, `host: https://www.youtube-nocookie.com`) ;
+   - Vimeo : `https://player.vimeo.com/video/{ID}?h={HASH}&title=0&byline=0&portrait=0&controls=0&dnt=1`
+     (`h` seulement si `data-hash`), piloté par `https://player.vimeo.com/api/player.js`.
+4. Calque transparent plein cadre au-dessus de la WebView : il intercepte tous les
+   touchers (aucun lien « Regarder sur YouTube », titre, logo ou menu du fournisseur
+   n'est atteignable) et porte le filigrane. Commandes **natives** au-dessus :
+   lecture/pause, barre de progression, temps écoulé/total, muet, volume, plein écran
+   **de notre conteneur** (jamais celui du fournisseur). `contentDescription` en
+   français sur chaque commande (« Lire la vidéo », « Mettre en pause », « Position
+   dans la vidéo », « Couper le son », « Volume », « Plein écran »…).
+   `shouldOverrideUrlLoading` refuse toute navigation hors des hôtes du fournisseur
+   (aucune ouverture d'application YouTube / navigateur).
+5. **En ligne uniquement** : jamais de cache (ni WebView, ni worker média) ; hors ligne
+   → « Vidéo disponible en ligne uniquement. », montage automatique au retour du réseau.
+
+### C. Protection
+
+- `FLAG_SECURE` sur **tout** écran affichant du contenu pédagogique, y compris le plein
+  écran vidéo (bloque captures et enregistrement d'écran, y compris des lecteurs
+  YouTube / Vimeo et ExoPlayer).
+- Mode consultation « Voir en tant que » : la route `/playback` fait partie de la liste
+  blanche lecture seule, comportement identique.

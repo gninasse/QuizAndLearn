@@ -65,9 +65,27 @@
 - **Gestes neutralisés** sur les images/vidéos/audios du contenu (`.rich-content`) : menu contextuel / appui long, glisser-déposer, Ctrl+S ; lecteurs sans « Télécharger », PiP ni Cast.
 - **Filigrane nominatif** (nom · matricule · date du jour), discret et répété, sur chaque image et vidéo — y compris dans la visionneuse.
 - **Visionneuse d'image** : toucher une image (ou son bouton ⤢) ouvre un aperçu plein écran — zoom au toucher, galerie (flèches, swipe), fermeture par ✕, Échap, swipe vers le bas ou **bouton Retour** (sans démonter l'écran courant, même en plein quiz). Sur une flashcard, toucher l'image retourne la carte ; seul le bouton ⤢ ouvre l'aperçu.
-- **Vidéo** : lecture en streaming, en ligne uniquement (exclue du cache hors-ligne). Images et audio restent disponibles hors-ligne.
+- **Vidéo** : lecture en streaming, en ligne uniquement (exclue du cache hors-ligne) — voir 0.5-bis. Images et audio restent disponibles hors-ligne.
 - **Retour aux listes** : la position de défilement d'un écran est restaurée au retour arrière.
 - Déconnexion → le cache des médias est purgé.
+
+### 0.5-bis Vidéos : par référence et lecteur de marque YouTube / Vimeo
+
+- **Trois formes** dans le contenu : `<video src="/storage/…">` (historique, inchangée), `<video data-video-ref="uuid">` (vidéo hébergée par la plateforme, quel que soit le pilote `local`, `s3_hls` ou `bunny`) et `<div class="brand-video" data-embed="youtube|vimeo" data-id="…" [data-hash="…"]>` (vidéo externe). Le contenu ne stocke jamais l'URL d'une vidéo, seulement sa référence ou son identifiant.
+- **Vidéo par référence** (`ui/video-ref.ts`) : à l'affichage, `GET /api/learner/v1/videos/{ref}/playback` (invité : `/api/showcase/v1/videos/{ref}/playback`, cookie invité ; consultation : liste blanche lecture seule).
+  - `200 {type, url, expires_at}` → `mp4` en `src` direct ; `hls` en lecture native (Safari / iOS) sinon via **hls.js**, chargé à la demande uniquement.
+  - `202` → « Vidéo en cours de préparation », nouvel essai toutes les 30 s (3 fois au plus) ; `404` / `410` → « Vidéo indisponible » ; hors ligne → « Vidéo disponible en ligne uniquement. » puis chargement au retour du réseau.
+  - **Renouvellement transparent** : les URL signées expirent 15 min après leur délivrance (segments HLS compris). 60 s avant `expires_at` (ou à la reprise de lecture si l'échéance est dépassée, ou sur erreur réseau / 403 du média), le lecteur redemande une source — playlist HLS rechargée en entier — et reprend **à la même position, dans le même état lecture / pause**, sans message. Au-delà de 3 échecs consécutifs : « Vidéo indisponible ». `expires_at: null` (pilote local) : pas de renouvellement.
+  - Le durcissement des lecteurs (« Télécharger », PiP, Cast retirés) et le filigrane s'appliquent comme aux autres vidéos.
+- **Lecteur de marque YouTube / Vimeo** (`ui/brand-video.ts`) :
+  - Les anciennes iframes brutes (`youtube.com/embed/…`, `youtube-nocookie.com/embed/…`, `player.vimeo.com/video/…?h=…`) sont converties à l'affichage ; l'iframe d'origine n'est jamais montrée (identifiant non reconnu → « Vidéo indisponible »).
+  - Iframe du fournisseur sans ses commandes : YouTube via `youtube-nocookie.com` (`controls=0`, `rel=0`, `modestbranding=1`, `disablekb=1`, `fs=0`, `playsinline=1`, `iv_load_policy=3`) piloté par l'API IFrame ; Vimeo avec `title=0&byline=0&portrait=0&controls=0&dnt=1` (+ `h=` pour une vidéo non répertoriée) piloté par `player.js`. Chaque script fournisseur est chargé **une seule fois, à la demande**.
+  - Conteneur 16:9 ; **calque transparent plein cadre** au-dessus de l'iframe : bloque clics, appui long et menu contextuel (aucun lien vers YouTube / Vimeo atteignable) et porte le filigrane nominatif. Toucher le calque = lecture / pause.
+  - Commandes maison : lecture/pause, barre de progression cliquable, temps écoulé / total, muet + volume, **plein écran de notre conteneur** (simulé en CSS là où le plein écran d'élément n'existe pas, iOS). Libellés `aria-label` en français.
+  - Réglage admin `video.embeds` (`user.video.embeds` du bootstrap / `/me`, `video.embeds` des réglages vitrine) : désactivé ou fournisseur non autorisé → « Vidéo indisponible ».
+  - **En ligne uniquement** : hors ligne → « Vidéo disponible en ligne uniquement. », montage automatique au retour du réseau.
+- **Service worker** : jamais de cache pour les sources de lecture (`/api/*/v1/videos/*/playback`), les playlists HLS signées (`/videos/*/hls/*`, `*.m3u8`), les segments (`*.ts`), ni les hôtes YouTube / Vimeo / googlevideo. hls.js est exclu du precache.
+- **Mode découverte et consultation** : fonctionnement identique (lecture seule).
 
 ### 0.6 Compte suspendu
 

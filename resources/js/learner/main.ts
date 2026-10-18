@@ -13,7 +13,7 @@ import {
 } from './consultation/consultation';
 import { resyncPushSubscription } from './core/push';
 import { db } from './db/schema';
-import { loadGuestSettings } from './guest/guest-session';
+import { guestSettings, loadGuestSettings } from './guest/guest-session';
 import { Router, type RouteDefinition } from './router';
 import { preferencesStore, sessionStore, syncStore } from './stores';
 import {
@@ -27,6 +27,7 @@ import {
 import { applyPreferences, applyTheme, initialTheme, toggleTheme } from './theme';
 import { celebrateDialog } from './ui/app-dialog';
 import { toast } from './ui/app-toast';
+import { setVideoEmbedPolicy } from './ui/brand-video';
 import { captureInstallPrompt, maybeShowInstallBanner } from './ui/install';
 import { dismissLightbox, installMediaGuard, setWatermark } from './ui/media-guard';
 import { playBadge } from './ui/sound';
@@ -35,6 +36,11 @@ import { playBadge } from './ui/sound';
 
 applyTheme(initialTheme());
 captureInstallPrompt();
+// Vidéos YouTube / Vimeo autorisées : profil apprenant (bootstrap) ou vitrine.
+setVideoEmbedPolicy(() => {
+  const user = sessionStore.get();
+  return user?.is_guest ? guestSettings()?.video?.embeds : user?.video?.embeds;
+});
 installMediaGuard();
 
 // ---------------------------------------------------------------- Routage

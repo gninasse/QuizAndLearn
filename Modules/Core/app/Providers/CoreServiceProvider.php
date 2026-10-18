@@ -61,6 +61,8 @@ class CoreServiceProvider extends ServiceProvider
         // Enregistrer les services
         $this->app->singleton(\Modules\Core\Services\ShowcaseSettings::class);
         $this->app->singleton(\Modules\Core\Services\Terminology::class);
+        $this->app->singleton(\Modules\Core\Services\Video\VideoManager::class);
+        $this->app->bind(\Modules\Core\Services\Video\Transcoder::class, fn () => new \Modules\Core\Services\Video\FfmpegTranscoder((string) config('media.video.s3_hls.ffmpeg', 'ffmpeg')));
         $this->app->bind(\Modules\Core\Services\Push\PushSender::class, \Modules\Core\Services\Push\WebPushSender::class);
         $this->app->singleton(\Modules\Core\Services\ModuleService::class);
         $this->app->singleton(\Modules\Core\Services\PermissionService::class);

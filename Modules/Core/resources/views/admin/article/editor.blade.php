@@ -234,10 +234,12 @@
                   <i class="bi bi-image"></i>
                   <span>Image</span>
                 </button>
+                @if (app(\Modules\Core\Services\Video\VideoSettings::class)->embedsEnabled())
                 <button class="element-insert-btn" data-element="video-placeholder">
                   <i class="bi bi-youtube"></i>
-                  <span>Vidéo Embed</span>
+                  <span>Vidéo YouTube / Vimeo</span>
                 </button>
+                @endif
                 <button class="element-insert-btn" data-element="audio-upload">
                   <i class="bi bi-music-note-beamed"></i>
                   <span>Audio</span>

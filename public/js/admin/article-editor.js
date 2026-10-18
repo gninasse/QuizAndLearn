@@ -256,9 +256,9 @@
           break;
         case 'video-placeholder':
           Swal.fire({
-            title: 'Insérer une vidéo YouTube',
+            title: 'Insérer une vidéo YouTube / Vimeo',
             input: 'url',
-            inputLabel: 'Lien de la vidéo YouTube',
+            inputLabel: 'Lien de la vidéo',
             inputPlaceholder: 'https://www.youtube.com/watch?v=...',
             showCancelButton: true,
             confirmButtonColor: '#1e6f5c',
@@ -268,33 +268,21 @@
               if (!value) {
                 return 'Vous devez saisir une URL !';
               }
-              if (!value.includes('youtube.com') && !value.includes('youtu.be')) {
-                return 'Veuillez saisir un lien YouTube valide.';
+              var err = window.videoEmbedError(value, window.VIDEO_EMBED_PROVIDERS);
+              if (err) {
+                return err;
               }
             }
           }).then((result) => {
             if (result.isConfirmed && result.value) {
-              var url = result.value;
-              var videoId = null;
-
-              // Parse youtube ID
-              var regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-              var match = url.match(regExp);
-
-              if (match && match[2].length == 11) {
-                videoId = match[2];
-              }
-
-              if (videoId) {
-                var embedUrl = 'https://www.youtube.com/embed/' + videoId + '?modestbranding=1&rel=0';
-                var videoHtml = '<div class="ratio ratio-16x9 my-3" contenteditable="false">' +
-                  '<iframe src="' + embedUrl + '" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>' +
-                  '</div><p><br></p>';
-                insertHtmlAtCursor(videoHtml);
+              var parsed = window.parseVideoEmbed(result.value);
+              if (parsed) {
+                // Seuls fournisseur et identifiant sont stockés, jamais l'URL complète.
+                insertHtmlAtCursor(window.buildVideoEmbedHtml(parsed));
                 checkChanges();
-                showToast('success', 'Vidéo YouTube insérée.');
+                showToast('success', 'Vidéo ' + (parsed.provider === 'youtube' ? 'YouTube' : 'Vimeo') + ' insérée.');
               } else {
-                Swal.fire('Erreur', 'Impossible de récupérer l\'identifiant de la vidéo YouTube.', 'error');
+                Swal.fire('Erreur', 'Lien non reconnu : seuls les liens YouTube et Vimeo sont acceptés.', 'error');
               }
             }
           });

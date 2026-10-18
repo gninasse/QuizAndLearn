@@ -11,6 +11,7 @@ use Modules\Core\Models\ImpersonationSession;
 use Modules\Core\Services\GamificationService;
 use Modules\Core\Services\ImpersonationService;
 use Modules\Core\Services\Push\PushSettings;
+use Modules\Core\Services\Video\VideoSettings;
 use Modules\Core\Support\LoginResolver;
 
 /**
@@ -93,6 +94,9 @@ class SessionController extends Controller
                 ? config('push.vapid.public_key')
                 : null,
         ];
+
+        // Vidéos externes (YouTube / Vimeo) autorisées ou non par l'administrateur.
+        $profile['video'] = app(VideoSettings::class)->toArray();
 
         return response()->json([
             'success' => true,

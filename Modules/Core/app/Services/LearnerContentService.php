@@ -115,6 +115,9 @@ class LearnerContentService
             'avatar_url' => $user->avatar_url,
             'matricule' => $learner->matricule,
             'xp' => $this->gamification->snapshot($learner),
+            // Vidéos externes autorisées (même charge utile que /me) : la PWA
+            // lit son profil depuis le bootstrap.
+            'video' => app(\Modules\Core\Services\Video\VideoSettings::class)->toArray(),
         ];
     }
 

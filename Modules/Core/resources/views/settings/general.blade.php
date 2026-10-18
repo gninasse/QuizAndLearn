@@ -80,6 +80,37 @@
       @endunless
     </div>
   </div>
+  <div class="card mb-3">
+    <div class="card-header"><h3 class="card-title">Vidéos</h3></div>
+    <div class="card-body">
+      <p class="mb-2">Pilote actif : <strong>{{ $videoDriver }}</strong> <span class="text-muted">(défini dans le fichier .env, lecture seule)</span></p>
+      @if (count($videoRequirements))
+        <ul class="list-unstyled mb-3">
+          @foreach ($videoRequirements as $env => $ok)
+            <li><code>{{ $env }}</code> :
+              @if ($ok)
+                <span class="badge text-bg-success">configurée</span>
+              @else
+                <span class="badge text-bg-warning">manquante</span>
+              @endif
+            </li>
+          @endforeach
+        </ul>
+      @endif
+      <button type="button" class="btn btn-outline-secondary mb-4" id="videoTestBtn">Tester la connexion</button>
+      <h6>Vidéos YouTube / Vimeo dans les contenus</h6>
+      <div class="form-check form-switch mb-2">
+        <input class="form-check-input" type="checkbox" role="switch" id="videoEmbedsEnabled" @checked($video['enabled'])>
+        <label class="form-check-label" for="videoEmbedsEnabled">Autoriser les vidéos YouTube / Vimeo</label>
+      </div>
+      @foreach (['youtube' => 'YouTube', 'vimeo' => 'Vimeo'] as $key => $label)
+        <div class="form-check form-switch mb-2 ms-3">
+          <input class="form-check-input video-provider" type="checkbox" role="switch" id="videoProvider_{{ $key }}" data-provider="{{ $key }}" @checked(in_array($key, $video['providers'], true))>
+          <label class="form-check-label" for="videoProvider_{{ $key }}">{{ $label }}</label>
+        </div>
+      @endforeach
+    </div>
+  </div>
   <button type="submit" class="btn btn-primary" id="saveBtn">Enregistrer</button>
 </form>
 @endsection
@@ -128,6 +159,8 @@
       }
       data.push = { types: {}, daily_hour: parseInt($('#pushDailyHour').val(), 10), daily_cap: parseInt($('#pushDailyCap').val(), 10) };
       $('.push-type').each(function () { data.push.types[$(this).data('type')] = this.checked; });
+      data.video = { embeds: { enabled: $('#videoEmbedsEnabled').is(':checked'), providers: [] } };
+      $('.video-provider:checked').each(function () { data.video.embeds.providers.push($(this).data('provider')); });
       $('#saveBtn').prop('disabled', true);
       $.ajax({
         url: this.action, method: 'PUT', contentType: 'application/json', dataType: 'json',
@@ -141,6 +174,18 @@
         if (errors) { msg = Object.values(errors).flat().join('\n'); }
         Swal.fire({ icon: 'error', title: 'Enregistrement impossible', text: msg });
       }).always(function () { $('#saveBtn').prop('disabled', false); });
+    });
+
+    $('#videoTestBtn').on('click', function () {
+      var $btn = $(this).prop('disabled', true);
+      $.ajax({
+        url: @json(route('cores.settings.video.test')), method: 'POST', dataType: 'json',
+        headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
+      }).done(function (res) {
+        Swal.fire({ icon: res.ok ? 'success' : 'error', title: res.ok ? 'Connexion réussie' : 'Connexion impossible', text: res.message });
+      }).fail(function (xhr) {
+        Swal.fire({ icon: 'error', title: 'Test impossible', text: (xhr.responseJSON && xhr.responseJSON.message) || 'Erreur' });
+      }).always(function () { $btn.prop('disabled', false); });
     });
 
     $('#pushTestBtn').on('click', function () {

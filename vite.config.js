@@ -26,6 +26,9 @@ export default defineConfig({
                 // Le shell SPA est precaché pour le repli de navigation offline.
                 additionalManifestEntries: [{ url: '/', revision: `${Date.now()}` }],
                 globPatterns: ['**/*.{js,css,woff2}'],
+                // hls.js (~600 ko) : chargé à la demande pour une vidéo HLS,
+                // en ligne uniquement — inutile de l'imposer au precache.
+                globIgnores: ['**/hls-*.js'],
                 // Le SW est servi à /sw.js (route Laravel) mais les assets
                 // vivent sous /build/ : les URLs du manifest doivent être absolues.
                 modifyURLPrefix: { '': '/build/' },
