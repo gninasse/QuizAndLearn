@@ -11,6 +11,7 @@ use Modules\Core\Http\Controllers\CoreController;
 use Modules\Core\Http\Controllers\DashboardController;
 use Modules\Core\Http\Controllers\ExamController;
 use Modules\Core\Http\Controllers\FlashcardDeckController;
+use Modules\Core\Http\Controllers\GeneralSettingsController;
 use Modules\Core\Http\Controllers\GroupController;
 use Modules\Core\Http\Controllers\GroupMemberController;
 use Modules\Core\Http\Controllers\LearnerController;
@@ -104,6 +105,9 @@ Route::middleware(['auth', 'staff'])->group(function () {
             Route::post('/{id}/toggle-status', [LearnerController::class, 'toggleStatus'])->name('toggle-status');
             Route::post('/{id}/reset-password', [LearnerController::class, 'resetPassword'])->name('reset-password');
         });
+
+        Route::get('/parametres', [GeneralSettingsController::class, 'edit'])->name('settings.general');
+        Route::put('/parametres', [GeneralSettingsController::class, 'save'])->name('settings.general.save');
 
         Route::get('/showcase/settings', [ShowcaseAdminController::class, 'settings'])->name('showcase.settings');
         Route::put('/showcase/settings', [ShowcaseAdminController::class, 'saveSettings'])->name('showcase.settings.save');

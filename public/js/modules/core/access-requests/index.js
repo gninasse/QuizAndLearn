@@ -157,7 +157,7 @@ function renderDetails() {
             </div>
             <dl class="row small mb-0">
                 <dt class="col-4">Organisation</dt><dd class="col-8">${esc(r.organization ?? '—')}</dd>
-                <dt class="col-4">Groupe souhaité</dt><dd class="col-8">${esc(r.group ?? '—')}</dd>
+                <dt class="col-4">${T('Group')} souhaité${T('fem_e')}</dt><dd class="col-8">${esc(r.group ?? '—')}</dd>
                 <dt class="col-4">Consentement</dt><dd class="col-8">${formatDate(r.consent_at, true)}</dd>
                 <dt class="col-4">Traitée par</dt><dd class="col-8">${esc(r.handled_by ?? '—')}</dd>
                 <dt class="col-4">Message</dt><dd class="col-8">${esc(r.message ?? '—')}</dd>
@@ -267,7 +267,7 @@ async function setStatus(status) {
 
 async function createAccount() {
     const r = current;
-    const options = ['<option value="">Aucun groupe</option>']
+    const options = [`<option value="">${T('no_group').charAt(0).toUpperCase() + T('no_group').slice(1)}</option>`]
         .concat(groups.map((g) => `<option value="${g.id}">${esc(g.name)}</option>`)).join('');
     const { value: form, isConfirmed } = await Swal.fire({
         title: 'Créer le compte apprenant',
@@ -281,7 +281,7 @@ async function createAccount() {
                 <input class="form-control form-control-sm mb-2" id="acc-phone" value="${esc(r.phone)}">
                 <label class="form-label small mb-1" for="acc-email">E-mail (facultatif)</label>
                 <input class="form-control form-control-sm mb-2" id="acc-email" type="email" value="${esc(r.email ?? '')}">
-                <label class="form-label small mb-1" for="acc-group">Groupe</label>
+                <label class="form-label small mb-1" for="acc-group">${T('Group')}</label>
                 <select class="form-select form-select-sm mb-2" id="acc-group">${options}</select>
                 <label class="form-label small mb-1" for="acc-matricule">Matricule (facultatif)</label>
                 <input class="form-control form-control-sm" id="acc-matricule">

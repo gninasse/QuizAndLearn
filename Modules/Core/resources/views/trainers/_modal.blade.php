@@ -60,7 +60,7 @@
 
                     <!-- Custom Checklist autocomplete for Assigned Groups -->
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">Groupes assignés</label>
+                        <label class="form-label fw-semibold">{{ term('Groups') }} assigné{{ term('fem_e') }}s</label>
                         
                         <!-- Tags Container -->
                         <div id="trainer-groups-tags" class="d-flex flex-wrap gap-2 mb-2"></div>
@@ -71,7 +71,7 @@
                                 <span class="input-group-text bg-white border-end-0">
                                     <i class="fas fa-search text-muted"></i>
                                 </span>
-                                <input type="text" class="form-control border-start-0" id="group-search-input" placeholder="Rechercher ou sélectionner des groupes..." autocomplete="off" data-bs-toggle="dropdown" aria-expanded="false">
+                                <input type="text" class="form-control border-start-0" id="group-search-input" placeholder="Rechercher ou sélectionner des {{ term('groups') }}..." autocomplete="off" data-bs-toggle="dropdown" aria-expanded="false">
                             </div>
                             <ul class="dropdown-menu w-100 p-2 shadow border-0 mt-1" id="group-checkboxes-list" style="max-height: 200px; overflow-y: auto; border-radius: 8px;">
                                 @foreach($groups as $group)

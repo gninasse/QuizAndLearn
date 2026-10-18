@@ -55,7 +55,7 @@ export class GroupActions {
     deleteGroup(groupId) {
         Swal.fire({
             title: 'Êtes-vous sûr ?',
-            text: "Cette action supprimera définitivement le groupe de formation !",
+            text: `Cette action supprimera définitivement ${T('the_group')} de formation !`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#d33',
@@ -92,7 +92,7 @@ export class GroupActions {
 
     toggleStatus(groupId, action) {
         Swal.fire({
-            title: `Voulez-vous ${action} ce groupe ?`,
+            title: `Voulez-vous ${action} ${T('this_group')} ?`,
             icon: 'question',
             showCancelButton: true,
             confirmButtonColor: '#3085d6',

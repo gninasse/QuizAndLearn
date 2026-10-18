@@ -22,6 +22,7 @@ class LearnerContentService
 {
     public function __construct(
         private readonly GamificationService $gamification,
+        private readonly Terminology $terminology,
     ) {}
 
     /**
@@ -42,6 +43,7 @@ class LearnerContentService
             'exams' => $this->examsFor($learner, $groupIds)->values(),
             'badges' => $this->serializeBadges($learner),
             'preferences' => $this->preferencesFor($learner),
+            'terms' => $this->terminology->toArray(),
         ];
     }
 
@@ -80,6 +82,7 @@ class LearnerContentService
             'groups' => $this->groupsFor($learner),
             'badges' => $this->serializeBadges($learner),
             'xp' => $this->gamification->snapshot($learner),
+            'terms' => $this->terminology->toArray(),
         ];
     }
 

@@ -439,3 +439,13 @@ if (! function_exists('user_has_all_permissions')) {
         return true;
     }
 }
+
+if (! function_exists('term')) {
+    /**
+     * Libellé configurable du terme « groupe » (voir Terminology).
+     */
+    function term(string $key): string
+    {
+        return app(\Modules\Core\Services\Terminology::class)->label($key);
+    }
+}

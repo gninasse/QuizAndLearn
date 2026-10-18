@@ -573,7 +573,7 @@
               });
               $groupSearchResults.show();
             } else {
-              $groupSearchResults.append('<div class="p-2 text-muted text-center small">Aucun groupe trouvé</div>').show();
+              $groupSearchResults.append('<div class="p-2 text-muted text-center small">' + T('no_group').replace(/^./, function (c) { return c.toUpperCase(); }) + ' trouvé' + T('fem_e') + '</div>').show();
             }
           }
         });
@@ -601,7 +601,7 @@
         data: { group_id: gId },
         success: function(response) {
           if (response.success) {
-            showToast('success', response.message || 'Accès accordé au groupe.');
+            showToast('success', response.message || ('Accès accordé ' + T('of_group') + '.'));
             $('#noGroupsPlaceholder').remove();
             
             var badgeHtml = '<div class="group-badge-card" data-id="' + gId + '">' +
@@ -631,7 +631,7 @@
 
       Swal.fire({
         title: 'Retirer l\'accès ?',
-        text: "Les membres de ce groupe ne pourront plus consulter cet article.",
+        text: "Les membres de " + T('this_group') + " ne pourront plus consulter cet article.",
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#1e6f5c',
@@ -651,7 +651,7 @@
                   if ($assignedGroupsList.children('.group-badge-card').length === 0) {
                     $assignedGroupsList.append('<div class="text-center py-4 text-muted" id="noGroupsPlaceholder">' +
                       '<i class="bi bi-tags display-6 mb-2 d-block"></i>' +
-                      '<p class="mb-0" style="font-size: 0.8rem;">Visible pour tous (aucun groupe assigné).</p>' +
+                      '<p class="mb-0" style="font-size: 0.8rem;">Visible pour tous (' + T('no_group') + ' assigné' + T('fem_e') + ').</p>' +
                     '</div>');
                   }
                 });

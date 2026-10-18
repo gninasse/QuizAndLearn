@@ -36,8 +36,8 @@ class UpdateArticleRequest extends FormRequest
         return [
             'title.required' => "Le titre de l'article est obligatoire.",
             'title.max' => 'Le titre ne doit pas dépasser 255 caractères.',
-            'group_ids.array' => 'Format de groupes invalide.',
-            'group_ids.*.exists' => "Un groupe sélectionné n'existe pas.",
+            'group_ids.array' => 'Format de '.term('groups').' invalide.',
+            'group_ids.*.exists' => ucfirst(term('a_group')).' sélectionné'.term('fem_e')." n'existe pas.",
         ];
     }
 }

@@ -174,10 +174,10 @@
       <!-- Group targeting box -->
       <div class="card mb-4" style="border-radius: 12px; box-shadow: var(--shadow-sm);">
         <div class="card-header bg-light">
-          <h6 class="fw-bold mb-0 text-success" style="color:var(--green-mid);"><i class="bi bi-people-fill me-2"></i> Groupes cibles</h6>
+          <h6 class="fw-bold mb-0 text-success" style="color:var(--green-mid);"><i class="bi bi-people-fill me-2"></i> {{ term('Groups') }} cibles</h6>
         </div>
         <div class="card-body">
-          <p class="text-muted small">Sélectionnez les groupes d'étudiants qui auront accès à ce paquet de flashcards.</p>
+          <p class="text-muted small">Sélectionnez les {{ term('groups') }} d'étudiants qui auront accès à ce paquet de flashcards.</p>
           <div class="mb-3">
             <select class="form-control select2" id="deckGroupsAssign" multiple="multiple" style="width: 100%;">
               @foreach($groups as $group)
@@ -411,7 +411,7 @@
     // Select2
     $('#deckGroupsAssign').select2({
       theme: 'bootstrap-5',
-      placeholder: "Sélectionner les groupes",
+      placeholder: @json('Sélectionner les '.term('groups')),
       allowClear: true
     });
 
@@ -587,7 +587,7 @@
               toast: true,
               position: 'top-end',
               icon: 'success',
-              title: 'Groupes affectés mis à jour.',
+              title: @json(term('Groups').' affecté'.term('fem_e').'s mis'.(term('fem_e') ? 'es' : '').' à jour.'),
               showConfirmButton: false,
               timer: 2000
             });

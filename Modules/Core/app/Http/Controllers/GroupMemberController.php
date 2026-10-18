@@ -183,8 +183,8 @@ class GroupMemberController extends Controller
         return response()->json([
             'success' => true,
             'message' => count($validated['learner_ids']) > 1
-                ? count($validated['learner_ids']).' apprenants ajoutés au groupe.'
-                : 'Apprenant ajouté au groupe.',
+                ? count($validated['learner_ids']).' apprenants ajoutés à '.term('the_group').'.'
+                : 'Apprenant ajouté à '.term('the_group').'.',
         ]);
     }
 
@@ -193,7 +193,7 @@ class GroupMemberController extends Controller
         $group = $this->authorizedGroup($id);
         $group->learners()->detach($learnerId);
 
-        return response()->json(['success' => true, 'message' => 'Apprenant retiré du groupe.']);
+        return response()->json(['success' => true, 'message' => 'Apprenant retiré '.term('of_group').'.']);
     }
 
     public function addTrainers(Request $request, int $id): JsonResponse
@@ -210,13 +210,13 @@ class GroupMemberController extends Controller
         if ($merged->count() > self::MAX_TRAINERS) {
             return response()->json([
                 'success' => false,
-                'message' => 'Un groupe ne peut pas avoir plus de '.self::MAX_TRAINERS.' formateurs.',
+                'message' => ucfirst(term('a_group')).' ne peut pas avoir plus de '.self::MAX_TRAINERS.' formateurs.',
             ], 422);
         }
 
         $group->trainers()->syncWithoutDetaching($validated['trainer_ids']);
 
-        return response()->json(['success' => true, 'message' => 'Formateur(s) ajouté(s) au groupe.']);
+        return response()->json(['success' => true, 'message' => 'Formateur(s) ajouté(s) à '.term('the_group').'.']);
     }
 
     public function removeTrainer(int $id, int $trainerId): JsonResponse
@@ -225,7 +225,7 @@ class GroupMemberController extends Controller
         $group = $this->authorizedGroup($id);
         $group->trainers()->detach($trainerId);
 
-        return response()->json(['success' => true, 'message' => 'Formateur retiré du groupe.']);
+        return response()->json(['success' => true, 'message' => 'Formateur retiré '.term('of_group').'.']);
     }
 
     /**

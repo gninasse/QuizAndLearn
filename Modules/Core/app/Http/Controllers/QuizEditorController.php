@@ -204,7 +204,7 @@ class QuizEditorController extends Controller
                     if (! $hasGroup) {
                         return response()->json([
                             'success' => false,
-                            'message' => 'Vous n\'êtes pas autorisé à assigner ce groupe.',
+                            'message' => 'Vous n\'êtes pas autorisé à assigner '.term('this_group').'.',
                         ], 403);
                     }
                 } else {
@@ -219,7 +219,7 @@ class QuizEditorController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Le groupe a été assigné au quiz.',
+                'message' => ucfirst(term('the_group')).' a été assigné'.term('fem_e').' au quiz.',
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -241,7 +241,7 @@ class QuizEditorController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Le groupe a été retiré du quiz.',
+                'message' => ucfirst(term('the_group')).' a été retiré'.term('fem_e').' du quiz.',
             ]);
         } catch (\Exception $e) {
             return response()->json([

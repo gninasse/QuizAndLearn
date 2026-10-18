@@ -57,7 +57,7 @@
                     <th data-field="email" data-sortable="true">Email</th>
                     <th data-field="phone" data-sortable="true">Téléphone</th>
                     <th data-field="matricule" data-sortable="true">Matricule</th>
-                    <th data-field="groups_list" data-formatter="groupsFormatter">Groupes</th>
+                    <th data-field="groups_list" data-formatter="groupsFormatter">{{ term('Groups') }}</th>
                     <th data-field="is_active" data-sortable="true" data-formatter="statusFormatter">Statut</th>
                 </tr>
             </thead>
@@ -91,7 +91,7 @@
 
     function groupsFormatter(value, row, index) {
         if (!value || value.length === 0) {
-            return '<span class="text-muted">Aucun groupe</span>';
+            return '<span class="text-muted">' + @json(ucfirst(term('no_group'))) + '</span>';
         }
         return value.map(g => `<span class="badge bg-info">${g}</span>`).join(' ');
     }

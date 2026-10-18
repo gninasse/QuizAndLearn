@@ -72,6 +72,10 @@
     <link rel="stylesheet" href="{{ asset('css/admin/theme-custom.css') }}" />
     <!--end::Required Theme(custom)-->
     
+    <script>
+      window.APP_TERMS = @json(app(\Modules\Core\Services\Terminology::class)->toArray() + ['fem_e' => term('fem_e')]);
+      window.T = function (key) { return (window.APP_TERMS && window.APP_TERMS[key]) || key; };
+    </script>
     @stack('css')
   </head>
   <!--end::Head-->

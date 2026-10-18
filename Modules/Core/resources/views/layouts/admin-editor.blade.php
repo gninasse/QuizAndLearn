@@ -24,6 +24,10 @@
   <link rel="stylesheet" href="{{ asset('css/admin/theme-custom.css') }}">
   <link rel="stylesheet" href="{{ asset('css/admin/layout.css') }}">
   
+    <script>
+      window.APP_TERMS = @json(app(\Modules\Core\Services\Terminology::class)->toArray() + ['fem_e' => term('fem_e')]);
+      window.T = function (key) { return (window.APP_TERMS && window.APP_TERMS[key]) || key; };
+    </script>
   @stack('css')
 </head>
 <body>

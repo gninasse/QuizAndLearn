@@ -65,6 +65,12 @@
                   @endcan
                   @if (auth()->user()?->hasAnyRole(['super-admin', 'admin', 'Admin']))
                   <li class="nav-item">
+                    <a href="{{ route('cores.settings.general') }}" class="nav-link {{ request()->routeIs('cores.settings.general*') ? 'active' : '' }}">
+                      <i class="nav-icon bi bi-sliders"></i>
+                      <p>Paramètres généraux</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
                     <a href="{{ route('cores.showcase.settings') }}" class="nav-link {{ request()->routeIs('cores.showcase.settings*') ? 'active' : '' }}">
                       <i class="nav-icon bi bi-binoculars"></i>
                       <p>Mode découverte</p>
@@ -102,7 +108,7 @@
                   <li class="nav-item">
                     <a href="{{ route('cores.groups.index') }}" class="nav-link {{ request()->routeIs('cores.groups.*') ? 'active' : '' }}">
                       <i class="nav-icon bi bi-collection"></i>
-                      <p>Groupes</p>
+                      <p>{{ term('Groups') }}</p>
                     </a>
                   </li>
                   @endcan

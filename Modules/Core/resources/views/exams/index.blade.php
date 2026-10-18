@@ -65,7 +65,7 @@
                     <th data-field="passing_score" data-sortable="true" data-formatter="scoreFormatter">Score de réussite</th>
                     <th data-field="note_max" data-sortable="true" data-formatter="noteMaxFormatter">Note Max</th>
                     <th data-field="questions_count" data-formatter="questionsCountFormatter">Questions</th>
-                    <th data-field="groups_list" data-formatter="groupsFormatter">Groupes</th>
+                    <th data-field="groups_list" data-formatter="groupsFormatter">{{ term('Groups') }}</th>
                     <th data-field="creator_name" data-sortable="true">Créateur</th>
                     <th data-field="is_active" data-sortable="true" data-formatter="statusFormatter">Statut</th>
                 </tr>
@@ -139,7 +139,7 @@
 
     function groupsFormatter(value, row, index) {
         if (!value || value.length === 0) {
-            return '<span class="text-muted">Aucun groupe</span>';
+            return '<span class="text-muted">' + @json(ucfirst(term('no_group'))) + '</span>';
         }
         return value.map(g => `<span class="badge bg-info">${g}</span>`).join(' ');
     }

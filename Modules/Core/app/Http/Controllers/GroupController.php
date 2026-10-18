@@ -101,7 +101,7 @@ class GroupController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Groupe non trouvé',
+                'message' => term('Group').' non trouvé'.term('fem_e'),
             ], 404);
         }
     }
@@ -123,7 +123,7 @@ class GroupController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Groupe créé avec succès',
+                'message' => term('Group').' créé'.term('fem_e').' avec succès',
                 'data' => $group,
             ]);
         } catch (\Exception $e) {
@@ -154,7 +154,7 @@ class GroupController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Groupe modifié avec succès',
+                'message' => term('Group').' modifié'.term('fem_e').' avec succès',
                 'data' => $group,
             ]);
         } catch (\Exception $e) {
@@ -179,7 +179,7 @@ class GroupController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Groupe supprimé avec succès',
+                'message' => term('Group').' supprimé'.term('fem_e').' avec succès',
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -203,7 +203,7 @@ class GroupController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => "Groupe $status avec succès",
+                'message' => term('Group').' '.$status.term('fem_e').' avec succès',
                 'is_active' => $group->is_active,
             ]);
         } catch (\Exception $e) {
@@ -304,7 +304,7 @@ class GroupController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Membres et paramètres du groupe mis à jour avec succès',
+                'message' => 'Membres et paramètres '.term('of_group').' mis à jour avec succès',
             ]);
         } catch (\Exception $e) {
             return response()->json([

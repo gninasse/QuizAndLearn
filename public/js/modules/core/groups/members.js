@@ -131,7 +131,7 @@ function renderLearners() {
 
     if (!state.learners.length) {
         body.innerHTML = `<tr><td colspan="9" class="text-center text-muted py-5">
-            <i class="bi bi-people fs-2 d-block mb-2"></i>Aucun apprenant dans ce groupe pour l'instant.</td></tr>`;
+            <i class="bi bi-people fs-2 d-block mb-2"></i>Aucun apprenant dans ${T('this_group')} pour l'instant.</td></tr>`;
     } else if (!rows.length) {
         body.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-5">Aucun apprenant ne correspond à la recherche.</td></tr>';
     } else {
@@ -159,7 +159,7 @@ function renderLearners() {
                         ${l.suspended
                             ? '<button type="button" class="btn btn-light text-success" data-action="unsuspend" title="Lever la suspension"><i class="bi bi-play-circle"></i></button>'
                             : '<button type="button" class="btn btn-light text-warning" data-action="suspend" title="Suspendre temporairement"><i class="bi bi-pause-circle"></i></button>'}
-                        <button type="button" class="btn btn-light text-danger" data-action="remove" title="Retirer du groupe"><i class="bi bi-person-dash"></i></button>
+                        <button type="button" class="btn btn-light text-danger" data-action="remove" title="Retirer ${T('of_group')}"><i class="bi bi-person-dash"></i></button>
                     </div>
                 </td>
             </tr>`).join('');
@@ -208,7 +208,7 @@ function showDetails(learner) {
             <dt>Quiz terminés</dt><dd>${learner.quizzes_completed}${learner.quiz_avg_score !== null ? ` (moyenne ${learner.quiz_avg_score} %)` : ''}</dd>
             <dt>Examens passés</dt><dd>${learner.exams_taken}${learner.exam_avg_note !== null ? ` (moyenne ${learner.exam_avg_note}/20)` : ''}</dd>
             <dt>Dernière activité</dt><dd>${learner.last_activity ? `${formatDate(learner.last_activity)} (${relativeDays(learner.last_activity)})` : 'Jamais'}</dd>
-            <dt>Autres groupes</dt><dd>${otherGroups}</dd>
+            <dt>Autres ${T('groups')}</dt><dd>${otherGroups}</dd>
         </dl>`;
     bootstrap.Offcanvas.getOrCreateInstance('#learner-details').show();
 }
@@ -237,7 +237,7 @@ function renderTrainers() {
                         ${t.phone ? `<div class="small"><i class="bi bi-telephone me-1"></i>${esc(t.phone)}</div>` : ''}
                     </div>
                     ${canManageTrainers
-                        ? `<button type="button" class="btn btn-sm btn-light text-danger" data-remove-trainer="${t.trainer_id}" title="Retirer du groupe"><i class="bi bi-person-dash"></i></button>`
+                        ? `<button type="button" class="btn btn-sm btn-light text-danger" data-remove-trainer="${t.trainer_id}" title="Retirer ${T('of_group')}"><i class="bi bi-person-dash"></i></button>`
                         : ''}
                 </div>
             </div>
@@ -388,8 +388,8 @@ document.getElementById('learners-body').addEventListener('click', async (event)
         }
     } else if (action === 'remove') {
         const { isConfirmed } = await Swal.fire({
-            title: 'Retirer du groupe ?',
-            html: `<strong>${esc(learner.full_name)}</strong> n'aura plus accès aux contenus de ce groupe.<br>Son historique est conservé.`,
+            title: `Retirer ${T('of_group')} ?`,
+            html: `<strong>${esc(learner.full_name)}</strong> n'aura plus accès aux contenus de ${T('this_group')}.<br>Son historique est conservé.`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#dc3545',
@@ -410,7 +410,7 @@ document.getElementById('trainers-list').addEventListener('click', async (event)
     const button = event.target.closest('[data-remove-trainer]');
     if (!button) return;
     const { isConfirmed } = await Swal.fire({
-        title: 'Retirer ce formateur du groupe ?',
+        title: `Retirer ce formateur ${T('of_group')} ?`,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#dc3545',

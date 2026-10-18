@@ -277,9 +277,9 @@
 
             <!-- Group Access Search and Tagging -->
             <div class="access-section-card">
-              <h6 class="fw-bold mb-2" style="color: var(--green-dark);"><i class="bi bi-collection-fill me-2"></i>Groupes autorisés</h6>
+              <h6 class="fw-bold mb-2" style="color: var(--green-dark);"><i class="bi bi-collection-fill me-2"></i>{{ term('Groups') }} autorisé{{ term('fem_e') }}s</h6>
               <p class="text-muted" style="font-size: 0.8rem; margin-bottom: 1rem;">
-                Attribuez cet article à des groupes pour restreindre sa visibilité aux apprenants de ces groupes.
+                Attribuez cet article à des {{ term('groups') }} pour restreindre sa visibilité aux apprenants de ces {{ term('groups') }}.
               </p>
 
               <!-- Search input for adding groups -->
@@ -288,7 +288,7 @@
                   <span class="input-group-text bg-white border-end-0" style="border-top-left-radius: 8px; border-bottom-left-radius: 8px;">
                     <i class="bi bi-search text-muted"></i>
                   </span>
-                  <input type="text" class="form-control border-start-0" id="groupSearchInput" placeholder="Rechercher un groupe..." autocomplete="off" style="border-top-right-radius: 8px; border-bottom-right-radius: 8px;">
+                  <input type="text" class="form-control border-start-0" id="groupSearchInput" placeholder="Rechercher {{ term('a_group') }}..." autocomplete="off" style="border-top-right-radius: 8px; border-bottom-right-radius: 8px;">
                 </div>
                 <!-- Results Dropdown -->
                 <div class="group-search-results" id="groupSearchResults"></div>
@@ -302,14 +302,14 @@
                       <span class="group-badge-name">{{ $group->name }}</span>
                       <span class="group-badge-learners">{{ $group->learners()->count() }} apprenants</span>
                     </div>
-                    <button class="group-remove-btn" data-id="{{ $group->id }}" title="Retirer ce groupe">
+                    <button class="group-remove-btn" data-id="{{ $group->id }}" title="Retirer {{ term('this_group') }}">
                       <i class="bi bi-x"></i>
                     </button>
                   </div>
                 @empty
                   <div class="text-center py-4 text-muted" id="noGroupsPlaceholder">
                     <i class="bi bi-tags display-6 mb-2 d-block"></i>
-                    <p class="mb-0" style="font-size: 0.8rem;">Visible pour tous (aucun groupe assigné).</p>
+                    <p class="mb-0" style="font-size: 0.8rem;">Visible pour tous ({{ term('no_group') }} assigné{{ term('fem_e') }}).</p>
                   </div>
                 @endforelse
               </div>

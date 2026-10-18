@@ -209,7 +209,7 @@ class LearnerApiV1Test extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'cursor', 'user', 'articles', 'quizzes', 'decks', 'exams', 'badges', 'preferences',
+                'cursor', 'user', 'articles', 'quizzes', 'decks', 'exams', 'badges', 'preferences', 'terms' => ['group', 'groups', 'the_group'],
             ])
             ->assertJsonPath('articles.0.title', 'API Article')
             ->assertJsonPath('quizzes.0.title', 'API Quiz')

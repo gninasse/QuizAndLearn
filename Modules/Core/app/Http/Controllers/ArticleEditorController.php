@@ -123,7 +123,7 @@ class ArticleEditorController extends Controller
                     if (! $hasGroup) {
                         return response()->json([
                             'success' => false,
-                            'message' => 'Vous n\'êtes pas autorisé à assigner ce groupe.',
+                            'message' => 'Vous n\'êtes pas autorisé à assigner '.term('this_group').'.',
                         ], 403);
                     }
                 } else {
@@ -138,12 +138,12 @@ class ArticleEditorController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Le groupe a été autorisé à accéder à l\'article.',
+                'message' => ucfirst(term('the_group')).' a été autorisé'.term('fem_e').' à accéder à l\'article.',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Erreur lors de l\'assignation du groupe : '.$e->getMessage(),
+                'message' => 'Erreur lors de l\'assignation '.term('of_group').' : '.$e->getMessage(),
             ], 500);
         }
     }
@@ -159,12 +159,12 @@ class ArticleEditorController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Le groupe a été retiré des accès de l\'article.',
+                'message' => ucfirst(term('the_group')).' a été retiré'.term('fem_e').' des accès de l\'article.',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Erreur lors du retrait du groupe : '.$e->getMessage(),
+                'message' => 'Erreur lors du retrait '.term('of_group').' : '.$e->getMessage(),
             ], 500);
         }
     }

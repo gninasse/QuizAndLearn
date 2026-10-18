@@ -89,7 +89,7 @@
               });
               $groupSearchResults.show();
             } else {
-              $groupSearchResults.append('<div class="p-2 text-muted text-center" style="font-size:0.8rem;">Aucun groupe trouvé</div>').show();
+              $groupSearchResults.append('<div class="p-2 text-muted text-center" style="font-size:0.8rem;">' + T('no_group').replace(/^./, function (c) { return c.toUpperCase(); }) + ' trouvé' + T('fem_e') + '</div>').show();
             }
           }
         });
@@ -118,7 +118,7 @@
         data: { group_id: gId },
         success: function(response) {
           if (response.success) {
-            showToast('success', response.message || 'Groupe assigné avec succès.');
+            showToast('success', response.message || (T('Group') + ' assigné' + T('fem_e') + ' avec succès.'));
             
             // Remove placeholder if present
             $('#noGroupsPlaceholder').remove();
@@ -129,7 +129,7 @@
                 '<span class="group-badge-name">' + gName + '</span>' +
                 '<span class="group-badge-learners">' + gCount + ' apprenants</span>' +
               '</div>' +
-              '<button class="group-remove-btn" data-id="' + gId + '" title="Retirer ce groupe">' +
+              '<button class="group-remove-btn" data-id="' + gId + '" title="Retirer ' + T('this_group') + '">' +
                 '<i class="bi bi-x"></i>' +
               '</button>' +
             '</div>';
@@ -150,8 +150,8 @@
       var gId = $card.data('id');
 
       Swal.fire({
-        title: 'Retirer le groupe ?',
-        text: "Les apprenants de ce groupe n'auront plus accès à ce quiz.",
+        title: 'Retirer ' + T('the_group') + ' ?',
+        text: "Les apprenants de " + T('this_group') + " n'auront plus accès à ce quiz.",
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#1e6f5c',
@@ -165,18 +165,18 @@
             method: 'DELETE',
             success: function(response) {
               if (response.success) {
-                showToast('success', response.message || 'Groupe retiré.');
+                showToast('success', response.message || (T('Group') + ' retiré' + T('fem_e') + '.'));
                 $card.fadeOut(300, function() {
                   $(this).remove();
                   if ($assignedGroupsList.children('.group-badge-card').length === 0) {
                     $assignedGroupsList.append('<div class="text-center py-4 text-muted" id="noGroupsPlaceholder">' +
                       '<i class="bi bi-tags display-6 mb-2 d-block"></i>' +
-                      '<p class="mb-0" style="font-size: 0.8rem;">Aucun groupe assigné.</p>' +
+                      '<p class="mb-0" style="font-size: 0.8rem;">' + T('no_group').replace(/^./, function (c) { return c.toUpperCase(); }) + ' assigné' + T('fem_e') + '.</p>' +
                     '</div>');
                   }
                 });
               } else {
-                showToast('error', response.message || 'Impossible de retirer le groupe.');
+                showToast('error', response.message || ('Impossible de retirer ' + T('the_group') + '.'));
               }
             },
             error: function() {

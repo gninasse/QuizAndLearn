@@ -73,8 +73,8 @@
 
                     <!-- Groupes assignés -->
                     <div class="form-group mb-4">
-                        <label for="group_ids" class="form-label">Groupes d'apprenants autorisés</label>
-                        <select id="group_ids" name="group_ids[]" class="form-select select2" multiple data-placeholder="Sélectionner les groupes d'apprenants" style="width: 100%;">
+                        <label for="group_ids" class="form-label">{{ term('Groups') }} d'apprenants autorisé{{ term('fem_e') }}s</label>
+                        <select id="group_ids" name="group_ids[]" class="form-select select2" multiple data-placeholder="Sélectionner les {{ term('groups') }} d'apprenants" style="width: 100%;">
                             @foreach($groups as $group)
                                 <option value="{{ $group->id }}">{{ $group->name }}</option>
                             @endforeach

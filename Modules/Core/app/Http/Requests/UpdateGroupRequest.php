@@ -31,7 +31,7 @@ class UpdateGroupRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'name.required' => 'Le nom du groupe est obligatoire',
+            'name.required' => 'Le nom '.term('of_group').' est obligatoire',
             'end_date.after_or_equal' => 'La date de fin doit être supérieure ou égale à la date de début',
         ];
     }

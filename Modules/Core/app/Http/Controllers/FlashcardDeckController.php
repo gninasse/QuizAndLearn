@@ -324,7 +324,7 @@ class FlashcardDeckController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Groupe assigné.',
+            'message' => term('Group').' assigné'.term('fem_e').'.',
         ]);
     }
 
@@ -338,7 +338,7 @@ class FlashcardDeckController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Groupe retiré.',
+            'message' => term('Group').' retiré'.term('fem_e').'.',
         ]);
     }
 

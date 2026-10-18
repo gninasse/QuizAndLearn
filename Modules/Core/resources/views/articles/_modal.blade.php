@@ -17,8 +17,8 @@
                     </div>
                     
                     <div class="form-group mb-3">
-                        <label for="group_ids">Groupes assignés</label>
-                        <select id="group_ids" name="group_ids[]" class="form-select select2" multiple data-placeholder="Sélectionner les groupes" style="width: 100%;">
+                        <label for="group_ids">{{ term('Groups') }} assigné{{ term('fem_e') }}s</label>
+                        <select id="group_ids" name="group_ids[]" class="form-select select2" multiple data-placeholder="Sélectionner les {{ term('groups') }}" style="width: 100%;">
                             @foreach($groups as $group)
                                 <option value="{{ $group->id }}">{{ $group->name }}</option>
                             @endforeach

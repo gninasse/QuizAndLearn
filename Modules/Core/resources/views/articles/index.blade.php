@@ -53,7 +53,7 @@
                     <th data-field="id" data-sortable="true">ID</th>
                     <th data-field="title" data-sortable="true">Titre</th>
                     <th data-field="content_excerpt" data-sortable="false">Extrait du contenu</th>
-                    <th data-field="groups_list" data-formatter="groupsFormatter">Groupes</th>
+                    <th data-field="groups_list" data-formatter="groupsFormatter">{{ term('Groups') }}</th>
                     <th data-field="creator_name" data-sortable="true">Créateur</th>
                     <th data-field="is_active" data-sortable="true" data-formatter="statusFormatter">Statut</th>
                     <th data-field="is_showcase" data-sortable="true" data-formatter="showcaseFormatter">Vitrine</th>
@@ -96,7 +96,7 @@
 
     function groupsFormatter(value, row, index) {
         if (!value || value.length === 0) {
-            return '<span class="text-muted">Aucun groupe</span>';
+            return '<span class="text-muted">' + @json(ucfirst(term('no_group'))) + '</span>';
         }
         return value.map(g => `<span class="badge bg-info">${g}</span>`).join(' ');
     }

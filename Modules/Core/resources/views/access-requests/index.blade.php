@@ -49,7 +49,7 @@
                         <tr>
                             <th>Demandeur</th>
                             <th>Téléphone</th>
-                            <th>Groupe</th>
+                            <th>{{ term('Group') }}</th>
                             <th>Statut</th>
                             <th class="text-end">Payé</th>
                             <th>Reçue le</th>

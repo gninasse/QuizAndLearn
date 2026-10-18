@@ -12,6 +12,7 @@ use Modules\Core\Models\Quiz;
 use Modules\Core\Services\ContentSerializer;
 use Modules\Core\Services\GuestToken;
 use Modules\Core\Services\ShowcaseSettings;
+use Modules\Core\Services\Terminology;
 
 /**
  * API publique du mode découverte (lecture seule, sans authentification).
@@ -22,6 +23,7 @@ class ShowcaseController extends Controller
 {
     public function __construct(
         private readonly ShowcaseSettings $settings,
+        private readonly Terminology $terminology,
     ) {}
 
     public function content(Request $request): JsonResponse
@@ -93,6 +95,7 @@ class ShowcaseController extends Controller
             'success' => true,
             ...$this->settings->publicPayload(),
             'groups' => $groups,
+            'terms' => $this->terminology->toArray(),
         ])->header('Cache-Control', 'public, max-age=300');
     }
 

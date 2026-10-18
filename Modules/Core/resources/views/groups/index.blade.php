@@ -1,21 +1,21 @@
 @extends('core::layouts.master')
 
-@section('title', 'Gestion des Groupes')
-@section('header', 'Gestion des Groupes')
+@section('title', 'Gestion des '.term('Groups'))
+@section('header', 'Gestion des '.term('Groups'))
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="#">Accueil</a></li>
-    <li class="breadcrumb-item active" aria-current="page">Groupes</li>
+    <li class="breadcrumb-item active" aria-current="page">{{ term('Groups') }}</li>
 @endsection
 
 @section('content')
 <div class="card">
     <div class="card-header">
-        <h3 class="card-title">Liste des groupes de formation</h3>
+        <h3 class="card-title">Liste des {{ term('groups') }} de formation</h3>
     </div>
     <div class="card-body">
         <div id="toolbar">
-            <button id="btn-add-group" class="btn btn-primary" data-bs-toggle="tooltip" title="Ajouter un groupe">
+            <button id="btn-add-group" class="btn btn-primary" data-bs-toggle="tooltip" title="Ajouter {{ term('a_group') }}">
                 <i class="fas fa-plus"></i>
             </button>
             <button id="btn-edit-group" class="btn btn-info" disabled data-bs-toggle="tooltip" title="Modifier">

@@ -49,7 +49,7 @@ class AccessRequestSubmitController extends Controller
             'elapsed_ms' => ['nullable', 'integer', 'min:0'],
         ], [
             'consent.accepted' => 'Vous devez accepter le traitement de vos informations.',
-            'group_id.exists' => 'Ce groupe n\'accepte pas de demandes.',
+            'group_id.exists' => ucfirst(term('this_group')).' n\'accepte pas de demandes.',
         ]);
 
         $country = $this->settings->defaultCountryCode();

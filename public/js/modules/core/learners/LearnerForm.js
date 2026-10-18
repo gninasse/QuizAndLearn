@@ -24,7 +24,7 @@ export class LearnerForm {
             $('#group_ids', this.$form).select2({
                 theme: 'bootstrap-5',
                 dropdownParent: this.$modal,
-                placeholder: 'Sélectionner les groupes',
+                placeholder: 'Sélectionner les ' + T('groups'),
                 allowClear: true,
                 width: '100%'
             });

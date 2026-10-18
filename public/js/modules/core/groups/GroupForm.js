@@ -37,7 +37,7 @@ export class GroupForm {
 
     openForAdd() {
         this.resetForm();
-        $('#modalTitle').text('Ajouter un groupe');
+        $('#modalTitle').text(`Ajouter ${T('a_group')}`);
         $('#group_id').val('');
         $('#is_active').prop('checked', true);
         $('#open_for_requests').prop('checked', false);
@@ -46,7 +46,7 @@ export class GroupForm {
 
     openForEdit(groupId) {
         this.resetForm();
-        $('#modalTitle').text('Modifier un groupe');
+        $('#modalTitle').text(`Modifier ${T('a_group')}`);
         $('#group_id').val(groupId);
 
         // Fetch group data via AJAX
@@ -76,7 +76,7 @@ export class GroupForm {
                 Swal.fire({
                     icon: 'error',
                     title: 'Erreur',
-                    text: 'Impossible de récupérer les informations du groupe'
+                    text: `Impossible de récupérer les informations ${T('of_group')}`
                 });
             }
         });
@@ -163,7 +163,7 @@ export class GroupForm {
             return true;
         };
 
-        if (!checkEmpty('#name', 'name', 'Le nom du groupe est obligatoire')) isValid = false;
+        if (!checkEmpty('#name', 'name', `Le nom ${T('of_group')} est obligatoire`)) isValid = false;
 
         if (!isValid) {
             this.displayErrors(errors);

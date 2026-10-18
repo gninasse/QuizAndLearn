@@ -1,10 +1,10 @@
 @extends('core::layouts.master')
 
 @section('title', 'Membres — '.$group->name)
-@section('header', 'Membres du groupe')
+@section('header', 'Membres '.term('of_group'))
 
 @section('breadcrumb')
-    <li class="breadcrumb-item"><a href="{{ route('cores.groups.index') }}">Groupes</a></li>
+    <li class="breadcrumb-item"><a href="{{ route('cores.groups.index') }}">{{ term('Groups') }}</a></li>
     <li class="breadcrumb-item active" aria-current="page">{{ $group->name }}</li>
 @endsection
 
@@ -21,7 +21,7 @@
         <div class="card-body d-flex flex-column flex-lg-row gap-3 align-items-lg-center">
             <div class="flex-grow-1">
                 <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
-                    <a href="{{ route('cores.groups.index') }}" class="btn btn-sm btn-light" title="Retour à la liste des groupes">
+                    <a href="{{ route('cores.groups.index') }}" class="btn btn-sm btn-light" title="Retour à la liste des {{ term('groups') }}">
                         <i class="bi bi-arrow-left"></i>
                     </a>
                     <h4 class="mb-0 fw-bold" id="gm-name">{{ $group->name }}</h4>
@@ -159,7 +159,7 @@
                 <div class="alert alert-info small py-2">
                     <i class="bi bi-info-circle me-1"></i>
                     L'apprenant ne pourra plus se connecter au volet apprenant pendant la suspension.
-                    Il <strong>reste membre de ses groupes</strong> et conserve son historique.
+                    Il <strong>reste membre de ses {{ term('groups') }}</strong> et conserve son historique.
                 </div>
                 <label class="form-label fw-semibold">Durée</label>
                 <div class="d-flex flex-wrap gap-2 mb-3" id="suspend-presets">

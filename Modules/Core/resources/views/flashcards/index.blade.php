@@ -62,7 +62,7 @@
                     <th data-field="matiere" data-sortable="true">Matière</th>
                     <th data-field="algorithme" data-sortable="true" data-formatter="algorithmFormatter">Algorithme SRS</th>
                     <th data-field="cards_count" data-formatter="cardsCountFormatter">Cartes</th>
-                    <th data-field="groups_list" data-formatter="groupsFormatter">Groupes cibles</th>
+                    <th data-field="groups_list" data-formatter="groupsFormatter">{{ term('Groups') }} cibles</th>
                     <th data-field="creator_name" data-sortable="true">Créateur</th>
                     <th data-field="active" data-sortable="true" data-formatter="statusFormatter">Statut</th>
                     <th data-field="is_showcase" data-sortable="true" data-formatter="showcaseFormatter">Vitrine</th>
@@ -108,7 +108,7 @@
                         <label class="form-check-label" for="deck-is-public">Rendre ce paquet public (Visible par tous)</label>
                     </div>
                     <div class="mb-3" id="groups-select-container">
-                        <label for="deck-groups" class="form-label">Assigner aux groupes d'étudiants</label>
+                        <label for="deck-groups" class="form-label">Assigner aux {{ term('groups') }} d'étudiants</label>
                         <select class="form-control select2" id="deck-groups" name="group_ids[]" multiple="multiple" style="width: 100%;">
                             @foreach($groups as $group)
                                 <option value="{{ $group->id }}">{{ $group->name }}</option>
@@ -171,7 +171,7 @@
         // Init Select2
         $('.select2').select2({
             theme: 'bootstrap-5',
-            placeholder: "Sélectionner les groupes",
+            placeholder: @json('Sélectionner les '.term('groups')),
             allowClear: true
         });
 

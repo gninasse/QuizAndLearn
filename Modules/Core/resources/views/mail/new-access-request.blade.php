@@ -14,7 +14,7 @@
 - Organisation : {{ \Modules\Core\Mail\NewAccessRequestMail::md($accessRequest->organization) }}
 @endif
 @if ($accessRequest->group)
-- Groupe souhaité : {{ \Modules\Core\Mail\NewAccessRequestMail::md($accessRequest->group->name) }}
+- {{ term('Group') }} souhaité{{ term('fem_e') }} : {{ \Modules\Core\Mail\NewAccessRequestMail::md($accessRequest->group->name) }}
 @endif
 @if ($accessRequest->message)
 
