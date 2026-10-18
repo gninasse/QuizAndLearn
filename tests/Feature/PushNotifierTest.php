@@ -143,6 +143,23 @@ class PushNotifierTest extends TestCase
         $this->assertTrue($this->notify($this->message('cards_due'), Carbon::parse('2026-10-21 12:00', 'UTC')));
     }
 
+    public function test_sent_at_is_stored_in_app_time_and_cap_uses_push_day(): void
+    {
+        config(['push.timezone' => 'Asia/Tokyo', 'app.timezone' => 'UTC']);
+
+        // 00:30 le 21/10 à Tokyo = 15:30 UTC le 20/10.
+        $instant = Carbon::parse('2026-10-21 00:30', 'Asia/Tokyo');
+        AppSetting::put('push.daily_cap', 1);
+        $this->assertTrue($this->notify($this->message('exam_open', 'exam:1'), $instant));
+
+        $this->assertSame('2026-10-20 15:30:00', PushDelivery::first()->getRawOriginal('sent_at'));
+
+        // Même jour à Tokyo (08:00 le 21/10) : plafond atteint.
+        $this->assertFalse($this->notify($this->message('cards_due'), Carbon::parse('2026-10-21 08:00', 'Asia/Tokyo')));
+        // Jour suivant à Tokyo : repart de zéro.
+        $this->assertTrue($this->notify($this->message('cards_due'), Carbon::parse('2026-10-22 08:00', 'Asia/Tokyo')));
+    }
+
     public function test_daily_cap_is_configurable(): void
     {
         AppSetting::put('push.daily_cap', 1);

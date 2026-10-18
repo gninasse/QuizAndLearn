@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Hash;
 use Modules\Core\Models\ImpersonationSession;
 use Modules\Core\Services\GamificationService;
 use Modules\Core\Services\ImpersonationService;
+use Modules\Core\Services\Push\PushSettings;
 use Modules\Core\Support\LoginResolver;
 
 /**
@@ -88,7 +89,7 @@ class SessionController extends Controller
 
         // Clé publique VAPID : null (fonction inerte) si une des deux clés manque.
         $profile['push'] = [
-            'public_key' => \Modules\Core\Services\Push\PushSettings::vapidConfigured()
+            'public_key' => PushSettings::vapidConfigured()
                 ? config('push.vapid.public_key')
                 : null,
         ];

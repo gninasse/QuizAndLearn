@@ -37,6 +37,7 @@ class PushNotifier
         }
 
         $tz = (string) config('push.timezone');
+        $appTz = (string) config('app.timezone');
         $local = ($now ?? Carbon::now())->copy()->setTimezone($tz);
 
         if ($m->type !== 'exam_open') {
@@ -45,7 +46,10 @@ class PushNotifier
             }
 
             $sentToday = PushDelivery::where('learner_id', $learner->id)
-                ->whereBetween('sent_at', [$local->copy()->startOfDay(), $local->copy()->endOfDay()])
+                ->whereBetween('sent_at', [
+                    $local->copy()->startOfDay()->setTimezone($appTz),
+                    $local->copy()->endOfDay()->setTimezone($appTz),
+                ])
                 ->count();
             if ($sentToday >= $this->settings->dailyCap()) {
                 return false;
@@ -56,7 +60,7 @@ class PushNotifier
             'learner_id' => $learner->id,
             'type' => $m->type,
             'ref' => $m->ref,
-            'sent_at' => $local->copy(),
+            'sent_at' => $local->copy()->setTimezone($appTz),
         ]);
 
         foreach ($subscriptions as $subscription) {
