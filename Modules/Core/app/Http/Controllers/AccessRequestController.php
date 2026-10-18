@@ -296,6 +296,7 @@ class AccessRequestController extends Controller
             'whatsapp' => $r->whatsapp,
             'message' => $r->message,
             'notes' => $r->notes,
+            'extra_fields' => $r->extra_fields ?? [],
             'consent_at' => $r->consent_at?->toIso8601String(),
             'learner_id' => $r->learner_id,
             'handled_by' => $r->handler?->full_name,
