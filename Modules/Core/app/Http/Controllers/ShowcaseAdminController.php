@@ -7,11 +7,13 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Modules\Core\Models\Article;
 use Modules\Core\Models\FlashcardDeck;
 use Modules\Core\Models\Group;
 use Modules\Core\Models\Quiz;
 use Modules\Core\Services\ShowcaseSettings;
+use Modules\Core\Support\PhoneNumber;
 
 /**
  * Cochage « Visible en mode découverte » : réservé aux administrateurs.
@@ -86,7 +88,26 @@ class ShowcaseAdminController extends Controller
             'privacy_text' => ['nullable', 'string', 'max:20000'],
             'privacy_url' => ['nullable', 'url', 'starts_with:http://,https://', 'max:500'],
             'retention_months' => ['required', 'integer', 'min:1', 'max:120'],
-        ], [], [
+            ...$this->accessRequestRules(),
+        ], [
+            'access_request.channels.*.url.starts_with' => 'Le lien doit commencer par https://.',
+            'access_request.custom_fields.max' => 'Cinq champs personnalisés au maximum.',
+            'access_request.custom_fields.*.options.min' => 'Un choix multiple demande au moins 2 choix.',
+            'access_request.custom_fields.*.options.max' => 'Un choix multiple accepte 20 choix au maximum.',
+        ], [
+            'access_request.button_label' => 'libellé du bouton',
+            'access_request.title' => 'titre',
+            'access_request.intro' => 'introduction',
+            'access_request.confirmation' => 'message de confirmation',
+            'access_request.channels.*.number' => 'numéro',
+            'access_request.channels.*.message' => 'message',
+            'access_request.channels.*.address' => 'adresse e-mail',
+            'access_request.channels.*.subject' => 'objet',
+            'access_request.channels.*.url' => 'lien',
+            'access_request.channels.*.label' => 'libellé',
+            'access_request.custom_fields.*.label' => 'libellé',
+            'access_request.custom_fields.*.options' => 'choix',
+            'access_request.custom_fields.*.options.*' => 'choix',
             'default_country_code' => 'indicatif',
             'payment_accounts.*.operator' => 'opérateur',
             'payment_accounts.*.number' => 'numéro',
@@ -106,9 +127,79 @@ class ShowcaseAdminController extends Controller
             }
         }
 
+        if (isset($validated['access_request'])) {
+            $this->checkAccessChannels($validated['access_request'], (string) $validated['default_country_code']);
+        }
+
         $settings->save($validated);
+        if (isset($validated['access_request'])) {
+            $settings->saveAccessRequest($validated['access_request']);
+        }
 
         return response()->json(['success' => true, 'message' => 'Réglages enregistrés.']);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function accessRequestRules(): array
+    {
+        return [
+            'access_request' => ['sometimes', 'array'],
+            'access_request.enabled' => ['required_with:access_request', 'boolean'],
+            'access_request.button_label' => ['nullable', 'string', 'max:40'],
+            'access_request.title' => ['nullable', 'string', 'max:80'],
+            'access_request.intro' => ['nullable', 'string', 'max:1000'],
+            'access_request.confirmation' => ['nullable', 'string', 'max:500'],
+            'access_request.channels' => ['nullable', 'array', 'max:'.count(ShowcaseSettings::ACCESS_CHANNELS)],
+            'access_request.channels.*.type' => ['required', Rule::in(ShowcaseSettings::ACCESS_CHANNELS)],
+            'access_request.channels.*.number' => ['nullable', 'string', 'max:30'],
+            'access_request.channels.*.message' => ['nullable', 'string', 'max:500'],
+            'access_request.channels.*.address' => ['required_if:access_request.channels.*.type,email', 'nullable', 'email', 'max:190'],
+            'access_request.channels.*.subject' => ['nullable', 'string', 'max:150'],
+            'access_request.channels.*.url' => ['required_if:access_request.channels.*.type,link', 'nullable', 'url', 'starts_with:https://', 'max:500'],
+            'access_request.channels.*.label' => ['nullable', 'string', 'max:60'],
+            'access_request.fields' => ['nullable', 'array'],
+            'access_request.fields.*' => ['nullable', Rule::in(ShowcaseSettings::ACCESS_FIELD_MODES)],
+            'access_request.custom_fields' => ['nullable', 'array', 'max:5'],
+            'access_request.custom_fields.*.key' => ['nullable', 'string', 'max:20'],
+            'access_request.custom_fields.*.label' => ['required', 'string', 'max:80'],
+            'access_request.custom_fields.*.type' => ['required', Rule::in(ShowcaseSettings::ACCESS_CUSTOM_TYPES)],
+            'access_request.custom_fields.*.required' => ['nullable', 'boolean'],
+            'access_request.custom_fields.*.options' => ['required_if:access_request.custom_fields.*.type,select', 'nullable', 'array', 'min:2', 'max:20'],
+            'access_request.custom_fields.*.options.*' => ['required', 'string', 'max:100'],
+        ];
+    }
+
+    /**
+     * Règles croisées sur les canaux : au moins un si activé, un seul par type, numéros valides.
+     *
+     * @param  array<string, mixed>  $access
+     */
+    private function checkAccessChannels(array $access, string $country): void
+    {
+        $channels = $access['channels'] ?? [];
+        $errors = [];
+
+        if (! empty($access['enabled']) && $channels === []) {
+            $errors['access_request.channels'] = 'Activez au moins un canal de contact.';
+        }
+
+        $types = array_column($channels, 'type');
+        if (count($types) !== count(array_unique($types))) {
+            $errors['access_request.channels'] = 'Chaque type de canal ne peut être utilisé qu\'une fois.';
+        }
+
+        foreach ($channels as $i => $channel) {
+            if (in_array($channel['type'], ['whatsapp', 'phone'], true)
+                && PhoneNumber::normalize($channel['number'] ?? null, $country) === null) {
+                $errors["access_request.channels.$i.number"] = 'Numéro de téléphone invalide.';
+            }
+        }
+
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
+        }
     }
 
     private function authorizeAdmin(): void

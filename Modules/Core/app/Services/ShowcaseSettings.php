@@ -2,7 +2,9 @@
 
 namespace Modules\Core\Services;
 
+use Illuminate\Support\Str;
 use Modules\Core\Models\AppSetting;
+use Modules\Core\Support\PhoneNumber;
 
 /**
  * Réglages du mode découverte (vitrine), stockés dans `app_settings`.
@@ -10,6 +12,23 @@ use Modules\Core\Models\AppSetting;
 class ShowcaseSettings
 {
     public const OPERATORS = ['orange_money', 'mtn_momo', 'moov_money', 'wave', 'other'];
+
+    public const ACCESS_CHANNELS = ['form', 'whatsapp', 'phone', 'email', 'link'];
+
+    public const ACCESS_FIELDS = ['whatsapp', 'email', 'organization', 'group', 'message'];
+
+    public const ACCESS_FIELD_MODES = ['hidden', 'optional', 'required'];
+
+    public const ACCESS_CUSTOM_TYPES = ['text', 'textarea', 'select'];
+
+    public const ACCESS_CUSTOM_KEY_PATTERN = '/^cf_[a-z0-9]{6}$/';
+
+    public const ACCESS_DEFAULTS = [
+        'button_label' => 'Demander un accès',
+        'title' => 'Demander un accès',
+        'intro' => 'Laissez-nous vos coordonnées : notre équipe vous recontacte pour ouvrir votre compte.',
+        'confirmation' => 'Demande envoyée.',
+    ];
 
     private function get(string $key, mixed $default = null): mixed
     {
@@ -100,6 +119,115 @@ class ShowcaseSettings
     }
 
     /**
+     * Configuration de la demande d'accès, défauts appliqués (= comportement historique).
+     *
+     * @return array<string, mixed>
+     */
+    public function accessRequest(): array
+    {
+        $text = fn (string $key) => $this->text('access.'.$key) ?? self::ACCESS_DEFAULTS[$key];
+
+        $channels = $this->get('access.channels');
+        $channels = is_array($channels) ? array_values($channels) : [['type' => 'form']];
+
+        $stored = $this->get('access.fields');
+        $stored = is_array($stored) ? $stored : [];
+        $fields = [];
+        foreach (self::ACCESS_FIELDS as $name) {
+            $mode = $stored[$name] ?? null;
+            $fields[$name] = in_array($mode, self::ACCESS_FIELD_MODES, true) ? $mode : 'optional';
+        }
+
+        $custom = $this->get('access.custom_fields');
+
+        return [
+            'enabled' => (bool) $this->get('access.enabled', true),
+            'button_label' => $text('button_label'),
+            'title' => $text('title'),
+            'intro' => $text('intro'),
+            'confirmation' => $text('confirmation'),
+            'channels' => $channels,
+            'fields' => $fields,
+            'custom_fields' => is_array($custom) ? array_values($custom) : [],
+        ];
+    }
+
+    /**
+     * Les demandes d'accès sont ouvertes : mode découverte actif, demandes activées et canal formulaire présent.
+     */
+    public function accessRequestsOpen(): bool
+    {
+        if (! $this->enabled()) {
+            return false;
+        }
+
+        $access = $this->accessRequest();
+
+        return $access['enabled'] && in_array('form', array_column($access['channels'], 'type'), true);
+    }
+
+    /**
+     * Enregistre la configuration de la demande d'accès (déjà validée) en la normalisant.
+     *
+     * @param  array<string, mixed>  $validated
+     */
+    public function saveAccessRequest(array $validated): void
+    {
+        $country = $this->defaultCountryCode();
+        $number = fn ($raw) => PhoneNumber::normalize((string) $raw, $country);
+
+        $channels = [];
+        foreach ($validated['channels'] ?? [] as $channel) {
+            $channels[] = match ($channel['type']) {
+                'whatsapp' => ['type' => 'whatsapp', 'number' => $number($channel['number'] ?? null), 'message' => $channel['message'] ?? null],
+                'phone' => ['type' => 'phone', 'number' => $number($channel['number'] ?? null)],
+                'email' => ['type' => 'email', 'address' => $channel['address'] ?? null, 'subject' => $channel['subject'] ?? null],
+                'link' => ['type' => 'link', 'url' => $channel['url'] ?? null, 'label' => $channel['label'] ?? null],
+                default => ['type' => 'form'],
+            };
+        }
+
+        $fields = [];
+        foreach (self::ACCESS_FIELDS as $name) {
+            $fields[$name] = $validated['fields'][$name] ?? 'optional';
+        }
+
+        $custom = [];
+        $used = [];
+        foreach ($validated['custom_fields'] ?? [] as $field) {
+            $key = $field['key'] ?? null;
+            if (! is_string($key) || ! preg_match(self::ACCESS_CUSTOM_KEY_PATTERN, $key) || in_array($key, $used, true)) {
+                do {
+                    $key = 'cf_'.Str::lower(Str::random(6));
+                } while (! preg_match(self::ACCESS_CUSTOM_KEY_PATTERN, $key) || in_array($key, $used, true));
+            }
+            $used[] = $key;
+
+            $entry = ['key' => $key, 'label' => $field['label'], 'type' => $field['type']];
+            if ($field['type'] === 'select') {
+                $entry['options'] = array_values($field['options'] ?? []);
+            }
+            $entry['required'] = (bool) ($field['required'] ?? false);
+            $custom[] = $entry;
+        }
+
+        $values = [
+            'enabled' => (bool) ($validated['enabled'] ?? true),
+            'button_label' => $validated['button_label'] ?? null,
+            'title' => $validated['title'] ?? null,
+            'intro' => $validated['intro'] ?? null,
+            'confirmation' => $validated['confirmation'] ?? null,
+            'channels' => $channels,
+            'fields' => $fields,
+            'custom_fields' => $custom,
+        ];
+
+        foreach ($values as $key => $value) {
+            AppSetting::put('showcase.access.'.$key, $value);
+        }
+    }
+
+    /**
      * Sous-ensemble exposé par l'API publique (jamais d'e-mails ni de durée de conservation).
      *
      * @return array<string, mixed>
@@ -121,6 +249,7 @@ class ShowcaseSettings
                 'instructions' => $this->instructions(),
             ],
             'default_country_code' => $this->defaultCountryCode(),
+            'access_request' => $this->accessRequest(),
             'privacy_url' => $this->privacyUrl() ?? '/confidentialite',
         ];
     }
