@@ -143,6 +143,71 @@ class PushSubscriptionTest extends TestCase
         $this->assertSame(0, PushSubscription::count());
     }
 
+    public function test_endpoint_host_must_be_a_known_push_service(): void
+    {
+        $learner = $this->makeLearner('awa');
+
+        foreach ([
+            'https://evil.example.com/push',
+            'https://169.254.169.254/latest',
+            'https://fcm.googleapis.com.evil.example/x',
+            'https://notgoogleapis.com/x',
+        ] as $bad) {
+            $this->actingAs($learner->user)
+                ->postJson('/api/learner/v1/push-subscriptions', $this->payload($bad))
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors('endpoint');
+        }
+        $this->assertSame(0, PushSubscription::count());
+
+        foreach ([
+            'https://fcm.googleapis.com/fcm/send/a',
+            'https://updates.push.services.mozilla.com/wpush/v2/b',
+            'https://web.push.apple.com/c',
+            'https://wns2-par02p.notify.windows.com/w/?token=d',
+        ] as $good) {
+            $this->actingAs($learner->user)
+                ->postJson('/api/learner/v1/push-subscriptions', $this->payload($good))
+                ->assertCreated();
+        }
+        $this->assertSame(4, PushSubscription::count());
+    }
+
+    public function test_subscriptions_are_capped_per_learner_pruning_oldest(): void
+    {
+        $learner = $this->makeLearner('awa');
+        config(['push.max_subscriptions_per_learner' => 3]);
+
+        foreach ([1, 2, 3] as $i) {
+            $this->travelTo(now()->addMinute());
+            $this->actingAs($learner->user)
+                ->postJson('/api/learner/v1/push-subscriptions', $this->payload("https://fcm.googleapis.com/fcm/send/{$i}"))
+                ->assertCreated();
+        }
+        // Le n°1 a servi récemment : c'est le n°2 (le moins récemment utilisé) qui part.
+        PushSubscription::where('endpoint', 'https://fcm.googleapis.com/fcm/send/1')
+            ->update(['last_used_at' => now()->addMinute()]);
+
+        $this->travelTo(now()->addMinutes(2));
+        $this->actingAs($learner->user)
+            ->postJson('/api/learner/v1/push-subscriptions', $this->payload('https://fcm.googleapis.com/fcm/send/4'))
+            ->assertCreated();
+
+        $endpoints = PushSubscription::where('learner_id', $learner->id)->orderBy('id')->pluck('endpoint')->all();
+        $this->assertSame([
+            'https://fcm.googleapis.com/fcm/send/1',
+            'https://fcm.googleapis.com/fcm/send/3',
+            'https://fcm.googleapis.com/fcm/send/4',
+        ], $endpoints);
+
+        // Un autre apprenant n'est pas concerné par le plafond du premier.
+        $other = $this->makeLearner('koffi');
+        $this->actingAs($other->user)
+            ->postJson('/api/learner/v1/push-subscriptions', $this->payload('https://fcm.googleapis.com/fcm/send/other'))
+            ->assertCreated();
+        $this->assertSame(3, PushSubscription::where('learner_id', $learner->id)->count());
+    }
+
     public function test_guest_and_staff_cannot_subscribe(): void
     {
         $this->postJson('/api/learner/v1/push-subscriptions', $this->payload())->assertUnauthorized();
@@ -188,7 +253,12 @@ class PushSubscriptionTest extends TestCase
             ->assertOk()
             ->assertJsonPath('user.push.public_key', null);
 
-        config(['push.vapid.public_key' => 'PUBKEY', 'push.vapid.private_key' => 'PRIVKEY']);
+        // Sujet VAPID absent : la bibliothèque refuserait d'envoyer, clé masquée.
+        config(['push.vapid.public_key' => 'PUBKEY', 'push.vapid.private_key' => 'PRIVKEY', 'push.vapid.subject' => null]);
+        $this->actingAs($learner->user)->getJson('/api/learner/v1/me')
+            ->assertJsonPath('user.push.public_key', null);
+
+        config(['push.vapid.subject' => 'mailto:test@example.com']);
         $this->actingAs($learner->user)->getJson('/api/learner/v1/me')
             ->assertOk()
             ->assertJsonPath('user.push.public_key', 'PUBKEY');

@@ -36,12 +36,11 @@ class PushNotifier
             return false;
         }
 
-        $tz = (string) config('push.timezone');
         $appTz = (string) config('app.timezone');
-        $local = ($now ?? Carbon::now())->copy()->setTimezone($tz);
+        $local = PushSettings::localNow($now);
 
         if ($m->type !== 'exam_open') {
-            if ($local->hour >= 21 || $local->hour < 7) {
+            if (PushSettings::inQuietHours($local)) {
                 return false;
             }
 

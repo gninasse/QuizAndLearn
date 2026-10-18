@@ -26,6 +26,7 @@ class PushExamOpen extends Command
             ->where('is_active', true)
             ->where('available_from', '>', $now->copy()->subDay())
             ->where('available_from', '<=', $now)
+            ->where(fn ($q) => $q->whereNull('available_until')->orWhere('available_until', '>', $now))
             ->get(['id', 'title']);
 
         foreach ($exams as $exam) {

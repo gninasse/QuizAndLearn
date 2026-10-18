@@ -22,7 +22,11 @@ class PushSubscriptionController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'endpoint' => ['required', 'string', 'url:https', 'max:2048'],
+            'endpoint' => ['required', 'string', 'url:https', 'max:2048', function (string $attribute, mixed $value, \Closure $fail) {
+                if (! self::allowedEndpoint((string) $value)) {
+                    $fail('Service de notification non reconnu.');
+                }
+            }],
             'keys' => ['required', 'array'],
             'keys.p256dh' => ['required', 'string', 'max:255'],
             'keys.auth' => ['required', 'string', 'max:255'],
@@ -43,7 +47,47 @@ class PushSubscriptionController extends Controller
             ],
         );
 
+        $this->pruneOldest($learner->id, $subscription->id);
+
         return response()->json(['success' => true, 'id' => $subscription->id], 201);
+    }
+
+    /** Hôte de l'endpoint dans la liste blanche `push.allowed_hosts` (`*.` = sous-domaines). */
+    public static function allowedEndpoint(string $endpoint): bool
+    {
+        $host = strtolower((string) parse_url($endpoint, PHP_URL_HOST));
+        if ($host === '') {
+            return false;
+        }
+
+        foreach ((array) config('push.allowed_hosts', []) as $pattern) {
+            $pattern = strtolower((string) $pattern);
+            if (str_starts_with($pattern, '*.')
+                ? str_ends_with($host, substr($pattern, 1))
+                : $host === $pattern) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** Au-delà du plafond par apprenant, retire les abonnements les moins récemment utilisés. */
+    private function pruneOldest(int $learnerId, int $keepId): void
+    {
+        $max = max(1, (int) config('push.max_subscriptions_per_learner', 10));
+
+        $excess = PushSubscription::query()
+            ->where('learner_id', $learnerId)
+            ->whereKeyNot($keepId)
+            ->orderByRaw('COALESCE(last_used_at, created_at) DESC')
+            ->orderByDesc('id')
+            ->pluck('id')
+            ->slice($max - 1);
+
+        if ($excess->isNotEmpty()) {
+            PushSubscription::whereKey($excess->all())->delete();
+        }
     }
 
     /**

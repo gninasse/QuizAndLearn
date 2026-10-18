@@ -3,8 +3,10 @@
 namespace Modules\Core\Console\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Database\Query\Builder;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Modules\Core\Console\Commands\Concerns\TargetsPushLearners;
-use Modules\Core\Models\FlashcardItemReview;
 use Modules\Core\Models\Learner;
 use Modules\Core\Services\Push\PushMessage;
 use Modules\Core\Services\Push\PushNotifier;
@@ -23,9 +25,9 @@ class PushDailyReminders extends Command
         $now = now();
         $local = $this->pushLocalNow();
         $today = $local->format('Y-m-d');
-        // last_activity_date est écrit en heure applicative (GamificationService) ;
-        // comparé ici au jour d'hier dans le fuseau push.
-        $yesterday = $local->copy()->subDay()->format('Y-m-d');
+        // last_activity_date est écrit en heure applicative (GamificationService) :
+        // « hier » se calcule donc dans le fuseau applicatif, pas le fuseau push.
+        $yesterday = $now->copy()->setTimezone((string) config('app.timezone'))->subDay()->format('Y-m-d');
 
         if ($local->minute >= 15) {
             return self::SUCCESS;
@@ -35,11 +37,11 @@ class PushDailyReminders extends Command
 
         if ($local->hour === $settings->dailyHour()) {
             $this->pushableLearners($now)
-                ->whereExists(fn ($q) => $q->selectRaw('1')->from('flashcard_item_reviews')
-                    ->whereColumn('flashcard_item_reviews.learner_id', 'learners.id')
-                    ->where('next_review', '<=', $now))
+                ->whereExists(fn ($q) => $this->dueReviews($q->selectRaw('1')->from('flashcard_item_reviews as r'), $now)
+                    ->whereColumn('r.learner_id', 'learners.id'))
                 ->each(function (Learner $learner) use ($notifier, $now, $today, &$sent) {
-                    $due = FlashcardItemReview::where('learner_id', $learner->id)->where('next_review', '<=', $now)->count();
+                    $due = $this->dueReviews(DB::table('flashcard_item_reviews as r'), $now)
+                        ->where('r.learner_id', $learner->id)->count();
                     $sent += (int) $notifier->notify($learner, new PushMessage(
                         'cards_due', 'Révisions du jour', "{$due} carte(s) vous attendent pour réviser.", '/reviser', "cards:{$today}",
                     ), $now);
@@ -63,5 +65,21 @@ class PushDailyReminders extends Command
         $this->info("{$sent} rappel(s) envoyé(s).");
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Révisions échues (alias `r`) dont la carte appartient à un paquet actif
+     * encore assigné à l'un des groupes de l'apprenant.
+     */
+    private function dueReviews(Builder $q, Carbon $now): Builder
+    {
+        return $q->join('flashcard_items as i', 'i.id', '=', 'r.flashcard_item_id')
+            ->join('flashcard_decks as d', 'd.id', '=', 'i.deck_id')
+            ->where('d.active', true)
+            ->where('r.next_review', '<=', $now)
+            ->whereExists(fn ($g) => $g->selectRaw('1')->from('group_flashcard_deck as gd')
+                ->join('group_learner as gl', 'gl.group_id', '=', 'gd.group_id')
+                ->whereColumn('gd.flashcard_deck_id', 'd.id')
+                ->whereColumn('gl.learner_id', 'r.learner_id'));
     }
 }

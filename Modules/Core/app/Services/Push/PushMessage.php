@@ -16,13 +16,22 @@ final class PushMessage
         public ?string $ref = null,
     ) {}
 
+    /**
+     * Tag de notification : deux messages de même tag se remplacent sur
+     * l'appareil. Basé sur la ref pour qu'un second examen ne masque pas le premier.
+     */
+    public function tag(): string
+    {
+        return $this->ref !== null ? $this->type.':'.$this->ref : $this->type;
+    }
+
     public function toPayload(): string
     {
         return json_encode([
             'title' => $this->title,
             'body' => $this->body,
             'url' => $this->url,
-            'tag' => $this->type,
+            'tag' => $this->tag(),
             'icon' => '/icons/icon-192x192.png',
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }

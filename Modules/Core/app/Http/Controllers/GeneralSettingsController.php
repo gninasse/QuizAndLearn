@@ -44,7 +44,7 @@ class GeneralSettingsController extends Controller
             'push' => ['sometimes', 'array'],
             'push.types' => ['sometimes', 'array'],
             'push.types.*' => ['boolean'],
-            'push.daily_hour' => ['required_with:push', 'integer', 'between:0,23'],
+            'push.daily_hour' => ['required_with:push', 'integer', 'between:'.PushSettings::DAILY_HOUR_MIN.','.PushSettings::DAILY_HOUR_MAX],
             'push.daily_cap' => ['required_with:push', 'integer', 'between:1,5'],
         ], [
             'singular.not_regex' => 'Saisissez le mot seul, sans article (ex. « équipe », pas « l\'équipe »).',
@@ -69,7 +69,7 @@ class GeneralSettingsController extends Controller
         $this->authorizeAdmin();
 
         if (! PushSettings::vapidConfigured()) {
-            return response()->json(['success' => false, 'message' => 'Les clés VAPID ne sont pas configurées (php artisan push:vapid).'], 422);
+            return response()->json(['success' => false, 'message' => 'Les clés VAPID ou VAPID_SUBJECT ne sont pas configurés (php artisan push:vapid).'], 422);
         }
 
         $learner = auth()->user()?->learner;

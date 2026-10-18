@@ -66,7 +66,8 @@
       <div class="row mt-3">
         <div class="col-md-4 mb-3">
           <label class="form-label" for="pushDailyHour">Heure du rappel quotidien</label>
-          <input type="number" class="form-control" id="pushDailyHour" min="0" max="23" step="1" value="{{ $push['daily_hour'] }}">
+          <input type="number" class="form-control" id="pushDailyHour" min="7" max="20" step="1" value="{{ $push['daily_hour'] }}" aria-describedby="pushDailyHourHelp">
+          <div class="form-text" id="pushDailyHourHelp">Entre 7 h et 20 h : aucune notification n'est envoyée de 21 h à 7 h.</div>
         </div>
         <div class="col-md-4 mb-3">
           <label class="form-label" for="pushDailyCap">Notifications par jour et par apprenant (maximum)</label>

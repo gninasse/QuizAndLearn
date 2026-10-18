@@ -5,6 +5,7 @@ namespace Modules\Core\Console\Commands\Concerns;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Modules\Core\Models\Learner;
+use Modules\Core\Services\Push\PushSettings;
 
 trait TargetsPushLearners
 {
@@ -30,11 +31,11 @@ trait TargetsPushLearners
     /** Heure locale (fuseau `push.timezone`). */
     protected function pushLocalNow(): Carbon
     {
-        return now()->setTimezone((string) config('push.timezone'));
+        return PushSettings::localNow();
     }
 
     protected function inQuietHours(Carbon $local): bool
     {
-        return $local->hour >= 21 || $local->hour < 7;
+        return PushSettings::inQuietHours($local);
     }
 }

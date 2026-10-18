@@ -70,12 +70,23 @@ class PushSettingsTest extends TestCase
         $this->assertSame(9, (int) AppSetting::get('push.daily_hour'));
         $this->assertSame(3, (int) AppSetting::get('push.daily_cap'));
 
+        // Heure du rappel bornée à 7–20 h (21 h–7 h = plage silencieuse).
         foreach ([['daily_hour' => 24, 'daily_cap' => 2], ['daily_hour' => -1, 'daily_cap' => 2],
+            ['daily_hour' => 6, 'daily_cap' => 2], ['daily_hour' => 21, 'daily_cap' => 2],
             ['daily_hour' => 9, 'daily_cap' => 0], ['daily_hour' => 9, 'daily_cap' => 6]] as $bad) {
             $this->actingAs($admin)->putJson(route('cores.settings.general.save'), ['preset' => 'classe', 'push' => $bad + ['types' => []]])
                 ->assertStatus(422);
         }
         $this->assertSame(9, (int) AppSetting::get('push.daily_hour'));
+    }
+
+    public function test_stored_daily_hour_is_clamped_outside_quiet_hours(): void
+    {
+        AppSetting::put('push.daily_hour', 23);
+        $this->assertSame(20, app(\Modules\Core\Services\Push\PushSettings::class)->dailyHour());
+
+        AppSetting::put('push.daily_hour', 3);
+        $this->assertSame(7, app(\Modules\Core\Services\Push\PushSettings::class)->dailyHour());
     }
 
     public function test_absent_push_block_leaves_settings_unchanged(): void

@@ -240,9 +240,12 @@ class PushCommandsTest extends TestCase
         $this->assertSame(0, DB::table('push_assignment_snapshots')->count());
     }
 
-    private function dueReview(Learner $learner, ?Carbon $next = null): void
+    private function dueReview(Learner $learner, ?Carbon $next = null, bool $assigned = true, bool $active = true): void
     {
-        $deck = FlashcardDeck::create(['titre' => 'D'.$learner->id]);
+        $deck = FlashcardDeck::create(['titre' => 'D'.$learner->id, 'active' => $active]);
+        if ($assigned) {
+            DB::table('group_flashcard_deck')->insert(['group_id' => $this->group->id, 'flashcard_deck_id' => $deck->id]);
+        }
         $item = FlashcardItem::create(['deck_id' => $deck->id, 'recto' => 'r', 'verso' => 'v']);
         FlashcardItemReview::create([
             'flashcard_item_id' => $item->id, 'learner_id' => $learner->id,
@@ -281,6 +284,51 @@ class PushCommandsTest extends TestCase
         $this->run15('push:daily-reminders', '18:00');
 
         $this->assertCount(0, $this->sender->sent);
+    }
+
+    public function test_cards_due_counts_only_active_decks_still_assigned(): void
+    {
+        $this->dueReview($this->learner);
+        $this->dueReview($this->learner, assigned: false);
+        $this->dueReview($this->learner, active: false);
+
+        $this->run15('push:daily-reminders', '18:00');
+
+        $this->assertCount(1, $this->sender->sent);
+        $this->assertSame('1 carte(s) vous attendent pour réviser.', $this->sentMessages()[0]->body);
+    }
+
+    public function test_cards_due_skips_learner_whose_due_cards_are_all_unassigned(): void
+    {
+        $this->dueReview($this->learner, assigned: false);
+        $this->dueReview($this->learner, active: false);
+
+        $this->run15('push:daily-reminders', '18:00');
+
+        $this->assertCount(0, $this->sender->sent);
+    }
+
+    public function test_streak_yesterday_uses_app_timezone(): void
+    {
+        // 03:00 UTC le 20/10 = 20:00 le 19/10 à Los Angeles. last_activity_date
+        // est en heure applicative (UTC) : « hier » = 19/10, pas 18/10 (jour d'hier à LA).
+        config(['push.timezone' => 'America/Los_Angeles', 'app.timezone' => 'UTC']);
+        LearnerXp::create(['learner_id' => $this->learner->id, 'current_streak' => 3, 'last_activity_date' => '2026-10-19']);
+
+        $this->run15('push:daily-reminders', '03:00');
+
+        $this->assertCount(1, $this->sender->sent);
+        $this->assertSame('streak', $this->sentMessages()[0]->type);
+    }
+
+    public function test_empty_push_timezone_falls_back_to_app_timezone(): void
+    {
+        config(['push.timezone' => '', 'app.timezone' => 'UTC']);
+        $this->dueReview($this->learner);
+
+        $this->run15('push:daily-reminders', '18:00');
+
+        $this->assertCount(1, $this->sender->sent);
     }
 
     public function test_cards_due_follows_admin_daily_hour(): void
@@ -349,6 +397,17 @@ class PushCommandsTest extends TestCase
         $this->assertSame("L'examen « Partiel » est ouvert.", $m->body);
         $this->assertSame('/examens', $m->url);
         $this->assertSame("exam:{$open->id}", $m->ref);
+    }
+
+    public function test_exam_open_skips_closed_exams(): void
+    {
+        $this->exam('Clos', ['available_until' => now()->subMinute()]);
+        $open = $this->exam('Ouvert', ['available_until' => now()->addHour()]);
+
+        $this->run15('push:exam-open');
+
+        $this->assertCount(1, $this->sender->sent);
+        $this->assertSame("exam:{$open->id}", $this->sentMessages()[0]->ref);
     }
 
     public function test_exam_open_ignores_other_groups(): void

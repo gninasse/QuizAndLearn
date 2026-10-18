@@ -10,6 +10,7 @@ use Illuminate\Queue\SerializesModels;
 use Modules\Core\Models\PushSubscription;
 use Modules\Core\Services\Push\PushMessage;
 use Modules\Core\Services\Push\PushSender;
+use Modules\Core\Services\Push\PushSettings;
 
 class SendPushNotification implements ShouldQueue
 {
@@ -20,10 +21,24 @@ class SendPushNotification implements ShouldQueue
 
     public bool $deleteWhenMissingModels = true;
 
-    public function __construct(public PushSubscription $subscription, public PushMessage $message) {}
+    /** Types envoyés même en plage silencieuse (urgence, test admin). */
+    private const QUIET_EXEMPT = ['exam_open', 'test'];
+
+    /** Instant de mise en file (timestamp Unix). */
+    public int $queuedAt;
+
+    public function __construct(public PushSubscription $subscription, public PushMessage $message, ?int $queuedAt = null)
+    {
+        $this->queuedAt = $queuedAt ?? now()->getTimestamp();
+    }
 
     public function handle(PushSender $sender): void
     {
+        // File engorgée : une notification périmée, ou arrivée la nuit, est abandonnée.
+        if ($this->isStale() || $this->blockedByQuietHours()) {
+            return;
+        }
+
         $result = $sender->send($this->subscription, $this->message);
 
         if ($result === 'expired') {
@@ -31,5 +46,16 @@ class SendPushNotification implements ShouldQueue
         } elseif ($result === 'sent') {
             $this->subscription->forceFill(['last_used_at' => now()])->save();
         }
+    }
+
+    private function isStale(): bool
+    {
+        return now()->getTimestamp() - $this->queuedAt > (int) config('push.max_queue_age', 3600);
+    }
+
+    private function blockedByQuietHours(): bool
+    {
+        return ! in_array($this->message->type, self::QUIET_EXEMPT, true)
+            && PushSettings::inQuietHours(PushSettings::localNow());
     }
 }
