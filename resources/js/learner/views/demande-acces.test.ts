@@ -67,7 +67,12 @@ describe('demande d\'accès', () => {
   it('submit disabled until required fields and consent', async () => {
     const { el, btn, set } = await setup();
     expect(btn.disabled).toBe(true);
-    expect(el.textContent).toContain('+225');
+    expect(el.querySelector('[data-prefix]')!.textContent).toBe('+225');
+    const select = el.querySelector<HTMLSelectElement>('select[name="group_id"]')!;
+    expect(select.querySelectorAll('option').length).toBe(2);
+    expect(select.querySelector('option[value="3"]')!.textContent).toBe('Promo A');
+    expect(el.textContent).not.toContain('&lt;');
+    expect(el.textContent).not.toContain('<span');
     set('first_name', 'Awa');
     set('last_name', 'Kone');
     set('phone', '0700000000');
@@ -108,6 +113,10 @@ describe('demande d\'accès', () => {
     await vi.waitFor(() => expect(el.textContent).toContain('Demande envoyée.'));
     expect(el.textContent).toContain('+2250700000000');
     expect(el.textContent).toContain('Frais d\'inscription');
+    expect(el.querySelectorAll('li').length).toBe(1);
+    expect(el.querySelector('[data-fee]')).not.toBeNull();
+    expect(el.textContent).not.toContain('&lt;');
+    expect(el.textContent).not.toContain('<p');
     expect(el.textContent).toContain('Wave');
     expect(el.textContent).toContain('Ecole');
     expect(el.textContent).toContain('Attendez la confirmation de notre équipe avant tout transfert.');

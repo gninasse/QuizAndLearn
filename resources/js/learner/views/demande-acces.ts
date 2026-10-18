@@ -65,14 +65,16 @@ function successView(result: AccessRequestResponse): string {
       ? html`
         <section class="rounded-xl bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-900 p-4 flex flex-col gap-2">
           <h2 class="font-bold">Frais d'inscription</h2>
-          ${reg.fee !== null ? html`<p class="text-2xl font-extrabold">${formatFee(reg)}</p>` : ''}
+          ${reg.fee !== null ? raw(html`<p data-fee class="text-2xl font-extrabold">${formatFee(reg)}</p>`) : ''}
           <ul class="flex flex-col gap-1 text-sm">
-            ${reg.accounts.map(
-              (a) => html`<li><strong>${OPERATORS[a.operator] ?? a.operator}</strong> → ${a.number} → ${a.holder}</li>`,
+            ${raw(
+              reg.accounts
+                .map((a) => html`<li><strong>${OPERATORS[a.operator] ?? a.operator}</strong> → ${a.number} → ${a.holder}</li>`)
+                .join(''),
             )}
           </ul>
-          ${reg.reference ? html`<p class="text-sm">Référence : <strong>${reg.reference}</strong></p>` : ''}
-          ${reg.instructions ? html`<p class="text-sm text-zinc-600 dark:text-zinc-300 whitespace-pre-line">${reg.instructions}</p>` : ''}
+          ${reg.reference ? raw(html`<p class="text-sm">Référence : <strong>${reg.reference}</strong></p>`) : ''}
+          ${reg.instructions ? raw(html`<p class="text-sm text-zinc-600 dark:text-zinc-300 whitespace-pre-line">${reg.instructions}</p>`) : ''}
           <p class="text-sm font-bold text-amber-600 dark:text-amber-400">Attendez la confirmation de notre équipe avant tout transfert.</p>
         </section>`
       : '';
@@ -112,7 +114,7 @@ export async function mount(el: HTMLElement, _params?: Record<string, string>): 
         <label class="flex flex-col gap-1.5">
           <span class="text-xs font-bold text-zinc-500 uppercase tracking-wide">Téléphone *</span>
           <div class="flex items-center gap-2">
-            ${prefix ? html`<span class="text-sm font-bold text-zinc-500">${prefix}</span>` : ''}
+            ${prefix ? raw(html`<span data-prefix class="text-sm font-bold text-zinc-500">${prefix}</span>`) : ''}
             <input name="phone" type="tel" autocomplete="tel-national" value="${dv('phone')}" class="${INPUT}" />
           </div>
           <span data-error="phone" class="hidden text-xs font-medium text-red-500"></span>
@@ -128,16 +130,18 @@ export async function mount(el: HTMLElement, _params?: Record<string, string>): 
         ${raw(field('organization', 'Organisation', { auto: 'organization' }))}
         ${
           groups.length > 0
-            ? html`<label class="flex flex-col gap-1.5">
+            ? raw(html`<label class="flex flex-col gap-1.5">
                 <span class="text-xs font-bold text-zinc-500 uppercase tracking-wide">Formation souhaitée</span>
                 <select name="group_id" class="${INPUT}">
                   <option value="">Je ne sais pas encore</option>
-                  ${groups.map(
-                    (g) => html`<option value="${g.id}" ${dv('group_id') === String(g.id) ? 'selected' : ''}>${g.name}</option>`,
+                  ${raw(
+                    groups
+                      .map((g) => html`<option value="${g.id}" ${dv('group_id') === String(g.id) ? 'selected' : ''}>${g.name}</option>`)
+                      .join(''),
                   )}
                 </select>
                 <span data-error="group_id" class="hidden text-xs font-medium text-red-500"></span>
-              </label>`
+              </label>`)
             : ''
         }
         <label class="flex flex-col gap-1.5">
@@ -222,11 +226,24 @@ export async function mount(el: HTMLElement, _params?: Record<string, string>): 
   };
   form.addEventListener('input', onInput);
   form.addEventListener('change', onInput);
-  window.addEventListener('online', refresh);
-  window.addEventListener('offline', () => {
+  const onOnline = (): void => {
+    if (!el.isConnected) {
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
+      return;
+    }
+    refresh();
+  };
+  const onOffline = (): void => {
+    if (!el.isConnected) {
+      onOnline();
+      return;
+    }
     writeDraft(collectDraft());
     refresh();
-  });
+  };
+  window.addEventListener('online', onOnline);
+  window.addEventListener('offline', onOffline);
   refresh();
 
   form.addEventListener('submit', (event) => {
