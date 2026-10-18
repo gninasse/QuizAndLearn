@@ -34,6 +34,8 @@ const RENEW_BEFORE_MS = 60_000;
 const MIN_RENEW_DELAY_MS = 5_000;
 /** Renouvellements consécutifs sur erreur avant d'abandonner (évite une boucle). */
 const MAX_ERROR_RENEWALS = 3;
+/** Récupérations hls.js sur erreur média fatale avant d'abandonner. */
+const MAX_MEDIA_RECOVERIES = 2;
 
 type PlaceholderKind = 'processing' | 'unavailable' | 'offline';
 
@@ -79,6 +81,7 @@ interface Controller {
   renewTimer: number | null;
   processingRetries: number;
   errorRenewals: number;
+  mediaRecoveries: number;
   renewing: boolean;
   pendingResume: (() => void) | null;
   stopped: boolean;
@@ -299,7 +302,9 @@ function onHlsError(c: Controller, Hls: HlsModule, hls: HlsInstance, data: HlsEr
   if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
     // Segment signé expiré (403) ou coupure : on recharge la playlist.
     renewAfterError(c);
-  } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+  } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR && c.mediaRecoveries < MAX_MEDIA_RECOVERIES) {
+    // Borné : un flux indécodable ne doit pas boucler indéfiniment.
+    c.mediaRecoveries++;
     hls.recoverMediaError();
   } else {
     giveUp(c);
@@ -348,6 +353,7 @@ export function resolveVideoRefs(scope: ParentNode): void {
       renewTimer: null,
       processingRetries: 0,
       errorRenewals: 0,
+      mediaRecoveries: 0,
       renewing: false,
       pendingResume: null,
       stopped: false,

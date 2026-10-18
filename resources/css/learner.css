@@ -488,6 +488,29 @@ html[data-font-size='large'] {
     cursor: pointer;
     background-repeat: repeat;
 }
+/* Repli mobile : le prochain toucher atteint l'iframe du fournisseur. */
+.brand-video__overlay--tap-through {
+    pointer-events: none;
+}
+.brand-video__hint {
+    position: absolute;
+    left: 50%;
+    bottom: 1rem;
+    transform: translateX(-50%);
+    z-index: 3;
+    margin: 0;
+    max-width: calc(100% - 2rem);
+    padding: 0.4rem 0.8rem;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.72);
+    color: #fff;
+    font-size: 0.85rem;
+    text-align: center;
+    pointer-events: none;
+}
+.brand-video__hint[hidden] {
+    display: none;
+}
 .brand-video__overlay--wm {
     background-image: var(--wm-tile, none);
 }

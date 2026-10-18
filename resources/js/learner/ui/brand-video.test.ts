@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { mountBrandVideos, setVideoEmbedPolicy } from './brand-video';
+import { mountBrandVideos, PLAY_FALLBACK_MS, setVideoEmbedPolicy } from './brand-video';
 
 const YT_ID = 'dQw4w9WgXcQ';
 
@@ -242,5 +242,83 @@ describe('mountBrandVideos', () => {
     (win.onYouTubeIframeAPIReady as () => void)();
     await settle();
     expect(FakeYTPlayer.instances).toHaveLength(2);
+  });
+
+  describe('mobile tap-to-play fallback', () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    const tapThrough = (box: HTMLElement): boolean =>
+      box.querySelector('.brand-video__overlay')!.classList.contains('brand-video__overlay--tap-through');
+    const hintText = (box: HTMLElement): string | null => {
+      const hint = box.querySelector<HTMLElement>('.brand-video__hint')!;
+      return hint.hidden ? null : hint.textContent;
+    };
+
+    it('youtube: lets the next tap reach the iframe when playback does not start, then restores the overlay', async () => {
+      vi.useFakeTimers();
+      document.body.innerHTML = `<div class="rich-content"><div class="brand-video" data-embed="youtube" data-id="${YT_ID}"></div></div>`;
+      mountBrandVideos(document, null);
+      await settle();
+
+      const box = document.querySelector<HTMLElement>('.brand-video')!;
+      const player = FakeYTPlayer.instances[0]!;
+      player.options.events!.onReady!();
+      box.querySelector<HTMLButtonElement>('[data-bv="play"]')!.click();
+      expect(player.playVideo).toHaveBeenCalled();
+
+      vi.advanceTimersByTime(PLAY_FALLBACK_MS - 100);
+      expect(tapThrough(box)).toBe(false);
+      expect(hintText(box)).toBeNull();
+
+      vi.advanceTimersByTime(200);
+      expect(tapThrough(box)).toBe(true);
+      expect(hintText(box)).toBe('Touchez la vidéo pour lancer la lecture');
+
+      // Le toucher a atteint l'iframe : lecture → calque bloquant rétabli.
+      player.options.events!.onStateChange!({ data: 1 });
+      expect(tapThrough(box)).toBe(false);
+      expect(hintText(box)).toBeNull();
+    });
+
+    it('youtube: no fallback when playback starts in time', async () => {
+      vi.useFakeTimers();
+      document.body.innerHTML = `<div class="rich-content"><div class="brand-video" data-embed="youtube" data-id="${YT_ID}"></div></div>`;
+      mountBrandVideos(document, null);
+      await settle();
+
+      const box = document.querySelector<HTMLElement>('.brand-video')!;
+      const player = FakeYTPlayer.instances[0]!;
+      player.options.events!.onReady!();
+      box.querySelector<HTMLButtonElement>('[data-bv="play"]')!.click();
+      player.options.events!.onStateChange!({ data: 1 });
+      vi.advanceTimersByTime(PLAY_FALLBACK_MS * 2);
+
+      expect(tapThrough(box)).toBe(false);
+      expect(hintText(box)).toBeNull();
+    });
+
+    it('vimeo: a rejected play() enables tap-through immediately (never swallowed)', async () => {
+      document.body.innerHTML = '<div class="rich-content"><div class="brand-video" data-embed="vimeo" data-id="123456"></div></div>';
+      mountBrandVideos(document, null);
+      await settle();
+
+      const box = document.querySelector<HTMLElement>('.brand-video')!;
+      const player = FakeVimeoPlayer.instances[0]!;
+      player.play.mockRejectedValueOnce(new Error('NotAllowedError'));
+      box.querySelector<HTMLButtonElement>('[data-bv="play"]')!.click();
+      await settle();
+
+      expect(player.play).toHaveBeenCalled();
+      expect(tapThrough(box)).toBe(true);
+      expect(hintText(box)).toBe('Touchez la vidéo pour lancer la lecture');
+
+      // Événement « play » du fournisseur : calque rétabli.
+      const onPlay = player.on.mock.calls.find(([name]) => name === 'play')![1] as () => void;
+      onPlay();
+      expect(tapThrough(box)).toBe(false);
+      expect(hintText(box)).toBeNull();
+    });
   });
 });

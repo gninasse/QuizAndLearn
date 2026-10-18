@@ -16,6 +16,13 @@
  * - En ligne uniquement : hors ligne, « Vidéo disponible en ligne uniquement. » ;
  *   embeds désactivés ou fournisseur non autorisé, « Vidéo indisponible ».
  *
+ * - Navigateurs mobiles (Safari iOS, Chrome Android) : ils peuvent refuser
+ *   une lecture lancée par script tant que l'utilisateur n'a pas touché
+ *   l'iframe elle-même. Si play() est rejeté ou si la lecture n'a pas démarré
+ *   ~1,5 s après notre bouton, le calque laisse passer le prochain toucher
+ *   (pointer-events: none) avec l'indication « Touchez la vidéo pour lancer
+ *   la lecture » ; dès que la lecture démarre, le calque bloquant revient.
+ *
  * Limite assumée : une capture d'écran reste possible — d'où le filigrane.
  */
 
@@ -43,6 +50,10 @@ const EMBED_SELECTOR = '[data-embed]';
 
 const MSG_OFFLINE = 'Vidéo disponible en ligne uniquement.';
 const MSG_UNAVAILABLE = 'Vidéo indisponible';
+const MSG_TAP_TO_PLAY = 'Touchez la vidéo pour lancer la lecture';
+
+/** Délai après notre demande de lecture avant de laisser toucher l'iframe. */
+export const PLAY_FALLBACK_MS = 1500;
 
 // --------------------------------------------------------------- Réglages
 
@@ -217,7 +228,8 @@ interface PlayerEvents {
 }
 
 interface Adapter {
-  play(): void;
+  /** Rejetée si le fournisseur refuse la lecture (geste requis, etc.). */
+  play(): Promise<void>;
   pause(): void;
   seek(seconds: number): void;
   setVolume(percent: number): void;
@@ -283,7 +295,8 @@ async function createYouTube(slot: HTMLElement, ref: EmbedRef, events: PlayerEve
   });
 
   return {
-    play: () => player.playVideo(),
+    // L'API YouTube ne signale pas un refus : le délai de repli s'en charge.
+    play: async () => player.playVideo(),
     pause: () => player.pauseVideo(),
     seek: (seconds) => player.seekTo(seconds, true),
     setVolume: (percent) => player.setVolume(percent),
@@ -322,7 +335,10 @@ async function createVimeo(slot: HTMLElement, ref: EmbedRef, events: PlayerEvent
     .catch(ignore);
 
   return {
-    play: () => void player.play().catch(ignore),
+    // Refus de lecture remonté (jamais ignoré) : déclenche le repli tactile.
+    play: async () => {
+      await player.play();
+    },
     pause: () => void player.pause().catch(ignore),
     seek: (seconds) => void player.setCurrentTime(seconds).catch(ignore),
     setVolume: (percent) => {
@@ -361,6 +377,7 @@ const CONTROLS_HTML = `
   <div class="brand-video__frame">
     <div class="brand-video__player"></div>
     <div class="brand-video__overlay" aria-hidden="true"></div>
+    <p class="brand-video__hint" role="status" hidden></p>
   </div>
   <div class="brand-video__controls" role="group" aria-label="Commandes de la vidéo">
     <button type="button" class="brand-video__btn" data-bv="play" aria-label="Lire la vidéo"><i class="bi bi-play-fill" aria-hidden="true"></i></button>
@@ -379,6 +396,7 @@ function mountPlayer(box: HTMLElement, ref: EmbedRef, watermark: string | null):
   const q = <T extends HTMLElement>(name: string): T => box.querySelector<T>(`[data-bv="${name}"]`)!;
   const slot = box.querySelector<HTMLElement>('.brand-video__player')!;
   const overlay = box.querySelector<HTMLElement>('.brand-video__overlay')!;
+  const hint = box.querySelector<HTMLElement>('.brand-video__hint')!;
   const playBtn = q<HTMLButtonElement>('play');
   const seek = q<HTMLInputElement>('seek');
   const time = q<HTMLElement>('time');
@@ -393,6 +411,29 @@ function mountPlayer(box: HTMLElement, ref: EmbedRef, watermark: string | null):
   let muted = false;
   let duration = 0;
   let seeking = false;
+  let fallbackTimer: number | null = null;
+
+  const clearFallbackTimer = (): void => {
+    if (fallbackTimer !== null) window.clearTimeout(fallbackTimer);
+    fallbackTimer = null;
+  };
+  /** Le prochain toucher atteint l'iframe du fournisseur (geste exigé par le navigateur). */
+  const enableTapThrough = (): void => {
+    clearFallbackTimer();
+    if (playing) return;
+    overlay.classList.add('brand-video__overlay--tap-through');
+    box.classList.add('brand-video--tap-to-play');
+    hint.textContent = MSG_TAP_TO_PLAY;
+    hint.hidden = false;
+  };
+  /** Lecture lancée : le calque bloquant est rétabli. */
+  const restoreOverlay = (): void => {
+    clearFallbackTimer();
+    overlay.classList.remove('brand-video__overlay--tap-through');
+    box.classList.remove('brand-video--tap-to-play');
+    hint.hidden = true;
+    hint.textContent = '';
+  };
 
   const renderPlay = (): void => {
     playBtn.setAttribute('aria-label', playing ? 'Mettre en pause' : 'Lire la vidéo');
@@ -416,6 +457,7 @@ function mountPlayer(box: HTMLElement, ref: EmbedRef, watermark: string | null):
     },
     state: (value) => {
       playing = value;
+      if (playing) restoreOverlay();
       renderPlay();
     },
     time: (current, d) => {
@@ -429,8 +471,15 @@ function mountPlayer(box: HTMLElement, ref: EmbedRef, watermark: string | null):
 
   const togglePlay = (): void => {
     if (!adapter) return;
-    if (playing) adapter.pause();
-    else adapter.play();
+    if (playing) {
+      adapter.pause();
+      return;
+    }
+    clearFallbackTimer();
+    fallbackTimer = window.setTimeout(() => {
+      if (!playing) enableTapThrough();
+    }, PLAY_FALLBACK_MS);
+    adapter.play().catch(enableTapThrough);
   };
 
   // Le calque reçoit tous les gestes destinés à l'iframe du fournisseur.

@@ -251,6 +251,27 @@ describe('resolveVideoRefs', () => {
     expect(video.currentTime).toBe(300);
   });
 
+  it('bounds hls media error recovery, then shows unavailable', async () => {
+    replies.push({ status: 200, body: { type: 'hls', url: '/videos/r/hls/index.m3u8?signature=1', expires_at: new Date(Date.now() + 15 * 60_000).toISOString() } });
+    const video = mountVideo();
+    vi.spyOn(video, 'canPlayType').mockReturnValue('');
+
+    resolveVideoRefs(document);
+    await settle();
+
+    const hls = hlsState.instances[0]!;
+    const mediaError = { fatal: true, type: 'mediaError' };
+    hls.handlers.hlsError!('hlsError', mediaError);
+    hls.handlers.hlsError!('hlsError', mediaError);
+    expect(hls.recoverMediaError).toHaveBeenCalledTimes(2);
+    expect(placeholderText()).toBeNull();
+
+    hls.handlers.hlsError!('hlsError', mediaError);
+    expect(hls.recoverMediaError).toHaveBeenCalledTimes(2);
+    expect(hls.destroy).toHaveBeenCalled();
+    expect(placeholderText()).toBe('Vidéo indisponible');
+  });
+
   it('uses native hls when the browser supports it', async () => {
     replies.push({ status: 200, body: { type: 'hls', url: '/videos/r/hls/index.m3u8?signature=1', expires_at: null } });
     const video = mountVideo();

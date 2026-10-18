@@ -7,7 +7,7 @@ describe('isVideoStreamRequest', () => {
   it.each([
     '/api/learner/v1/videos/0b6f4c1e-8d2a-4f7b-9c3d-2e1a5b6c7d8e/playback',
     '/api/showcase/v1/videos/0b6f4c1e-8d2a-4f7b-9c3d-2e1a5b6c7d8e/playback',
-    '/videos/0b6f4c1e-8d2a-4f7b-9c3d-2e1a5b6c7d8e/hls/index.m3u8?signature=abc',
+    '/api/learner/v1/videos/0b6f4c1e-8d2a-4f7b-9c3d-2e1a5b6c7d8e/hls/index.m3u8?expires=1&signature=abc',
     'https://bucket.s3.example/hls/ref/seg_001.ts?X-Amz-Signature=1',
     'https://www.youtube.com/iframe_api',
     'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ',
