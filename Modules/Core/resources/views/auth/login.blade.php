@@ -3,7 +3,8 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Connexion | {{ config('app.name') }}</title>
+    <title>Connexion · {{ config('branding.name') }}</title>
+    <link rel="icon" href="{{ config('branding.logo') }}">
 
     <link rel="stylesheet" href="{{ asset('plugins/fontawesome/css/all.min.css') }}">
     <link rel="stylesheet" href="{{ asset('plugins/icheck-bootstrap/icheck-bootstrap.min.css') }}">
@@ -13,7 +14,7 @@
 <div class="login-box">
     <div class="card card-outline card-primary">
         <div class="card-header text-center">
-            <a href="#" class="h1"><b>KEYSTONE</b></a>
+            <a href="#" class="h1 d-inline-flex align-items-center gap-2 text-decoration-none"><img src="{{ config('branding.logo') }}" alt="" width="40" height="40" class="rounded"><b>{{ config('branding.name') }}</b></a>
         </div>
         <div class="card-body">
             <p class="login-box-msg">Connectez-vous pour ouvrir votre session</p>

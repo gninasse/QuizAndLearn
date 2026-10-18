@@ -6,13 +6,13 @@
           <a href="{{ url('/') }}" class="brand-link">
             <!--begin::Brand Image-->
             <img
-              src="{{ asset('adminlte/assets/img/AdminLTELogo.png') }}"
-              alt="AdminLTE Logo"
+              src="{{ config('branding.logo') }}"
+              alt="{{ config('branding.name') }}"
               class="brand-image opacity-75 shadow"
             />
             <!--end::Brand Image-->
             <!--begin::Brand Text-->
-            <span class="brand-text fw-light">Learn&Quiz</span>
+            <span class="brand-text fw-light">{{ config('branding.name') }}</span>
             <!--end::Brand Text-->
           </a>
           <!--end::Brand Link-->
@@ -34,7 +34,7 @@
                 <a href="#" class="nav-link active">
                   <i class="nav-icon bi bi-speedometer"></i>
                   <p>
-                    Learn&Quiz
+                    {{ config('branding.name') }}
                     <i class="nav-arrow bi bi-chevron-right"></i>
                   </p>
                 </a>

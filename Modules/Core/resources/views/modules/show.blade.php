@@ -137,7 +137,7 @@
                             <p class="text-secondary">
                                 {{ $module->description }}
                                 <br>
-                                Le module <strong>{{ $module->name }}</strong> est un composant de l'infrastructure Keystone.
+                                Le module <strong>{{ $module->name }}</strong> est un composant de la plateforme {{ config('branding.name') }}.
                             </p>
 
                             <h5 class="card-title fw-bold mt-4 mb-3">Key Features</h5>

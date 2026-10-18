@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
   <meta name="csrf-token" content="{{ csrf_token() }}">
-  <title>@yield('title', 'Learn&Quiz - Admin Editor')</title>
+  <title>@hasSection('title')@yield('title') · @endif{{ config('branding.name') }}</title>
+  <link rel="icon" href="{{ config('branding.logo') }}">
   
   <!-- Fonts -->
   <link rel="stylesheet" href="{{ asset('plugins/source-sans-3/index.css') }}">
@@ -37,7 +38,7 @@
       <div class="sidebar-logo">
         <a href="{{ route('cores.dashboard') }}" class="logo-text">
           <i class="bi bi-mortarboard-fill"></i>
-          <span>Learn&Quiz</span>
+          <span>{{ config('branding.name') }}</span>
         </a>
       </div>
       

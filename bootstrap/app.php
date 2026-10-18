@@ -15,6 +15,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // X-Forwarded-* pour générer des URLs https correctes derrière le proxy.
         $middleware->trustProxies(at: '*');
 
+        // Marque blanche : pas d'en-tête révélant la pile technique.
+        $middleware->append(\App\Http\Middleware\HideTechnologyHeaders::class);
+
         $middleware->alias([
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,

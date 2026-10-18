@@ -3,7 +3,8 @@
   <!--begin::Head-->
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>@yield('title', 'Learn&Quiz')</title>
+    <title>@hasSection('title')@yield('title') · @endif{{ config('branding.name') }}</title>
+    <link rel="icon" href="{{ config('branding.logo') }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <!--begin::Accessibility Meta Tags-->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
@@ -12,15 +13,15 @@
     <meta name="theme-color" content="#1a1a1a" media="(prefers-color-scheme: dark)" />
     <!--end::Accessibility Meta Tags-->
     <!--begin::Primary Meta Tags-->
-    <meta name="title" content="Learn&Quiz" />
-    <meta name="author" content="ibrahim" />
+    <meta name="title" content="{{ config('branding.name') }}" />
+    <meta name="author" content="{{ config('branding.owner') }}" />
     <meta
       name="description"
-      content="Learn&Quiz"
+      content="{{ config('branding.name') }}"
     />
     <meta
       name="keywords"
-      content="Learn&Quiz"
+      content="{{ config('branding.name') }}"
     />
     <!--end::Primary Meta Tags-->
     <!--begin::Accessibility Features-->
@@ -118,12 +119,12 @@
       <!--begin::Footer-->
       <footer class="app-footer">
         <!--begin::To the end-->
-        <div class="float-end d-none d-sm-inline">Learn&Quiz</div>
+        <div class="float-end d-none d-sm-inline">{{ config('branding.tagline') }}</div>
         <!--end::To the end-->
         <!--begin::Copyright-->
         <strong>
-          Copyright &copy; 2025&nbsp;
-          <a href="#" class="text-decoration-none">Learn&Quiz</a>.
+          Copyright &copy; {{ date('Y') }}&nbsp;
+          <a href="#" class="text-decoration-none">{{ config('branding.owner') }}</a>.
         </strong>
         tous droits reservés.
         <!--end::Copyright-->
