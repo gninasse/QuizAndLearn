@@ -312,6 +312,7 @@ l'archive des médias dans `storage/app/public`.
 - [ ] Connexion apprenant sur `/connexion`, installation de la PWA proposée, contenu visible hors-ligne après une première synchronisation.
 - [ ] Upload d'une image, d'un audio et d'une vidéo depuis l'éditeur de quiz.
 - [ ] `APP_DEBUG=false` dans le `.env`.
+- [ ] Consultation en lecture seule : en super admin, « Voir en tant que » sur un apprenant ouvre la PWA avec le bandeau et le filigrane, toute action d'écriture est refusée, et la consultation est journalisée.
 
 ## 11. Application mobile native
 
