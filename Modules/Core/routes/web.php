@@ -336,6 +336,14 @@ Route::prefix('api/learner/v1')->name('learn.v1.')->group(function () {
     });
 });
 
+// -------------------------------------------------------------------------
+// API publique vitrine v1 (mode découverte) : lecture seule, sans auth.
+// -------------------------------------------------------------------------
+Route::prefix('api/showcase/v1')->name('showcase.v1.')->middleware('throttle:60,1')->group(function () {
+    Route::get('/content', [\Modules\Core\Http\Controllers\Showcase\ShowcaseController::class, 'content'])->name('content');
+    Route::get('/settings', [\Modules\Core\Http\Controllers\Showcase\ShowcaseController::class, 'settings'])->name('settings');
+});
+
 // Routes profondes du SPA (History API) : le serveur renvoie toujours le shell.
 Route::middleware(['auth', 'learner'])->name('learn.')->group(function () {
     Route::get('/dashboard', fn () => redirect('/'))->name('spa-shell');

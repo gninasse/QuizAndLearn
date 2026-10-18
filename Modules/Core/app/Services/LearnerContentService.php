@@ -83,8 +83,6 @@ class LearnerContentService
         ];
     }
 
-
-
     /**
      * Groupes de l'apprenant avec leur statut — permet au client d'expliquer
      * pourquoi un contenu a disparu (groupe suspendu/fermé) au lieu de le
@@ -99,21 +97,6 @@ class LearnerContentService
             'start_date' => $group->start_date?->toDateString(),
             'end_date' => $group->end_date?->toDateString(),
         ])->values()->toArray();
-    }
-
-    /**
-     * Réécrit les URLs absolues des médias uploadés (/storage/…) en URLs
-     * relatives : le HTML stocké en base contient souvent le domaine du
-     * back-office (asset()), injoignable depuis un tunnel ou le mobile.
-     * Relatif = valable pour la PWA same-origin ET rebasable par les clients.
-     */
-    private function relativizeMediaUrls(?string $html): ?string
-    {
-        if (! $html) {
-            return $html;
-        }
-
-        return preg_replace('#https?://[^/"\'\s]+/storage/#i', '/storage/', $html);
     }
 
     private function serializeUser(Learner $learner): array
@@ -143,23 +126,7 @@ class LearnerContentService
             ->whereHas('groups', fn ($q) => $q->whereIn('group_id', $groupIds))
             ->latest()
             ->get()
-            ->map(function (Article $art) use ($progress) {
-                $prog = $progress->get($art->id);
-
-                return [
-                    'id' => $art->id,
-                    'title' => $art->title,
-                    'category' => $art->category,
-                    'content' => $this->relativizeMediaUrls($art->content),
-                    'estimated_reading_time' => $art->estimated_reading_time,
-                    'is_favorite' => $prog ? (bool) $prog->is_favorite : false,
-                    'rating' => $prog ? (int) $prog->rating : 0,
-                    'status' => $prog ? $prog->status : 'unread',
-                    'progress_percentage' => $prog ? (int) $prog->progress_percentage : 0,
-                    'created_at' => $art->created_at->toIso8601String(),
-                    'updated_at' => $art->updated_at->toIso8601String(),
-                ];
-            });
+            ->map(fn (Article $art) => ContentSerializer::article($art, $progress->get($art->id)));
     }
 
     private function quizzesFor(Learner $learner, Collection $groupIds): Collection
@@ -173,59 +140,7 @@ class LearnerContentService
             ->whereHas('groups', fn ($q) => $q->whereIn('group_id', $groupIds))
             ->with('questions')
             ->get()
-            ->map(function (Quiz $qz) use ($attempts) {
-                $qzAttempts = $attempts->get($qz->id) ?? collect();
-                $hasCompleted = $qzAttempts->contains('status', 'completed');
-                $hasInProgress = $qzAttempts->contains('status', 'in_progress');
-                $maxAttemptsReached = $qz->max_attempts
-                    && $qzAttempts->where('status', 'completed')->count() >= $qz->max_attempts;
-
-                $status = 'unread';
-                if ($hasInProgress) {
-                    $status = 'in_progress';
-                } elseif ($hasCompleted) {
-                    $status = 'completed';
-                }
-
-                // Le delta doit refléter aussi les modifications de questions.
-                $questionsMaxUpdated = $qz->questions->max('updated_at');
-                $effectiveUpdated = max($qz->updated_at, $questionsMaxUpdated ?? $qz->updated_at);
-
-                return [
-                    'id' => $qz->id,
-                    'title' => $qz->title,
-                    'description' => $qz->description,
-                    'duration' => $qz->duration,
-                    'passing_score' => $qz->passing_score,
-                    'max_attempts' => $qz->max_attempts,
-                    'shuffle_questions' => (bool) $qz->shuffle_questions,
-                    'show_correct_answers' => (bool) $qz->show_correct_answers,
-                    'status' => $status,
-                    'max_attempts_reached' => $maxAttemptsReached,
-                    'updated_at' => $effectiveUpdated->toIso8601String(),
-                    'attempts' => $qzAttempts->map(fn (QuizAttempt $att) => [
-                        'id' => $att->id,
-                        'attempt_number' => $att->attempt_number,
-                        'status' => $att->status,
-                        'score' => $att->score !== null ? (float) $att->score : null,
-                        'points_earned' => $att->points_earned,
-                        'points_total' => $att->points_total,
-                        'passed' => (bool) $att->passed,
-                        'completed_at' => $att->completed_at?->toIso8601String(),
-                    ])->values(),
-                    'questions' => $qz->questions->map(fn ($q) => [
-                        'id' => $q->id,
-                        'question_text' => $this->relativizeMediaUrls($q->question_text),
-                        'type' => $q->type,
-                        'points' => $q->points,
-                        'order' => $q->order,
-                        // (object) : un tableau PHP vide se sérialiserait en []
-                        // (array JSON) et casserait les clients typés qui
-                        // attendent un objet.
-                        'options' => empty($q->options) ? (object) [] : $q->options,
-                    ])->values(),
-                ];
-            });
+            ->map(fn (Quiz $qz) => ContentSerializer::quiz($qz, $attempts->get($qz->id) ?? collect()));
     }
 
     private function decksFor(Learner $learner, Collection $groupIds): Collection
@@ -239,43 +154,7 @@ class LearnerContentService
             })
             ->with(['cards' => fn ($q) => $q->orderBy('ordre')])
             ->get()
-            ->map(function (FlashcardDeck $deck) use ($reviews) {
-                $cardsMaxUpdated = $deck->cards->max('updated_at');
-                $effectiveUpdated = max($deck->updated_at, $cardsMaxUpdated ?? $deck->updated_at);
-
-                return [
-                    'id' => $deck->id,
-                    'titre' => $deck->titre,
-                    'description' => $deck->description,
-                    'matiere' => $deck->matiere,
-                    'algorithme' => $deck->algorithme,
-                    'easiness_default' => (float) $deck->easiness_default,
-                    'interval_min' => (int) $deck->interval_min,
-                    'interval_max' => (int) $deck->interval_max,
-                    'updated_at' => $effectiveUpdated->toIso8601String(),
-                    'cards' => $deck->cards->map(function ($card) use ($reviews) {
-                        $review = $reviews->get($card->id);
-
-                        return [
-                            'id' => $card->id,
-                            'recto' => $this->relativizeMediaUrls($card->recto),
-                            'verso' => $this->relativizeMediaUrls($card->verso),
-                            'recto_media' => $card->recto_media,
-                            'verso_media' => $card->verso_media,
-                            'tags' => $card->tags,
-                            'ordre' => $card->ordre,
-                            'review' => $review ? [
-                                'easiness_factor' => (float) $review->easiness_factor,
-                                'interval_days' => $review->interval_days,
-                                'repetitions' => $review->repetitions,
-                                'last_reviewed' => $review->last_reviewed?->toIso8601String(),
-                                'next_review' => $review->next_review?->toIso8601String(),
-                                'status' => $review->status,
-                            ] : null,
-                        ];
-                    })->values(),
-                ];
-            });
+            ->map(fn (FlashcardDeck $deck) => ContentSerializer::deck($deck, $reviews));
     }
 
     private function examsFor(Learner $learner, Collection $groupIds): Collection
