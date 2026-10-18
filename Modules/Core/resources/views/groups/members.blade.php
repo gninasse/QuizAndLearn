@@ -14,6 +14,7 @@
      data-url-candidates="{{ route('cores.groups.members.candidates', $group->id) }}"
      data-url-learners="{{ route('cores.groups.members.learners.add', $group->id) }}"
      data-url-trainers="{{ route('cores.groups.members.trainers.add', $group->id) }}"
+     data-url-impersonate="{{ route('cores.learners.impersonate', ['learnerId' => '__ID__']) }}"
      data-can-manage-trainers="{{ $canManageTrainers ? '1' : '0' }}">
 
     {{-- En-tête du groupe --}}

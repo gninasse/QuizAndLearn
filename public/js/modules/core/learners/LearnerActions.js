@@ -21,6 +21,13 @@ export class LearnerActions {
             }
         });
 
+        $('#btn-impersonate-learner').click(() => {
+            const learnerId = this.table.getSelectedLearnerId();
+            if (learnerId) {
+                this.impersonate(learnerId);
+            }
+        });
+
         $('#btn-delete-learner').click(() => {
             const learnerId = this.table.getSelectedId();
             if (learnerId) {
@@ -46,6 +53,26 @@ export class LearnerActions {
             const learnerId = this.table.getSelectedId();
             if (learnerId) {
                 this.toggleStatus(learnerId, 'désactiver');
+            }
+        });
+    }
+
+    impersonate(learnerId) {
+        const url = $('#btn-impersonate-learner').data('url').replace('__ID__', learnerId);
+        $.ajax({
+            url,
+            method: 'POST',
+            success: (response) => {
+                if (response.success && response.url) {
+                    window.open(response.url, '_blank', 'noopener');
+                }
+            },
+            error: (xhr) => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Erreur',
+                    text: xhr.responseJSON?.message || 'Consultation impossible.'
+                });
             }
         });
     }

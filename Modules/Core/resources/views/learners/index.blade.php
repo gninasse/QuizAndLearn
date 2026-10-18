@@ -33,6 +33,12 @@
             <button id="btn-disable-learner" class="btn btn-secondary" disabled data-bs-toggle="tooltip" title="Désactiver">
                 <i class="fas fa-ban"></i>
             </button>
+            @if(auth()->user()->hasRole('super-admin'))
+            <button id="btn-impersonate-learner" class="btn btn-dark" disabled data-bs-toggle="tooltip" title="Voir en tant que"
+                    data-url="{{ route('cores.learners.impersonate', ['learnerId' => '__ID__']) }}">
+                <i class="bi bi-person-video3"></i>
+            </button>
+            @endif
         </div>
         <table id="learners-table"
                data-toggle="table"

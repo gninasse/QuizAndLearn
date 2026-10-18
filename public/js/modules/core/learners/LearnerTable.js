@@ -10,6 +10,7 @@ export class LearnerTable {
         this.$btnReset = $('#btn-reset-password');
         this.$btnEnable = $('#btn-enable-learner');
         this.$btnDisable = $('#btn-disable-learner');
+        this.$btnImpersonate = $('#btn-impersonate-learner');
     }
 
     init() {
@@ -31,6 +32,7 @@ export class LearnerTable {
         this.$btnEdit.prop('disabled', !isSingle);
         this.$btnDelete.prop('disabled', !isSingle);
         this.$btnReset.prop('disabled', !isSingle);
+        this.$btnImpersonate.prop('disabled', !isSingle || !selections[0]?.learner_id);
 
         if (isSingle) {
             const row = selections[0];
@@ -53,6 +55,11 @@ export class LearnerTable {
             return selections[0].id;
         }
         return null;
+    }
+
+    getSelectedLearnerId() {
+        const selections = this.$table.bootstrapTable('getSelections');
+        return selections.length === 1 ? selections[0].learner_id ?? null : null;
     }
 
     refresh() {

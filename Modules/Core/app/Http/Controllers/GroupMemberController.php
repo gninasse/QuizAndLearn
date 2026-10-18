@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Modules\Core\Models\ExamAttempt;
 use Modules\Core\Models\Group;
+use Modules\Core\Models\ImpersonationSession;
 use Modules\Core\Models\Learner;
 use Modules\Core\Models\QuizAttempt;
 use Modules\Core\Models\Trainer;
@@ -60,10 +61,23 @@ class GroupMemberController extends Controller
             ->get()
             ->keyBy('learner_id');
 
-        $learners = $group->learners->map(function (Learner $learner) use ($group, $quizStats, $examStats) {
+        $canImpersonate = (bool) auth()->user()->hasRole('super-admin');
+
+        // Dernière consultation « Voir en tant que » par apprenant (super admin uniquement).
+        $consultations = $canImpersonate
+            ? ImpersonationSession::with('admin')
+                ->whereIn('learner_id', $learnerIds)
+                ->orderByDesc('created_at')->orderByDesc('id')
+                ->get()
+                ->unique('learner_id')
+                ->keyBy('learner_id')
+            : collect();
+
+        $learners = $group->learners->map(function (Learner $learner) use ($group, $quizStats, $examStats, $consultations) {
             $user = $learner->user;
             $quiz = $quizStats->get($learner->id);
             $exam = $examStats->get($learner->id);
+            $consultation = $consultations->get($learner->id);
 
             return [
                 'learner_id' => $learner->id,
@@ -92,6 +106,10 @@ class GroupMemberController extends Controller
                     ->pluck('name')
                     ->values(),
                 'created_at' => $user->created_at?->toDateString(),
+                'last_consultation' => $consultation ? [
+                    'at' => $consultation->created_at?->toIso8601String(),
+                    'by' => $consultation->admin?->full_name,
+                ] : null,
             ];
         })->sortBy('full_name', SORT_NATURAL | SORT_FLAG_CASE)->values();
 
@@ -125,6 +143,7 @@ class GroupMemberController extends Controller
                 'articles' => $group->articles()->count(),
             ],
             'max_trainers' => self::MAX_TRAINERS,
+            'can_impersonate' => $canImpersonate,
         ]);
     }
 
