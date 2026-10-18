@@ -333,6 +333,7 @@ Route::middleware(['auth', 'learner'])->name('learn.')->group(function () {
         '/reviser',
         '/reviser/{deckId}',
         '/profil',
+        '/mot-de-passe',
     ] as $spaPath) {
         Route::get($spaPath, [\Modules\Core\Http\Controllers\Learner\ShellController::class, '__invoke']);
     }

@@ -34,6 +34,7 @@ const routes: RouteDefinition[] = [
   { path: '/exams/:id/play', title: 'Examen', view: () => import('./views/exam-play') },
   { path: '/reviser', title: 'Révision', view: () => import('./views/reviser') },
   { path: '/reviser/:deckId', title: 'Révision', view: () => import('./views/reviser') },
+  { path: '/mot-de-passe', title: 'Nouveau mot de passe', view: () => import('./views/mot-de-passe') },
   { path: '/profil', title: 'Profil', view: () => import('./views/profil') },
   { path: '/progression', title: 'Ma progression', view: () => import('./views/progression') },
 ];
@@ -51,13 +52,20 @@ async function boot(): Promise<void> {
     applyPreferences(preferencesStore.get());
   }
 
-  const router = new Router({
+  const redirectIfPasswordChangeRequired = (): void => {
+    if (sessionStore.get()?.must_change_password && window.location.pathname !== '/mot-de-passe') {
+      void router.go('/mot-de-passe', true);
+    }
+  };
+
+  const router: Router = new Router({
     routes,
     outlet: () => shell.outlet,
     isAuthenticated: () => sessionStore.get() !== null,
     loginPath: '/connexion',
     defaultPath: '/',
     onNavigate: (route) => {
+      redirectIfPasswordChangeRequired();
       dismissLightbox();
       shell.setTitle(route.title);
     },
@@ -92,6 +100,10 @@ async function boot(): Promise<void> {
 
   window.addEventListener('learner:authenticated', () => {
     applyPreferences(preferencesStore.get());
+    if (sessionStore.get()?.must_change_password) {
+      void router.go('/mot-de-passe', true);
+      return;
+    }
     void router.go('/', true);
     maybeShowInstallBanner();
   });
@@ -129,6 +141,10 @@ async function boot(): Promise<void> {
         /* stockage indisponible */
       }
       void clearLocalData().then(() => router.go('/connexion', true));
+    } else if (event.kind === 'password-change-required') {
+      const user = sessionStore.get();
+      if (user && !user.must_change_password) sessionStore.set({ ...user, must_change_password: true });
+      redirectIfPasswordChangeRequired();
     } else if (event.kind === 'session-expired') {
       toast('Session expirée — reconnectez-vous.', 'warning');
       sessionStore.set(null);

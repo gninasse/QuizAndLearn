@@ -21,10 +21,10 @@ export function mount(el: HTMLElement): void {
 
         <form id="login-form" class="bg-white/5 border border-white/10 rounded-2xl p-6 flex flex-col gap-4 backdrop-blur">
           <label class="flex flex-col gap-1.5">
-            <span class="text-xs font-semibold text-zinc-300 uppercase tracking-wide">Email ou identifiant</span>
+            <span class="text-xs font-semibold text-zinc-300 uppercase tracking-wide">E-mail ou téléphone</span>
             <input name="login" type="text" required autocomplete="username" autocapitalize="none"
                    class="rounded-xl bg-white/10 border border-white/10 px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-sky-500"
-                   placeholder="prenom.nom@exemple.fr" />
+                   placeholder="07 00 00 00 00 ou prenom.nom@exemple.fr" />
           </label>
           <label class="flex flex-col gap-1.5">
             <span class="text-xs font-semibold text-zinc-300 uppercase tracking-wide">Mot de passe</span>
@@ -79,8 +79,12 @@ export function mount(el: HTMLElement): void {
         // Demande de stockage persistant (évite l'éviction du cache offline).
         void navigator.storage?.persist?.();
 
-        await fullBootstrap();
-        await hydrateFromDb();
+        // Mot de passe provisoire : le serveur refuse le bootstrap tant qu'il n'est pas changé
+        // (l'écran /mot-de-passe s'en charge ensuite).
+        if (!response.user.must_change_password) {
+          await fullBootstrap();
+          await hydrateFromDb();
+        }
         toast(`Bonjour ${response.user.name} !`, 'success');
         window.dispatchEvent(new CustomEvent('learner:authenticated'));
       } catch (e) {

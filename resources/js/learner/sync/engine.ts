@@ -28,6 +28,8 @@ export type SyncEvent =
   | { kind: 'session-expired' }
   /** Compte suspendu par un formateur : accès coupé, données locales à purger. */
   | { kind: 'account-suspended'; message: string }
+  /** Mot de passe provisoire : le serveur exige un nouveau mot de passe. */
+  | { kind: 'password-change-required' }
   /** Les stores viennent d'être réhydratés après une sync (stale-while-revalidate). */
   | { kind: 'data-refreshed' };
 
@@ -316,6 +318,8 @@ async function doSync(): Promise<void> {
       emit({ kind: 'session-expired' });
     } else if (e instanceof ApiError && isSuspension(e)) {
       emit({ kind: 'account-suspended', message: e.message });
+    } else if (e instanceof ApiError && isPasswordChangeRequired(e)) {
+      emit({ kind: 'password-change-required' });
     } else if (!(e instanceof NetworkError)) {
       console.error('[sync]', e);
     }
@@ -330,6 +334,12 @@ async function doSync(): Promise<void> {
 export function isSuspension(error: ApiError): boolean {
   const payload = error.payload as { code?: unknown } | null;
   return error.status === 403 && payload?.code === 'account_suspended';
+}
+
+/** Refus serveur « nouveau mot de passe requis ». */
+export function isPasswordChangeRequired(error: ApiError): boolean {
+  const payload = error.payload as { code?: unknown } | null;
+  return error.status === 403 && payload?.code === 'password_change_required';
 }
 
 /** Premier chargement en ligne : bootstrap complet. */

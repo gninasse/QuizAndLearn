@@ -19,6 +19,8 @@ export interface UserProfile {
   email: string;
   avatar_url: string;
   matricule?: string | null;
+  /** Mot de passe provisoire : le changement est imposé avant tout accès. */
+  must_change_password?: boolean;
   xp: XpSnapshot;
 }
 
