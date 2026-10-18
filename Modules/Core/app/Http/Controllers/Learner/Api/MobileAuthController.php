@@ -123,7 +123,7 @@ class MobileAuthController extends Controller
         ]);
 
         $user = $request->user();
-        $user->update(['password' => $request->input('password')]);
+        $user->forceFill(['password' => $request->input('password'), 'must_change_password' => false])->save();
 
         // Sécurité : tout autre appareil (token potentiellement compromis)
         // doit se reconnecter avec le nouveau mot de passe.
@@ -167,6 +167,7 @@ class MobileAuthController extends Controller
             'full_name' => $user->full_name,
             'email' => $user->email,
             'matricule' => $user->learner?->matricule,
+            'must_change_password' => (bool) $user->must_change_password,
             'xp' => $this->gamification->snapshot($user->learner),
         ];
     }

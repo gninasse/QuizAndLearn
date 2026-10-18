@@ -79,4 +79,12 @@ class PhoneLoginTest extends TestCase
         $this->postJson('/api/learner/v1/session', ['login' => '0700000000', 'password' => 'password123'])
             ->assertStatus(401);
     }
+
+    public function test_numeric_user_name_still_logs_in(): void
+    {
+        $this->makeUser(['user_name' => '12345678', 'email' => 'num@example.com', 'phone' => '+2250711111111']);
+
+        $this->postJson('/api/learner/v1/session', ['login' => '12345678', 'password' => 'password123'])
+            ->assertOk()->assertJsonPath('success', true);
+    }
 }

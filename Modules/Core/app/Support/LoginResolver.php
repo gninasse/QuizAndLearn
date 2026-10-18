@@ -25,7 +25,10 @@ class LoginResolver
         if (preg_match('/^[+\d\s\-.()]+$/', $login) && preg_match_all('/\d/', $login) >= 8) {
             $phone = PhoneNumber::normalize($login);
 
-            return $phone ? User::where('phone', $phone)->first() : null;
+            $user = $phone ? User::where('phone', $phone)->first() : null;
+
+            // Un nom d'utilisateur purement numérique reste valide.
+            return $user ?? User::where('user_name', $login)->first();
         }
 
         return User::where('user_name', $login)->first();

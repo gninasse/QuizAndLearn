@@ -103,7 +103,7 @@ class SessionController extends Controller
         ]);
 
         $user = Auth::user();
-        $user->update(['password' => $request->input('password')]);
+        $user->forceFill(['password' => $request->input('password'), 'must_change_password' => false])->save();
 
         $request->session()->regenerate();
 
@@ -139,6 +139,7 @@ class SessionController extends Controller
             'email' => $user->email,
             'avatar_url' => $user->avatar_url,
             'matricule' => $user->learner?->matricule,
+            'must_change_password' => (bool) $user->must_change_password,
             'xp' => $this->gamification->snapshot($user->learner),
         ];
     }

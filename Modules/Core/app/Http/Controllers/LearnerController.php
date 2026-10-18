@@ -10,10 +10,13 @@ use Modules\Core\Http\Requests\UpdateLearnerRequest;
 use Modules\Core\Models\Group;
 use Modules\Core\Models\Learner;
 use Modules\Core\Models\User;
-use Spatie\Permission\Models\Role;
+use Modules\Core\Services\LearnerAccountService;
+use Modules\Core\Support\Credentials;
 
 class LearnerController extends Controller
 {
+    public function __construct(private readonly LearnerAccountService $accounts) {}
+
     /**
      * Afficher la liste des apprenants
      */
@@ -116,43 +119,35 @@ class LearnerController extends Controller
                 }
 
                 $avatar = $request->file('avatar');
-                $cleanUserName = str_replace(' ', '_', strtolower($request->user_name));
+                $cleanUserName = str_replace(' ', '_', strtolower($request->user_name ?: $request->name.'_'.$request->last_name));
                 $avatarName = time().'_'.$cleanUserName.'.'.$avatar->extension();
                 $avatar->move($destinationPath, $avatarName);
                 $avatarPath = 'avatars/'.$avatarName;
             }
 
-            // Créer l'utilisateur
-            $user = User::create([
-                'name' => $request->name,
-                'last_name' => $request->last_name,
-                'user_name' => $request->user_name,
-                'email' => $request->email,
-                'phone' => $request->phone,
-                'password' => Hash::make($request->password),
-                'avatar' => $avatarPath,
-                'is_active' => true,
-            ]);
-            Role::findOrCreate('learner');
+            $temporary = $request->boolean('temporary_password');
 
-            $user->assignRole('learner');
-            $user->logRoleToggle('learner', 'assigned');
-
-            // Créer le profil apprenant
-            $learner = Learner::create([
-                'user_id' => $user->id,
-                'matricule' => $request->matricule,
-            ]);
-
-            // Assigner les groupes si fournis
-            if ($request->has('group_ids')) {
-                $learner->groups()->sync($request->group_ids);
-            }
+            $result = $this->accounts->create(
+                [
+                    'name' => $request->name,
+                    'last_name' => $request->last_name,
+                    'user_name' => $request->user_name,
+                    'email' => $request->email,
+                    'phone' => $request->phone,
+                    'password' => $request->password,
+                    'avatar' => $avatarPath,
+                    'matricule' => $request->matricule,
+                ],
+                $request->has('group_ids') ? $request->group_ids : null,
+                $temporary,
+            );
+            $user = $result['user'];
 
             return response()->json([
                 'success' => true,
                 'message' => 'Apprenant créé avec succès',
                 'data' => $user,
+                'temporary_password' => $result['password'],
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -172,7 +167,7 @@ class LearnerController extends Controller
 
             $user->name = $request->name;
             $user->last_name = $request->last_name;
-            $user->user_name = $request->user_name;
+            $user->user_name = $request->user_name ?: ($user->user_name ?: Credentials::uniqueUserName($request->name, $request->last_name));
             $user->email = $request->email;
             $user->phone = $request->phone;
 

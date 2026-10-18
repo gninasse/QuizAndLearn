@@ -9,6 +9,16 @@ use Symfony\Component\HttpFoundation\Response;
 
 class EnsureUserIsLearner
 {
+    private const PASSWORD_CHANGE_ALLOWED = [
+        'learn.v1.me',
+        'learn.v1.password.update',
+        'learn.v1.session.destroy',
+        'api.mobile.v1.me',
+        'api.mobile.v1.password.update',
+        'api.mobile.v1.logout',
+        'api.mobile.v1.logout-all',
+    ];
+
     /**
      * Handle an incoming request.
      */
@@ -25,6 +35,19 @@ class EnsureUserIsLearner
         // existants compris) mais l'appartenance aux groupes est conservée.
         if ($learner->isSuspended()) {
             return $this->deny($request, $learner->suspensionMessage(), 'account_suspended');
+        }
+
+        // Mot de passe temporaire : seules les routes de profil, de changement
+        // de mot de passe et de déconnexion restent accessibles.
+        // Le shell SPA (pages HTML) reste servi pour afficher l'écran de changement ;
+        // seules les routes de données (API) sont bloquées.
+        if ($user->must_change_password
+            && $request->routeIs('learn.v1.*', 'api.mobile.v1.*')
+            && ! $request->routeIs(self::PASSWORD_CHANGE_ALLOWED)) {
+            return response()->json([
+                'message' => 'Vous devez choisir un nouveau mot de passe.',
+                'code' => 'password_change_required',
+            ], 403);
         }
 
         return $next($request);

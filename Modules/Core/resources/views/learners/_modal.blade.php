@@ -40,14 +40,14 @@
                             <div class="row m-t-small">
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        <label for="user_name">Nom d'utilisateur <span class="text-danger">*</span></label>
-                                        <input type="text" class="form-control" id="user_name" name="user_name" required>
+                                        <label for="user_name">Nom d'utilisateur</label>
+                                        <input type="text" class="form-control" id="user_name" name="user_name" placeholder="Généré automatiquement si vide">
                                     </div>
                                 </div>                   
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        <label for="email">Email <span class="text-danger">*</span></label>
-                                        <input type="email" class="form-control" id="email" name="email" required>
+                                        <label for="email">E-mail (facultatif)</label>
+                                        <input type="email" class="form-control" id="email" name="email">
                                     </div>
                                 </div>
                             </div>
@@ -58,7 +58,8 @@
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label for="phone">Téléphone</label>
-                                <input type="text" class="form-control" id="phone" name="phone">
+                                <input type="text" class="form-control" id="phone" name="phone" placeholder="ex: 07 00 00 00 00">
+                                <small class="form-text text-muted">E-mail ou téléphone obligatoire (au moins un des deux).</small>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -82,7 +83,14 @@
                         <hr>
                         <h6 id="password-label">Mot de passe <small class="text-muted">(Laisser vide si vous ne voulez pas modifier le mot de passe)</small></h6>
                         
-                        <div class="row">
+                        <div class="form-check mb-2" id="temporary-password-group">
+                            <input class="form-check-input" type="checkbox" id="temporary_password" name="temporary_password" value="1">
+                            <label class="form-check-label" for="temporary_password">
+                                Générer un mot de passe temporaire (à changer à la première connexion)
+                            </label>
+                        </div>
+
+                        <div class="row" id="password-fields">
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="password">Mot de passe</label>
