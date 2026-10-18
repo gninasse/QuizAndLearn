@@ -29,6 +29,8 @@ export interface UserProfile {
   consultation?: { admin_name: string | null; expires_at: string };
   /** Session invité du mode découverte (aucun compte, rien n'est synchronisé). */
   is_guest?: boolean;
+  /** Web Push : clé VAPID publique, null si les notifications sont inactives. */
+  push?: { public_key: string | null };
   xp: XpSnapshot;
 }
 

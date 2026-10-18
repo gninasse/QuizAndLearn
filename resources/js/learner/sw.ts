@@ -86,3 +86,78 @@ self.addEventListener('message', (event) => {
     void self.skipWaiting();
   }
 });
+
+// ---------------------------------------------------------------- Web Push
+// Aucun cache : le service worker se contente d'afficher la notification.
+
+interface PushPayload {
+  title: string;
+  body: string;
+  url: string;
+  tag?: string;
+  icon: string;
+}
+
+function parsePushPayload(event: PushEvent): PushPayload {
+  const fallback: PushPayload = {
+    title: 'Learn&Quiz',
+    body: 'Nouvelle notification',
+    url: '/',
+    icon: '/icons/icon-192x192.png',
+  };
+  try {
+    const data = event.data?.json() as Partial<PushPayload> | undefined;
+    if (!data || typeof data.title !== 'string' || data.title === '') return fallback;
+    return {
+      title: data.title,
+      body: typeof data.body === 'string' ? data.body : '',
+      url: typeof data.url === 'string' ? data.url : '/',
+      tag: typeof data.tag === 'string' ? data.tag : undefined,
+      icon: typeof data.icon === 'string' ? data.icon : fallback.icon,
+    };
+  } catch {
+    return fallback;
+  }
+}
+
+/** Seules les URL de même origine sont ouvertes ; sinon l'accueil. */
+function safeSameOriginUrl(raw: unknown): string {
+  try {
+    const url = new URL(typeof raw === 'string' ? raw : '/', self.location.origin);
+    return url.origin === self.location.origin ? url.href : new URL('/', self.location.origin).href;
+  } catch {
+    return new URL('/', self.location.origin).href;
+  }
+}
+
+self.addEventListener('push', (event) => {
+  const payload = parsePushPayload(event);
+  event.waitUntil(
+    self.registration.showNotification(payload.title, {
+      body: payload.body,
+      icon: payload.icon,
+      badge: '/icons/icon-192x192.png',
+      tag: payload.tag,
+      data: { url: payload.url },
+    }),
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const target = safeSameOriginUrl((event.notification.data as { url?: string } | null)?.url);
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (clients) => {
+      const client = clients.find((c) => new URL(c.url).origin === self.location.origin);
+      if (client) {
+        await client.focus();
+        if ('navigate' in client) {
+          await (client as WindowClient).navigate(target);
+        }
+        return;
+      }
+      await self.clients.openWindow(target);
+    }),
+  );
+});
