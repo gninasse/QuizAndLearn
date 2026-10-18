@@ -236,6 +236,24 @@ Le planificateur lance aussi chaque jour `php artisan showcase:purge-requests`
 `showcase.retention_months`, 12 mois par défaut) : aucune entrée cron
 supplémentaire n'est nécessaire, la ligne `schedule:run` ci-dessus suffit.
 
+## 7 ter. Notifications push
+
+Désactivées tant que les clés VAPID sont absentes (aucun envoi, bouton masqué dans la PWA).
+
+1. **HTTPS obligatoire** : les navigateurs refusent le Web Push hors contexte sécurisé.
+2. Générer les clés (rien n'est écrit sur le disque) :
+   ```bash
+   php artisan push:vapid
+   ```
+   Copier les deux lignes `VAPID_PUBLIC_KEY=` et `VAPID_PRIVATE_KEY=` dans le `.env`, ajouter
+   `VAPID_SUBJECT=mailto:contact@votre-domaine` (et au besoin `PUSH_TIMEZONE`, par défaut le
+   fuseau de l'application), puis `php artisan config:cache`. Ne jamais régénérer les clés en
+   production : tous les abonnements existants deviendraient invalides.
+3. Le planificateur (`schedule:run`, voir §7) doit tourner chaque minute.
+4. Un worker de file doit tourner en continu : `php artisan queue:work --tries=3` (supervisé).
+5. Migrer : `php artisan migrate` (tables `push_subscriptions`, `push_deliveries`,
+   `push_assignment_snapshots`).
+
 ## 7 bis. Mode découverte
 
 Désactivé par défaut. Pour l'activer, en tant que `super-admin` ou `admin` :
