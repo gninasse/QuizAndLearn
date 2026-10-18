@@ -106,10 +106,20 @@ class CoreController extends Controller
                 'type' => $type,
                 'name' => $file->getClientOriginalName(),
             ]);
-        } catch (\Exception $e) {
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Messages de validation rédigés pour l'utilisateur : renvoyés tels quels.
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
+            ], 422);
+        } catch (\Exception $e) {
+            // Erreur de pilote ou de stockage : le détail (hôte, bucket, clé…)
+            // reste dans les journaux, jamais dans l'éditeur.
+            report($e);
+
+            return response()->json([
+                'success' => false,
+                'message' => "Échec de l'envoi du média. Réessayez ou contactez l'administrateur.",
             ], 422);
         }
     }

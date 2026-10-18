@@ -69,6 +69,35 @@ class VideoDriverLocalTest extends TestCase
         Storage::disk('public')->assertExists($video->location);
     }
 
+    public function test_upload_driver_failure_returns_generic_message(): void
+    {
+        $admin = $this->makeUser('root');
+        $admin->assignRole('super-admin');
+        $broken = new class implements VideoDriver
+        {
+            public function name(): string { return 'broken'; }
+            public function store(UploadedFile $file): array { throw new \RuntimeException('bucket secret-bucket key AKIASECRET'); }
+            public function playback(Video $video, ?User $viewer): PlaybackSource { throw new \LogicException; }
+            public function delete(Video $video): void {}
+            public function refreshStatus(Video $video): string { return $video->status; }
+            public function healthCheck(): array { return ['ok' => false, 'message' => 'ko']; }
+        };
+        app(VideoManager::class)->extend('broken', fn () => $broken);
+        config(['media.video.driver' => 'broken']);
+
+        $res = $this->actingAs($admin)->postJson('/cores/media/upload', [
+            'file' => UploadedFile::fake()->create('clip.mp4', 100, 'video/mp4'),
+        ])->assertStatus(422)->assertJsonPath('success', false);
+        $this->assertStringNotContainsString('AKIASECRET', $res->json('message'));
+        $this->assertStringNotContainsString('secret-bucket', $res->json('message'));
+
+        // Les messages de validation restent affichés tels quels.
+        config(['media.video_max_kb' => 1]);
+        $this->actingAs($admin)->postJson('/cores/media/upload', [
+            'file' => UploadedFile::fake()->create('big.mp4', 100, 'video/mp4'),
+        ])->assertStatus(422)->assertJsonPath('message', 'Fichier trop volumineux (maximum 0 Mo).');
+    }
+
     public function test_playback_local_returns_storage_url(): void
     {
         $video = $this->makeVideo();
