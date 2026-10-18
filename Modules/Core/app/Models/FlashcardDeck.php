@@ -25,12 +25,14 @@ class FlashcardDeck extends Model
         'interval_min',
         'interval_max',
         'active',
+        'is_showcase',
     ];
 
     protected function casts(): array
     {
         return [
             'is_public' => 'boolean',
+            'is_showcase' => 'boolean',
             'active' => 'boolean',
             'easiness_default' => 'float',
             'interval_min' => 'integer',

@@ -22,6 +22,7 @@
       <i class="bi {{ $quiz->is_active ? 'bi-cloud-arrow-down-fill' : 'bi-cloud-arrow-up-fill' }}"></i>
       <span id="btnPublishText">{{ $quiz->is_active ? 'Désactiver le Quiz' : 'Publier le Quiz' }}</span>
     </button>
+    @include('core::admin._showcase_switch', ['showcaseType' => 'quiz', 'showcaseItem' => $quiz])
   </div>
   
   <li class="menu-item">

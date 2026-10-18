@@ -41,6 +41,7 @@
     <span class="badge {{ $deck->active ? 'bg-success' : 'bg-secondary' }}" id="sidebarStatusBadge">
       {{ $deck->active ? 'Actif' : 'Draft Mode' }}
     </span>
+    @include('core::admin._showcase_switch', ['showcaseType' => 'deck', 'showcaseItem' => $deck])
   </div>
   
   <li class="menu-item">

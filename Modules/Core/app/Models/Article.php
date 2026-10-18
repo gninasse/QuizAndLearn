@@ -22,12 +22,14 @@ class Article extends Model
         'available_from',
         'available_until',
         'created_by',
+        'is_showcase',
     ];
 
     protected function casts(): array
     {
         return [
             'is_active' => 'boolean',
+            'is_showcase' => 'boolean',
             'estimated_reading_time' => 'integer',
             'available_from' => 'datetime',
             'available_until' => 'datetime',

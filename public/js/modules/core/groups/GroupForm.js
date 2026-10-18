@@ -40,6 +40,7 @@ export class GroupForm {
         $('#modalTitle').text('Ajouter un groupe');
         $('#group_id').val('');
         $('#is_active').prop('checked', true);
+        $('#open_for_requests').prop('checked', false);
         this.$modal.modal('show');
     }
 
@@ -67,6 +68,7 @@ export class GroupForm {
                     }
                     
                     $('#is_active').prop('checked', !!data.is_active);
+                    $('#open_for_requests').prop('checked', !!data.open_for_requests);
                     this.$modal.modal('show');
                 }
             },
@@ -102,6 +104,11 @@ export class GroupForm {
                 formData.append('is_active', '0');
             } else {
                 formData.append('is_active', '1');
+            }
+
+            // Case réservée aux admins : absente du DOM pour les formateurs
+            if ($('#open_for_requests').length) {
+                formData.set('open_for_requests', $('#open_for_requests').is(':checked') ? '1' : '0');
             }
 
             $.ajax({

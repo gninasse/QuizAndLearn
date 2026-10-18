@@ -65,6 +65,7 @@
                     <th data-field="groups_list" data-formatter="groupsFormatter">Groupes</th>
                     <th data-field="creator_name" data-sortable="true">Créateur</th>
                     <th data-field="is_active" data-sortable="true" data-formatter="statusFormatter">Statut</th>
+                    <th data-field="is_showcase" data-sortable="true" data-formatter="showcaseFormatter">Vitrine</th>
                 </tr>
             </thead>
         </table>
@@ -113,6 +114,10 @@
 <script src="{{ asset('plugins/bootstrap-table/locale/bootstrap-table-fr-FR.min.js') }}"></script>
 
 <script>
+    function showcaseFormatter(value, row, index) {
+        return value ? '<span class="badge bg-info text-dark">Vitrine</span>' : '';
+    }
+
     function statusFormatter(value, row, index) {
         return value 
             ? '<span class="badge bg-success">Actif</span>' 

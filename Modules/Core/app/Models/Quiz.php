@@ -24,6 +24,7 @@ class Quiz extends Model
         'available_from',
         'available_until',
         'created_by',
+        'is_showcase',
     ];
 
     protected function casts(): array
@@ -32,6 +33,7 @@ class Quiz extends Model
             'duration' => 'integer',
             'passing_score' => 'integer',
             'is_active' => 'boolean',
+            'is_showcase' => 'boolean',
             'shuffle_questions' => 'boolean',
             'max_attempts' => 'integer',
             'show_correct_answers' => 'boolean',

@@ -40,6 +40,13 @@
                         <input class="form-check-input" type="checkbox" id="is_active" name="is_active" value="1" checked>
                         <label class="form-check-label" for="is_active">Actif</label>
                     </div>
+
+                    @if (auth()->user()->hasAnyRole(['super-admin', 'admin', 'Admin']))
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="open_for_requests" name="open_for_requests" value="1">
+                            <label class="form-check-label" for="open_for_requests">Proposé dans le formulaire de demande d'accès</label>
+                        </div>
+                    @endif
                 </div>
 
                 <div class="modal-footer">

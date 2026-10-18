@@ -20,6 +20,7 @@ use Modules\Core\Http\Controllers\ProfileController;
 use Modules\Core\Http\Controllers\QuizController;
 use Modules\Core\Http\Controllers\QuizEditorController;
 use Modules\Core\Http\Controllers\RoleController;
+use Modules\Core\Http\Controllers\ShowcaseAdminController;
 use Modules\Core\Http\Controllers\TrainerController;
 use Modules\Core\Http\Controllers\UserController;
 
@@ -95,7 +96,12 @@ Route::middleware(['auth', 'staff'])->group(function () {
         });
 
         // Routes pour la gestion des groupes
+        Route::patch('/showcase/{type}/{id}', [ShowcaseAdminController::class, 'toggle'])
+            ->whereIn('type', ['quiz', 'article', 'deck'])
+            ->name('showcase.toggle');
+
         Route::prefix('groups')->name('groups.')->group(function () {
+            Route::patch('/{id}/open-for-requests', [ShowcaseAdminController::class, 'openForRequests'])->name('open-for-requests');
             Route::get('/', [GroupController::class, 'index'])->name('index');
             Route::get('/data', [GroupController::class, 'getData'])->name('data');
             Route::get('/{id}', [GroupController::class, 'show'])->name('show');
