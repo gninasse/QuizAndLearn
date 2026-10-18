@@ -47,6 +47,9 @@ Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 Route::middleware(['auth', 'staff'])->group(function () {
     Route::prefix('cores')->name('cores.')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/dashboard/kpis', [DashboardController::class, 'kpis'])->name('dashboard.kpis');
+        Route::get('/dashboard/kpis/export/{table}', [DashboardController::class, 'export'])
+            ->where('table', 'completion|failed_questions|inactive')->name('dashboard.export');
         Route::post('/media/upload', [CoreController::class, 'uploadMedia'])->name('media.upload');
 
         // Routes pour la gestion des utilisateurs (général)

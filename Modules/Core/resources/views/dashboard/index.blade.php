@@ -9,132 +9,203 @@
     <li class="breadcrumb-item active" aria-current="page">Tableau de bord</li>
 @endsection
 
+@push('css')
+    <link rel="stylesheet" href="{{ asset('plugins/apexcharts/apexcharts.css') }}" />
+@endpush
+
 @section('content')
-    <!--begin::Row-->
-    <div class="row">
-        <!--begin::Col-->
-        <div class="col-lg-3 col-6">
-            <!--begin::Small Box Widget 1-->
-            <div class="small-box text-bg-primary">
-                <div class="inner">
-                    <h3>{{ $stats['users_count'] }}</h3>
-                    <p>Utilisateurs</p>
-                </div>
-                <i class="small-box-icon bi bi-people"></i>
-                <a href="{{ route('cores.users.index') }}" class="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover">
-                    Plus d'info <i class="bi bi-link-45deg"></i>
-                </a>
-            </div>
-            <!--end::Small Box Widget 1-->
-        </div>
-        <!--end::Col-->
-        <div class="col-lg-3 col-6">
-            <!--begin::Small Box Widget 2-->
-            <div class="small-box text-bg-success">
-                <div class="inner">
-                    <h3>{{ $stats['roles_count'] }}</h3>
-                    <p>Rôles</p>
-                </div>
-                <i class="small-box-icon bi bi-shield-lock"></i>
-                <a href="{{ route('cores.roles.index') }}" class="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover">
-                    Plus d'info <i class="bi bi-link-45deg"></i>
-                </a>
-            </div>
-            <!--end::Small Box Widget 2-->
-        </div>
-        <!--end::Col-->
-        <div class="col-lg-3 col-6">
-            <!--begin::Small Box Widget 3-->
-            <div class="small-box text-bg-warning">
-                <div class="inner">
-                    <h3>{{ $stats['modules_count'] }}</h3>
-                    <p>Modules</p>
-                </div>
-                <i class="small-box-icon bi bi-box-seam"></i>
-                <a href="{{ route('cores.modules.index') }}" class="small-box-footer link-dark link-underline-opacity-0 link-underline-opacity-50-hover">
-                    Plus d'info <i class="bi bi-link-45deg"></i>
-                </a>
-            </div>
-            <!--end::Small Box Widget 3-->
-        </div>
-        <!--end::Col-->
-        <div class="col-lg-3 col-6">
-            <!--begin::Small Box Widget 4-->
-            <div class="small-box text-bg-danger">
-                <div class="inner">
-                    <h3>{{ $stats['activities_today'] }}</h3>
-                    <p>Activités aujourd'hui</p>
-                </div>
-                <i class="small-box-icon bi bi-clock-history"></i>
-                <a href="{{ route('cores.activities.index') }}" class="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover">
-                    Plus d'info <i class="bi bi-link-45deg"></i>
-                </a>
-            </div>
-            <!--end::Small Box Widget 4-->
-        </div>
-        <!--end::Col-->
-    </div>
-    <!--end::Row-->
-    <!--begin::Row-->
-    <div class="row">
-        <!-- Start col -->
-        <div class="col-lg-12">
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h3 class="card-title"><i class="bi bi-clock-history me-2"></i>Dernières Activités</h3>
-                    <div class="card-tools">
-                        <a href="{{ route('cores.activities.index') }}" class="btn btn-tool btn-sm">
-                            <i class="bi bi-list"></i> Voir tout
-                        </a>
+    <div id="kpi-app"
+         data-url-kpis="{{ route('cores.dashboard.kpis') }}"
+         data-url-export="{{ route('cores.dashboard.export', ['table' => '__TABLE__']) }}"
+         data-url-members="{{ route('cores.groups.members.page', ['id' => '__ID__']) }}">
+
+        {{-- Filtres --}}
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="row g-2 align-items-end">
+                    <div class="col-12 col-md-3">
+                        <label for="kpi-period" class="form-label mb-1">Période</label>
+                        <select id="kpi-period" class="form-select">
+                            <option value="7">7 jours</option>
+                            <option value="30" selected>30 jours</option>
+                            <option value="90">90 jours</option>
+                            <option value="custom">Personnalisée</option>
+                        </select>
                     </div>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-striped align-middle mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Utilisateur</th>
-                                    <th>Module</th>
-                                    <th>Action</th>
-                                    <th>Sujet</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($recentActivities as $activity)
-                                    <tr>
-                                        <td>{{ $activity->created_at->diffForHumans() }}</td>
-                                        <td>
-                                            <span class="badge bg-light text-dark border">
-                                                {{ $activity->causer ? $activity->causer->name : 'Système' }}
-                                            </span>
-                                        </td>
-                                        <td><span class="badge bg-info text-dark">{{ $activity->module }}</span></td>
-                                        <td>
-                                            <span class="badge bg-{{ $activity->badge_color }}">
-                                                <i class="{{ $activity->icon }} me-1"></i> {{ $activity->description }}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <small class="text-muted">{{ class_basename($activity->subject_type) }} #{{ $activity->subject_id }}</small>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="5" class="text-center py-4 text-muted">Aucune activité récente</td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
+                    <div class="col-6 col-md-2 kpi-custom d-none">
+                        <label for="kpi-from" class="form-label mb-1">Du</label>
+                        <input type="date" id="kpi-from" class="form-control">
+                    </div>
+                    <div class="col-6 col-md-2 kpi-custom d-none">
+                        <label for="kpi-to" class="form-label mb-1">Au</label>
+                        <input type="date" id="kpi-to" class="form-control">
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label for="kpi-group" class="form-label mb-1">{{ term('Group') }}</label>
+                        <select id="kpi-group" class="form-select">
+                            <option value="">{{ term('fem_e') === 'e' ? 'Toutes les ' : 'Tous les ' }}{{ term('groups') }}</option>
+                            @foreach ($groups as $group)
+                                <option value="{{ $group->id }}">{{ $group->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-auto d-flex align-items-center gap-2">
+                        <button type="button" id="kpi-apply" class="btn btn-primary">
+                            <i class="bi bi-arrow-repeat me-1"></i>Actualiser
+                        </button>
+                        <span id="kpi-loading" class="spinner-border spinner-border-sm text-primary d-none" role="status" aria-label="Chargement"></span>
                     </div>
                 </div>
             </div>
         </div>
-        <!-- /.Start col -->
+
+        <div id="kpi-error" class="alert alert-danger d-none" role="alert"></div>
+
+        {{-- Tuiles --}}
+        <div class="row">
+            <div class="col-lg col-md-4 col-6">
+                <div class="small-box text-bg-primary">
+                    <div class="inner">
+                        <h3><span id="kpi-active-7d">—</span> <i id="kpi-active-7d-trend" class="bi bi-dash fs-5" aria-hidden="true"></i><span id="kpi-active-7d-trend-sr" class="visually-hidden"></span></h3>
+                        <p>Actifs 7 j</p>
+                    </div>
+                    <i class="small-box-icon bi bi-people"></i>
+                </div>
+            </div>
+            <div class="col-lg col-md-4 col-6">
+                <div class="small-box text-bg-info">
+                    <div class="inner">
+                        <h3><span id="kpi-active-30d">—</span> <i id="kpi-active-30d-trend" class="bi bi-dash fs-5" aria-hidden="true"></i><span id="kpi-active-30d-trend-sr" class="visually-hidden"></span></h3>
+                        <p>Actifs 30 j</p>
+                    </div>
+                    <i class="small-box-icon bi bi-person-check"></i>
+                </div>
+            </div>
+            <div class="col-lg col-md-4 col-6">
+                <div class="small-box text-bg-success">
+                    <div class="inner"><h3 id="kpi-activation">—</h3><p>Activation</p></div>
+                    <i class="small-box-icon bi bi-rocket-takeoff"></i>
+                </div>
+            </div>
+            <div class="col-lg col-md-4 col-6">
+                <div class="small-box text-bg-warning">
+                    <div class="inner"><h3 id="kpi-retention">—</h3><p>Rétention 30 j</p></div>
+                    <i class="small-box-icon bi bi-arrow-repeat"></i>
+                </div>
+            </div>
+            <div class="col-lg col-md-4 col-6">
+                <div class="small-box text-bg-dark">
+                    <div class="inner"><h3 id="kpi-review-regularity">—</h3><p>Régularité des révisions</p></div>
+                    <i class="small-box-icon bi bi-calendar2-check"></i>
+                </div>
+            </div>
+            <div class="col-lg col-md-4 col-6">
+                <div class="small-box text-bg-secondary">
+                    <div class="inner"><h3 id="kpi-quiz-score">—</h3><p>Score moyen quiz</p></div>
+                    <i class="small-box-icon bi bi-patch-question"></i>
+                </div>
+            </div>
+            <div class="col-lg col-md-4 col-6">
+                <div class="small-box text-bg-danger">
+                    <div class="inner"><h3 id="kpi-exam-note">—</h3><p>Moyenne examens</p></div>
+                    <i class="small-box-icon bi bi-journal-check"></i>
+                </div>
+            </div>
+        </div>
+
+        {{-- Graphiques --}}
+        <div class="row">
+            <div class="col-lg-6">
+                <div class="card mb-4">
+                    <div class="card-header"><h3 class="card-title"><i class="bi bi-graph-up me-2"></i>Apprenants actifs par semaine</h3></div>
+                    <div class="card-body"><div id="kpi-weekly-chart"></div></div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card mb-4">
+                    <div class="card-header"><h3 class="card-title"><i class="bi bi-bar-chart-steps me-2"></i>Complétion des contenus</h3></div>
+                    <div class="card-body">
+                        <div id="kpi-completion-chart"></div>
+                        <button type="button" class="btn btn-outline-secondary btn-sm mt-2 kpi-export" data-table="completion">
+                            <i class="bi bi-filetype-csv me-1"></i>Exporter CSV
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Tableaux --}}
+        <div class="row">
+            <div class="col-lg-6">
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h3 class="card-title"><i class="bi bi-x-octagon me-2"></i>Questions les plus ratées</h3>
+                        <button type="button" class="btn btn-outline-secondary btn-sm kpi-export" data-table="failed_questions">
+                            <i class="bi bi-filetype-csv me-1"></i>Exporter CSV
+                        </button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table id="kpi-failed-table" class="table table-striped align-middle mb-0">
+                                <thead><tr><th>Question</th><th>Quiz</th><th class="text-end">Réponses</th><th class="text-end">Échec</th></tr></thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h3 class="card-title"><i class="bi bi-bell me-2"></i>Apprenants à relancer</h3>
+                        <button type="button" class="btn btn-outline-secondary btn-sm kpi-export" data-table="inactive">
+                            <i class="bi bi-filetype-csv me-1"></i>Exporter CSV
+                        </button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table id="kpi-inactive-table" class="table table-striped align-middle mb-0">
+                                <thead><tr><th>Apprenant</th><th>Matricule</th><th>Dernière activité</th><th></th></tr></thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Incidents / Mode découverte --}}
+        <div class="row">
+            <div class="col-lg-6">
+                <div class="card mb-4">
+                    <div class="card-header"><h3 class="card-title"><i class="bi bi-shield-exclamation me-2"></i>Incidents d'examen</h3></div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between">Captures d'écran détectées <strong id="kpi-inc-screenshots">—</strong></li>
+                            <li class="list-group-item d-flex justify-content-between">Tentatives de capture en examen <strong id="kpi-inc-captures">—</strong></li>
+                            <li class="list-group-item d-flex justify-content-between">Sorties de navigation <strong id="kpi-inc-navigation">—</strong></li>
+                            <li class="list-group-item d-flex justify-content-between">Examens annulés <strong id="kpi-inc-cancelled">—</strong></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 d-none" id="kpi-showcase-col">
+                <div class="card mb-4">
+                    <div class="card-header"><h3 class="card-title"><i class="bi bi-stars me-2"></i>Mode découverte</h3></div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between">Demandes d'accès <strong id="kpi-sc-requests">—</strong></li>
+                            <li class="list-group-item d-flex justify-content-between">Comptes créés <strong id="kpi-sc-converted">—</strong></li>
+                            <li class="list-group-item d-flex justify-content-between">Taux de conversion <strong id="kpi-sc-rate">—</strong></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-    <!-- /.row (main row) -->
 @endsection
 
 @push('js')
-    <!-- Aucun script requis pour la version simplifiée -->
+    <script src="{{ asset('plugins/apexcharts/apexcharts.min.js') }}"></script>
+    <script src="{{ asset('js/modules/core/dashboard/kpis.js') }}"></script>
 @endpush
