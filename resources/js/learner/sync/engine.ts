@@ -9,6 +9,7 @@
 import { api, ApiError, NetworkError } from '../api/client';
 import { db, getMeta, setMeta, META_CURSOR } from '../db/schema';
 import * as outbox from '../db/outbox';
+import { isGuest, leaveGuestMode, refreshGuestContent } from '../guest/guest-session';
 import type { ActionType, BootstrapPayload, ChangesPayload, CollectionDelta } from '../domain/types';
 import {
   articlesStore,
@@ -257,6 +258,15 @@ async function doSync(): Promise<void> {
   syncStore.update((s) => ({ ...s, syncing: true }));
 
   try {
+    // Mode découverte : ni outbox ni delta, seule la vitrine est rafraîchie.
+    if (isGuest()) {
+      await refreshGuestContent();
+      syncStore.update((s) => ({ ...s, lastSyncAt: new Date().toISOString() }));
+      emit({ kind: 'data-refreshed' });
+      void warmMediaCache();
+      return;
+    }
+
     // 1. Rejeu de l'outbox (actions en attente, y compris en échec réseau).
     const actions = await outbox.pending();
     if (actions.length) {
@@ -314,7 +324,10 @@ async function doSync(): Promise<void> {
     emit({ kind: 'data-refreshed' });
     void warmMediaCache();
   } catch (e) {
-    if (e instanceof ApiError && (e.status === 401 || e.status === 419)) {
+    if (isGuest() && e instanceof ApiError && e.status === 404) {
+      // Mode découverte désactivé côté serveur : la session invité prend fin.
+      await leaveGuestMode();
+    } else if (e instanceof ApiError && (e.status === 401 || e.status === 419)) {
       emit({ kind: 'session-expired' });
     } else if (e instanceof ApiError && isSuspension(e)) {
       emit({ kind: 'account-suspended', message: e.message });
@@ -357,6 +370,9 @@ export async function fullBootstrap(): Promise<void> {
  * Enregistre aussi une Background Sync pour rejouer app fermée.
  */
 export async function dispatch(type: ActionType, data: Record<string, unknown>): Promise<void> {
+  // Invité : la progression reste locale, rien n'est envoyé au serveur.
+  if (isGuest()) return;
+
   await outbox.enqueue(type, data);
   await refreshPendingCount();
   void requestBackgroundSync();
@@ -410,6 +426,8 @@ export async function clearLocalData(): Promise<void> {
     db.groups.clear(),
     db.outbox.clear(),
     db.meta.clear(),
+    db.drafts.clear(),
+    db.mistakes.clear(),
   ]);
   // Les médias en cache hors-ligne partent avec la session.
   warmedUrls.clear();

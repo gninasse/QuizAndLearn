@@ -361,22 +361,25 @@ Route::prefix('api/showcase/v1')->name('showcase.v1.')->middleware('throttle:60,
 });
 
 // Routes profondes du SPA (History API) : le serveur renvoie toujours le shell.
+// Le shell ne contient aucune donnée : il est public (session invité du mode
+// découverte comprise) ; les données restent protégées par l'API.
 Route::middleware(['auth', 'learner'])->name('learn.')->group(function () {
     Route::get('/dashboard', fn () => redirect('/'))->name('spa-shell');
-
-    foreach ([
-        '/articles',
-        '/articles/{id}',
-        '/entrainement',
-        '/examens',
-        '/quizzes/{id}',
-        '/quizzes/{id}/play',
-        '/exams/{id}/play',
-        '/reviser',
-        '/reviser/{deckId}',
-        '/profil',
-        '/mot-de-passe',
-    ] as $spaPath) {
-        Route::get($spaPath, [\Modules\Core\Http\Controllers\Learner\ShellController::class, '__invoke']);
-    }
 });
+
+foreach ([
+    '/articles',
+    '/articles/{id}',
+    '/entrainement',
+    '/examens',
+    '/quizzes/{id}',
+    '/quizzes/{id}/play',
+    '/exams/{id}/play',
+    '/reviser',
+    '/reviser/{deckId}',
+    '/profil',
+    '/mot-de-passe',
+    '/demande-acces',
+] as $spaPath) {
+    Route::get($spaPath, [\Modules\Core\Http\Controllers\Learner\ShellController::class, '__invoke']);
+}

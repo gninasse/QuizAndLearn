@@ -1,6 +1,7 @@
 import { api, ApiError, NetworkError } from '../api/client';
 import { html, raw } from '../core/html';
 import { db } from '../db/schema';
+import { enterGuestMode } from '../guest/guest-session';
 import { fullBootstrap, hydrateFromDb } from '../sync/engine';
 import { sessionStore } from '../stores';
 import { toast } from '../ui/app-toast';
@@ -39,6 +40,11 @@ export function mount(el: HTMLElement): void {
           </button>
         </form>
 
+        <button type="button" id="guest-enter" hidden
+                class="mt-4 w-full rounded-xl border border-white/15 bg-transparent hover:bg-white/5 disabled:opacity-60 text-zinc-200 font-semibold py-3 transition-colors">
+          Découvrir sans compte
+        </button>
+
         ${isStandalone()
           ? ''
           : raw('<p class="text-center text-xs text-zinc-500 mt-6">Application installable — fonctionne aussi hors-ligne après la première connexion.</p>')}
@@ -49,6 +55,56 @@ export function mount(el: HTMLElement): void {
   const form = el.querySelector<HTMLFormElement>('#login-form')!;
   const errorEl = el.querySelector<HTMLParagraphElement>('#login-error')!;
   const submitBtn = el.querySelector<HTMLButtonElement>('#login-submit')!;
+  const guestBtn = el.querySelector<HTMLButtonElement>('#guest-enter')!;
+
+  const showError = (e: unknown): void => {
+    if (e instanceof NetworkError) {
+      errorEl.textContent = 'Impossible de joindre le serveur. Vérifiez votre connexion.';
+    } else if (e instanceof ApiError) {
+      errorEl.textContent = e.message;
+    } else {
+      errorEl.textContent = 'Une erreur inattendue est survenue.';
+    }
+    errorEl.classList.remove('hidden');
+  };
+
+  // Mode découverte : bouton proposé seulement si le serveur l'a activé
+  // (appel en ligne ; masqué hors-ligne ou en cas d'erreur).
+  if (navigator.onLine) {
+    api
+      .showcaseSettings()
+      .then((settings) => {
+        guestBtn.hidden = !(settings.enabled && navigator.onLine);
+      })
+      .catch(() => {
+        guestBtn.hidden = true;
+      });
+  }
+  const hideGuestOffline = (): void => {
+    if (!el.isConnected) {
+      window.removeEventListener('offline', hideGuestOffline);
+      return;
+    }
+    guestBtn.hidden = true;
+  };
+  window.addEventListener('offline', hideGuestOffline);
+
+  guestBtn.addEventListener('click', () => {
+    void (async () => {
+      errorEl.classList.add('hidden');
+      guestBtn.disabled = true;
+      guestBtn.textContent = 'Chargement…';
+      try {
+        await enterGuestMode();
+        window.dispatchEvent(new CustomEvent('learner:authenticated'));
+      } catch (e) {
+        showError(e);
+      } finally {
+        guestBtn.disabled = false;
+        guestBtn.textContent = 'Découvrir sans compte';
+      }
+    })();
+  });
 
   // Motif d'une déconnexion forcée (ex. compte suspendu), posé par main.ts.
   try {
@@ -88,14 +144,7 @@ export function mount(el: HTMLElement): void {
         toast(`Bonjour ${response.user.name} !`, 'success');
         window.dispatchEvent(new CustomEvent('learner:authenticated'));
       } catch (e) {
-        if (e instanceof NetworkError) {
-          errorEl.textContent = 'Impossible de joindre le serveur. Vérifiez votre connexion.';
-        } else if (e instanceof ApiError) {
-          errorEl.textContent = e.message;
-        } else {
-          errorEl.textContent = 'Une erreur inattendue est survenue.';
-        }
-        errorEl.classList.remove('hidden');
+        showError(e);
       } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = 'Se connecter';

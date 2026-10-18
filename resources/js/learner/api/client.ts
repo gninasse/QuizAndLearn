@@ -6,6 +6,8 @@
  */
 
 import type {
+  AccessRequestBody,
+  AccessRequestResponse,
   ActionsResponse,
   BootstrapPayload,
   ChangesPayload,
@@ -13,10 +15,15 @@ import type {
   ExamStartResponse,
   LeaderboardGroup,
   OutboxAction,
+  ShowcaseContent,
+  ShowcaseSettings,
   UserProfile,
 } from '../domain/types';
 
 const BASE = '/api/learner/v1';
+
+/** API publique vitrine (mode découverte) : hors /api/learner/v1, sans auth. */
+const SHOWCASE_BASE = '/api/showcase/v1';
 
 export class ApiError extends Error {
   constructor(
@@ -36,10 +43,18 @@ function csrfToken(): string {
   return match?.[1] ? decodeURIComponent(match[1]) : '';
 }
 
-async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  return send<T>(BASE, method, path, body);
+}
+
+function showcaseRequest<T>(method: string, path: string, body?: unknown): Promise<T> {
+  return send<T>(SHOWCASE_BASE, method, path, body);
+}
+
+async function send<T>(base: string, method: string, path: string, body?: unknown): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(`${BASE}${path}`, {
+    response = await fetch(`${base}${path}`, {
       method,
       headers: {
         'Content-Type': 'application/json',
@@ -137,5 +152,20 @@ export const api = {
       `/exams/${examId}/attempts/${attemptId}/violations`,
       { type },
     );
+  },
+
+  // ------------------------------------------------ Vitrine (mode découverte)
+
+  /** Contenu vitrine ; pose le cookie httpOnly `lq_guest` (accès aux médias). */
+  showcaseContent() {
+    return showcaseRequest<ShowcaseContent & { success: boolean }>('GET', '/content');
+  },
+
+  showcaseSettings() {
+    return showcaseRequest<ShowcaseSettings & { success: boolean }>('GET', '/settings');
+  },
+
+  submitAccessRequest(body: AccessRequestBody) {
+    return showcaseRequest<AccessRequestResponse>('POST', '/access-requests', body);
   },
 };

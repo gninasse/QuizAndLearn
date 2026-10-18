@@ -21,6 +21,8 @@ export interface UserProfile {
   matricule?: string | null;
   /** Mot de passe provisoire : le changement est imposé avant tout accès. */
   must_change_password?: boolean;
+  /** Session invité du mode découverte (aucun compte, rien n'est synchronisé). */
+  is_guest?: boolean;
   xp: XpSnapshot;
 }
 
@@ -178,6 +180,71 @@ export interface BootstrapPayload {
   exams: ExamItem[];
   badges: BadgeItem[];
   preferences: Preferences;
+}
+
+// ------------------------------------------------- Vitrine (mode découverte)
+
+/** GET /api/showcase/v1/content — mêmes formes d'items que le bootstrap. */
+export interface ShowcaseContent {
+  guest_token: string;
+  expires_at: string;
+  articles: ArticleItem[];
+  quizzes: QuizItem[];
+  decks: DeckItem[];
+}
+
+export interface ShowcasePaymentAccount {
+  operator: string;
+  number: string;
+  holder: string;
+}
+
+export interface ShowcaseGroup {
+  id: number;
+  name: string;
+  start_date: string | null;
+  end_date: string | null;
+}
+
+/** GET /api/showcase/v1/settings */
+export interface ShowcaseSettings {
+  enabled: boolean;
+  brand: { name: string; tagline: string | null; logo: string | null };
+  registration: {
+    fee: number | null;
+    currency: string;
+    accounts: ShowcasePaymentAccount[];
+    reference: string | null;
+    instructions: string | null;
+  };
+  default_country_code: string;
+  privacy_url: string;
+  groups: ShowcaseGroup[];
+}
+
+/** POST /api/showcase/v1/access-requests */
+export interface AccessRequestBody {
+  first_name: string;
+  last_name: string;
+  phone: string;
+  whatsapp_same: boolean;
+  whatsapp: string | null;
+  email: string | null;
+  organization: string | null;
+  group_id: number | null;
+  message: string | null;
+  consent: boolean;
+  /** Pot de miel : doit rester vide. */
+  website: string;
+  /** Horodatage (ms) d'ouverture du formulaire, contrôle anti-robot. */
+  started_at: number;
+}
+
+export interface AccessRequestResponse {
+  success: boolean;
+  message: string;
+  phone: string;
+  registration: ShowcaseSettings['registration'];
 }
 
 export interface CollectionDelta<T> {

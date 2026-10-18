@@ -4,6 +4,7 @@
 
 import './components/app-shell';
 import type { AppShell } from './components/app-shell';
+import { loadGuestSettings } from './guest/guest-session';
 import { Router, type RouteDefinition } from './router';
 import { preferencesStore, sessionStore, syncStore } from './stores';
 import { clearLocalData, hydrateFromDb, installSyncTriggers, onSyncEvent, sync } from './sync/engine';
@@ -50,6 +51,7 @@ async function boot(): Promise<void> {
   const hasLocalSession = await hydrateFromDb();
   if (hasLocalSession) {
     applyPreferences(preferencesStore.get());
+    if (sessionStore.get()?.is_guest) await loadGuestSettings();
   }
 
   const redirectIfPasswordChangeRequired = (): void => {
@@ -74,6 +76,10 @@ async function boot(): Promise<void> {
   // Filigrane nominatif des médias : suit la session courante.
   const updateWatermark = (): void => {
     const user = sessionStore.get();
+    if (user?.is_guest) {
+      setWatermark('Mode découverte');
+      return;
+    }
     const today = new Date().toLocaleDateString('fr-FR');
     setWatermark(user ? [user.full_name, user.matricule, today].filter(Boolean).join(' · ') : null);
   };
