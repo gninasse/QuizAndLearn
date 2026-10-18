@@ -187,6 +187,31 @@ class KpiEngagementTest extends TestCase
         $this->assertSame(50.0, (new KpiService)->engagement($this->scope())['retention_30d']);
     }
 
+    public function test_retention_30d_ignores_activity_after_period_end(): void
+    {
+        // période personnalisée close le 30 sept. : la reprise d'octobre ne compte pas
+        $this->quizAt($this->l1, '2026-08-01 09:00:00');
+        $this->quizAt($this->l1, '2026-09-15 09:00:00'); // >= 30j, avant `to` => retenu
+        $this->quizAt($this->l2, '2026-08-05 09:00:00');
+        $this->quizAt($this->l2, '2026-08-20 09:00:00'); // < 30j
+        $this->quizAt($this->l2, '2026-10-10 09:00:00'); // >= 30j mais après `to`
+
+        $scope = KpiScope::for($this->admin, 'custom', '2026-09-01', '2026-09-30');
+
+        $this->assertSame(50.0, (new KpiService)->engagement($scope)['retention_30d']);
+    }
+
+    public function test_weekly_active_week_boundaries(): void
+    {
+        $this->quizAt($this->l1, '2026-10-11 23:59:59'); // dimanche => semaine précédente
+        $this->quizAt($this->l2, '2026-10-12 00:00:00'); // lundi => semaine courante
+
+        $weeks = (new KpiService)->weeklyActive($this->scope());
+
+        $this->assertSame(1, $weeks[10]['active']);
+        $this->assertSame(1, $weeks[11]['active']);
+    }
+
     public function test_review_regularity(): void
     {
         // révisée, pas en retard

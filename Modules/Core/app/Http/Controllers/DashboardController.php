@@ -88,6 +88,6 @@ class DashboardController extends Controller
     /** Neutralise l'injection de formules dans les tableurs. */
     private function csvSafe(mixed $v): mixed
     {
-        return is_string($v) && $v !== '' && in_array($v[0], ['=', '+', '-', '@'], true) ? "'".$v : $v;
+        return is_string($v) && $v !== '' && in_array($v[0], ['=', '+', '-', '@', "\t", "\r"], true) ? "'".$v : $v;
     }
 }

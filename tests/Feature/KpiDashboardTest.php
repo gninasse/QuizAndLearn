@@ -132,6 +132,21 @@ class KpiDashboardTest extends TestCase
         $this->assertStringNotContainsString('MAT-BOB', $body);
     }
 
+    public function test_csv_export_neutralises_formulas(): void
+    {
+        $payloads = ['=1+1', '+SUM(A1)', '-2+3', '@cmd', "\tTAB", "\rCR"];
+        foreach ($payloads as $i => $p) {
+            Learner::create(['user_id' => $this->makeUser("evil{$i}")->id, 'matricule' => $p]);
+        }
+
+        $body = $this->actingAs($this->admin)->get(route('cores.dashboard.export', 'inactive'))->streamedContent();
+
+        foreach ($payloads as $p) {
+            $this->assertStringContainsString("'".$p, $body);
+        }
+        $this->assertStringContainsString(';MAT-AWA;', $body); // valeur saine inchangée
+    }
+
     public function test_admin_csv_contains_all_learners(): void
     {
         $body = $this->actingAs($this->admin)->get(route('cores.dashboard.export', 'inactive'))->streamedContent();

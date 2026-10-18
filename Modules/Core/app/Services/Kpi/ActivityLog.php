@@ -50,13 +50,41 @@ final class ActivityLog
     }
 
     /**
-     * Dernière activité de chaque apprenant du périmètre (null si aucune).
+     * Nombre d'apprenants distincts du périmètre ayant une activité dans
+     * [from, to] (ou [from, to[ si $toExclusive). Agrégé en base : aucune
+     * ligne d'activité n'est chargée en PHP.
+     */
+    public static function distinctLearners(KpiScope $scope, Carbon $from, Carbon $to, bool $toExclusive = false): int
+    {
+        if ($scope->learnerIds === []) {
+            return 0;
+        }
+
+        $union = null;
+        foreach (self::SOURCES as $table => [$learnerCol, $dateCol]) {
+            $q = DB::table($table)
+                ->select($learnerCol.' as learner_id')
+                ->whereNotNull($dateCol)
+                ->where($dateCol, '>=', $from)
+                ->where($dateCol, $toExclusive ? '<' : '<=', $to);
+            $scope->applyLearners($q, $learnerCol);
+            $union = $union ? $union->unionAll($q) : $q;
+        }
+
+        return (int) DB::query()->fromSub($union, 'activity')
+            ->selectRaw('COUNT(DISTINCT learner_id) as n')
+            ->value('n');
+    }
+
+    /**
+     * Dernière activité de chaque apprenant du périmètre (null si aucune),
+     * éventuellement limitée aux activités antérieures ou égales à $until.
      *
      * @return array<int, ?Carbon>
      */
-    public static function lastActivity(KpiScope $scope): array
+    public static function lastActivity(KpiScope $scope, ?Carbon $until = null): array
     {
-        return self::aggregate($scope, 'max');
+        return self::aggregate($scope, 'max', $until);
     }
 
     /**
@@ -70,7 +98,7 @@ final class ActivityLog
     }
 
     /** @return array<int, ?Carbon> */
-    private static function aggregate(KpiScope $scope, string $fn): array
+    private static function aggregate(KpiScope $scope, string $fn, ?Carbon $until = null): array
     {
         $result = [];
         $learners = $scope->applyLearners(DB::table('learners'), 'id')->pluck('id');
@@ -86,6 +114,7 @@ final class ActivityLog
             $q = DB::table($table)
                 ->selectRaw("{$learnerCol} as learner_id, {$fn}({$dateCol}) as at")
                 ->whereNotNull($dateCol)
+                ->when($until, fn ($w) => $w->where($dateCol, '<=', $until))
                 ->groupBy($learnerCol);
             $scope->applyLearners($q, $learnerCol);
 

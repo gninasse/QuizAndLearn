@@ -280,21 +280,14 @@ class KpiService
         $lastMonday = $s->to->copy()->startOfWeek(Carbon::MONDAY)->startOfDay();
         $firstMonday = $lastMonday->copy()->subWeeks(11);
 
-        $buckets = [];
-        for ($i = 0; $i < 12; $i++) {
-            $buckets[$firstMonday->copy()->addWeeks($i)->toDateString()] = [];
-        }
-
-        foreach (ActivityLog::events($s, $firstMonday, $s->to) as $e) {
-            $key = $e->at->copy()->startOfWeek(Carbon::MONDAY)->toDateString();
-            if (array_key_exists($key, $buckets)) {
-                $buckets[$key][$e->learner_id] = true;
-            }
-        }
-
+        // une requête agrégée par semaine [lundi, lundi suivant[, la dernière bornée à `to`
         $out = [];
-        foreach ($buckets as $weekStart => $learners) {
-            $out[] = ['week_start' => $weekStart, 'active' => count($learners)];
+        for ($i = 0; $i < 12; $i++) {
+            $start = $firstMonday->copy()->addWeeks($i);
+            $active = $i === 11
+                ? ActivityLog::distinctLearners($s, $start, $s->to)
+                : ActivityLog::distinctLearners($s, $start, $start->copy()->addWeek(), toExclusive: true);
+            $out[] = ['week_start' => $start->toDateString(), 'active' => $active];
         }
 
         return $out;
@@ -305,14 +298,11 @@ class KpiService
     {
         $start = $s->to->copy()->startOfDay()->subDays($days - 1);
         $prevStart = $start->copy()->subDays($days);
-        $prevEnd = $start->copy()->subSecond();
 
-        $events = ActivityLog::events($s, $prevStart, $s->to);
-
-        $value = $events->filter(fn ($e) => $e->at->gte($start))->pluck('learner_id')->unique()->count();
-        $trend = $events->filter(fn ($e) => $e->at->lte($prevEnd))->pluck('learner_id')->unique()->count();
-
-        return ['value' => $value, 'trend' => $trend];
+        return [
+            'value' => ActivityLog::distinctLearners($s, $start, $s->to),
+            'trend' => ActivityLog::distinctLearners($s, $prevStart, $start, toExclusive: true),
+        ];
     }
 
     private function activationRate(KpiScope $s): ?float
@@ -348,14 +338,12 @@ class KpiService
             return null;
         }
 
-        $earliest = min(array_map(fn (Carbon $c) => $c->timestamp, $cohort));
-        $byLearner = ActivityLog::events($s, Carbon::createFromTimestamp($earliest)->addDays(30), $s->to)
-            ->groupBy('learner_id');
-
+        // retenu ssi sa dernière activité (<= to) est au moins 30 j après sa première
+        $last = ActivityLog::lastActivity($s, $s->to);
         $retained = 0;
         foreach ($cohort as $id => $first) {
-            $threshold = $first->copy()->addDays(30);
-            if (($byLearner[$id] ?? collect())->contains(fn ($e) => $e->at->gte($threshold))) {
+            $at = $last[$id] ?? null;
+            if ($at !== null && $at->gte($first->copy()->addDays(30))) {
                 $retained++;
             }
         }
@@ -363,6 +351,11 @@ class KpiService
         return $this->percent($retained, count($cohort));
     }
 
+    /**
+     * Révisions faites / (faites + en retard). Littéral du spec : une même
+     * ligne peut compter à la fois comme révisée (dans la période) et en
+     * retard (révisée avant une échéance désormais dépassée).
+     */
     private function reviewRegularity(KpiScope $s): ?float
     {
         $reviewed = $s->applyLearners(DB::table('flashcard_item_reviews'), 'learner_id')
