@@ -342,6 +342,9 @@ Route::prefix('api/learner/v1')->name('learn.v1.')->group(function () {
 Route::prefix('api/showcase/v1')->name('showcase.v1.')->middleware('throttle:60,1')->group(function () {
     Route::get('/content', [\Modules\Core\Http\Controllers\Showcase\ShowcaseController::class, 'content'])->name('content');
     Route::get('/settings', [\Modules\Core\Http\Controllers\Showcase\ShowcaseController::class, 'settings'])->name('settings');
+    Route::post('/access-requests', [\Modules\Core\Http\Controllers\Showcase\AccessRequestSubmitController::class, 'store'])
+        ->middleware('throttle:5,60,access-requests')
+        ->name('access-requests.store');
 });
 
 // Routes profondes du SPA (History API) : le serveur renvoie toujours le shell.

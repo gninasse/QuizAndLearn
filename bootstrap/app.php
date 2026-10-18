@@ -21,6 +21,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // Jeton invité du mode découverte : valeur déjà chiffrée par GuestToken.
         $middleware->encryptCookies(except: ['lq_guest']);
 
+        // Dépôt de demande d'accès : l'appli native n'a pas de session (pas de jeton CSRF).
+        $middleware->validateCsrfTokens(except: ['api/showcase/v1/access-requests']);
+
         $middleware->alias([
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
