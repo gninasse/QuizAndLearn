@@ -28,6 +28,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(module_path($this->moduleName, 'database/migrations'));
         $this->registerBladeDirectives();
         $this->registerGates();
+        $this->registerSidebarComposer();
 
         $this->commands([
             \Modules\Core\Console\Commands\MakeSuperAdminCommand::class,
@@ -56,6 +57,20 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(\Modules\Core\Services\ShowcaseSettings::class);
         $this->app->singleton(\Modules\Core\Services\ModuleService::class);
         $this->app->singleton(\Modules\Core\Services\PermissionService::class);
+    }
+
+    /**
+     * Badge « demandes d'accès nouvelles » de la barre latérale (admins uniquement).
+     */
+    protected function registerSidebarComposer(): void
+    {
+        \Illuminate\Support\Facades\View::composer('core::layouts.partials.sidebar', function ($view) {
+            $count = 0;
+            if (auth()->user()?->hasAnyRole(['super-admin', 'admin', 'Admin'])) {
+                $count = \Modules\Core\Models\AccessRequest::where('status', 'new')->count();
+            }
+            $view->with('newAccessRequests', $count);
+        });
     }
 
     /**

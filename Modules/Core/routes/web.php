@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\Core\Http\Controllers\AccessRequestController;
 use Modules\Core\Http\Controllers\ActivityController;
 use Modules\Core\Http\Controllers\AdminController;
 use Modules\Core\Http\Controllers\ArticleController;
@@ -106,6 +107,17 @@ Route::middleware(['auth', 'staff'])->group(function () {
 
         Route::get('/showcase/settings', [ShowcaseAdminController::class, 'settings'])->name('showcase.settings');
         Route::put('/showcase/settings', [ShowcaseAdminController::class, 'saveSettings'])->name('showcase.settings.save');
+
+        // Demandes d'accès (mode découverte) — admins uniquement (vérifié dans le contrôleur)
+        Route::prefix('demandes-acces')->name('access-requests.')->group(function () {
+            Route::get('/', [AccessRequestController::class, 'index'])->name('index');
+            Route::get('/data', [AccessRequestController::class, 'data'])->name('data');
+            Route::get('/{id}', [AccessRequestController::class, 'show'])->whereNumber('id')->name('show');
+            Route::post('/{id}/status', [AccessRequestController::class, 'status'])->whereNumber('id')->name('status');
+            Route::put('/{id}/notes', [AccessRequestController::class, 'notes'])->whereNumber('id')->name('notes');
+            Route::post('/{id}/payments', [AccessRequestController::class, 'storePayment'])->whereNumber('id')->name('payments');
+            Route::delete('/{id}/payments/{paymentId}', [AccessRequestController::class, 'destroyPayment'])->whereNumber(['id', 'paymentId'])->name('payments.destroy');
+        });
 
         // Routes pour la gestion des groupes
         Route::patch('/showcase/{type}/{id}', [ShowcaseAdminController::class, 'toggle'])

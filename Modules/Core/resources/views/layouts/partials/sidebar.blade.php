@@ -70,6 +70,17 @@
                       <p>Mode découverte</p>
                     </a>
                   </li>
+                  <li class="nav-item">
+                    <a href="{{ route('cores.access-requests.index') }}" class="nav-link {{ request()->routeIs('cores.access-requests.*') ? 'active' : '' }}">
+                      <i class="nav-icon bi bi-inbox"></i>
+                      <p>
+                        Demandes d'accès
+                        @if (($newAccessRequests ?? 0) > 0)
+                          <span class="badge text-bg-danger float-end">{{ $newAccessRequests }}</span>
+                        @endif
+                      </p>
+                    </a>
+                  </li>
                   @endif
                   @can('cores.trainers.index')
                   <li class="nav-item">
