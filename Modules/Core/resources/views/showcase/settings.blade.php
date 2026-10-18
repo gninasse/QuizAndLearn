@@ -151,6 +151,9 @@
                       <label class="btn btn-outline-primary" for="ar_f_{{ $key }}_{{ $mode }}">{{ $modeLabel }}</label>
                     @endforeach
                   </div>
+                  @if ($key === 'group' && ! ($hasOpenGroups ?? true))
+                    <div class="form-text text-warning" data-role="no-open-group">{{ ucfirst(term('no_group')) }} n'est ouvert{{ term('fem_e') }} aux demandes : ce champ n'est pas affiché et n'est jamais obligatoire.</div>
+                  @endif
                 </td>
               </tr>
             @endforeach

@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Modules\Core\Models\AppSetting;
+use Modules\Core\Models\Group;
 use Modules\Core\Models\Role;
 use Modules\Core\Models\User;
 use Modules\Core\Services\ShowcaseSettings;
@@ -237,5 +239,62 @@ class AccessRequestSettingsTest extends TestCase
         $this->actingAs($admin)->get(route('cores.showcase.settings'))
             ->assertOk()
             ->assertSee('cf_zz9988', false);
+    }
+
+    public function test_empty_channel_texts_are_never_null(): void
+    {
+        $this->save($this->payload([
+            'channels' => [
+                ['type' => 'whatsapp', 'number' => '+2250700000000', 'message' => ''],
+                ['type' => 'email', 'address' => 'contact@exemple.ci', 'subject' => ''],
+                ['type' => 'link', 'url' => 'https://forms.gle/abc', 'label' => ''],
+            ],
+        ]))->assertOk();
+
+        $channels = $this->getJson('/api/showcase/v1/settings')->json('access_request.channels');
+        $this->assertSame('', $channels[0]['message']);
+        $this->assertSame('', $channels[1]['subject']);
+        $this->assertSame('Ouvrir le lien', $channels[2]['label']);
+    }
+
+    public function test_legacy_null_channel_texts_are_normalised_on_read(): void
+    {
+        AppSetting::put('showcase.access.channels', [
+            ['type' => 'whatsapp', 'number' => '+2250700000000', 'message' => null],
+            ['type' => 'email', 'address' => 'a@b.ci', 'subject' => null],
+            ['type' => 'link', 'url' => 'https://x.ci', 'label' => null],
+        ]);
+
+        $channels = app(ShowcaseSettings::class)->accessRequest()['channels'];
+        $this->assertSame('', $channels[0]['message']);
+        $this->assertSame('', $channels[1]['subject']);
+        $this->assertSame('Ouvrir le lien', $channels[2]['label']);
+    }
+
+    public function test_select_options_must_be_distinct(): void
+    {
+        $this->save($this->payload([
+            'custom_fields' => [['label' => 'Ville', 'type' => 'select', 'options' => ['Abidjan', 'abidjan '], 'required' => false]],
+        ]))->assertStatus(422)->assertJsonValidationErrors(['access_request.custom_fields.0.options']);
+
+        // Des choix identiques dans deux listes différentes restent permis.
+        $this->save($this->payload([
+            'custom_fields' => [
+                ['label' => 'Ville', 'type' => 'select', 'options' => ['Abidjan', 'Bouaké'], 'required' => false],
+                ['label' => 'Ville 2', 'type' => 'select', 'options' => ['Abidjan', 'Bouaké'], 'required' => false],
+            ],
+        ]))->assertOk();
+    }
+
+    public function test_settings_page_warns_when_no_group_is_open(): void
+    {
+        $admin = $this->makeUser('admin', 'admin');
+
+        $this->actingAs($admin)->get(route('cores.showcase.settings'))
+            ->assertOk()->assertSee('data-role="no-open-group"', false);
+
+        Group::create(['name' => 'Ouvert', 'is_active' => true, 'open_for_requests' => true]);
+        $this->actingAs($admin)->get(route('cores.showcase.settings'))
+            ->assertOk()->assertDontSee('data-role="no-open-group"', false);
     }
 }

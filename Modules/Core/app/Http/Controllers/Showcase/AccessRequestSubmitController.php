@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
 use Modules\Core\Mail\NewAccessRequestMail;
 use Modules\Core\Models\AccessRequest;
+use Modules\Core\Models\Group;
 use Modules\Core\Services\ShowcaseSettings;
 use Modules\Core\Support\PhoneNumber;
 
@@ -72,9 +73,13 @@ class AccessRequestSubmitController extends Controller
 
                 continue;
             }
+            // Groupe obligatoire seulement s'il existe un groupe proposable (même condition que la PWA).
+            if ($mode === 'required' && $name === 'group_id' && ! Group::openForRequests()->exists()) {
+                $mode = 'optional';
+            }
             if ($mode === 'required' && $name !== 'whatsapp_same') {
                 $fieldRules = $name === 'whatsapp'
-                    ? ['required_without:whatsapp_same', ...array_slice($fieldRules, 1)]
+                    ? ['required_unless:whatsapp_same,true', ...array_slice($fieldRules, 1)]
                     : ['required', ...array_slice($fieldRules, 1)];
             }
             $rules[$name] = $fieldRules;
@@ -211,6 +216,11 @@ class AccessRequestSubmitController extends Controller
                 $existing->{$field} = $incoming;
                 $changed[] = $field;
             }
+        }
+
+        if (empty($existing->extra_fields) && ! empty($attributes['extra_fields'])) {
+            $existing->extra_fields = $attributes['extra_fields'];
+            $changed[] = 'extra_fields';
         }
 
         $message = $attributes['message'] ?? null;

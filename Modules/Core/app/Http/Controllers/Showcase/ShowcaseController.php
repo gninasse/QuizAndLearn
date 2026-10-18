@@ -77,9 +77,7 @@ class ShowcaseController extends Controller
 
     public function settings(): JsonResponse
     {
-        $groups = Group::where('open_for_requests', true)
-            ->where('is_active', true)
-            ->where(fn ($q) => $q->whereNull('end_date')->orWhereDate('end_date', '>=', now()))
+        $groups = Group::openForRequests()
             ->orderByRaw('start_date IS NULL, start_date')
             ->orderBy('name')
             ->get()

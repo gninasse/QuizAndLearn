@@ -58,6 +58,7 @@ class ShowcaseAdminController extends Controller
 
         return view('core::showcase.settings', [
             'settings' => $settings,
+            'hasOpenGroups' => Group::openForRequests()->exists(),
             'operators' => [
                 'orange_money' => 'Orange Money',
                 'mtn_momo' => 'MTN MoMo',
@@ -172,7 +173,8 @@ class ShowcaseAdminController extends Controller
     }
 
     /**
-     * Règles croisées sur les canaux : au moins un si activé, un seul par type, numéros valides.
+     * Règles croisées : au moins un canal si activé, un seul par type, numéros valides,
+     * choix distincts dans chaque liste de choix.
      *
      * @param  array<string, mixed>  $access
      */
@@ -194,6 +196,13 @@ class ShowcaseAdminController extends Controller
             if (in_array($channel['type'], ['whatsapp', 'phone'], true)
                 && PhoneNumber::normalize($channel['number'] ?? null, $country) === null) {
                 $errors["access_request.channels.$i.number"] = 'Numéro de téléphone invalide.';
+            }
+        }
+
+        foreach ($access['custom_fields'] ?? [] as $i => $field) {
+            $options = array_map(fn ($o) => mb_strtolower(trim((string) $o)), $field['options'] ?? []);
+            if ($field['type'] === 'select' && count($options) !== count(array_unique($options))) {
+                $errors["access_request.custom_fields.$i.options"] = 'Chaque choix ne peut figurer qu\'une fois.';
             }
         }
 

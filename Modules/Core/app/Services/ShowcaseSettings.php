@@ -23,6 +23,8 @@ class ShowcaseSettings
 
     public const ACCESS_CUSTOM_KEY_PATTERN = '/^cf_[a-z0-9]{6}$/';
 
+    public const ACCESS_LINK_LABEL = 'Ouvrir le lien';
+
     public const ACCESS_DEFAULTS = [
         'button_label' => 'Demander un accès',
         'title' => 'Demander un accès',
@@ -128,7 +130,9 @@ class ShowcaseSettings
         $text = fn (string $key) => $this->text('access.'.$key) ?? self::ACCESS_DEFAULTS[$key];
 
         $channels = $this->get('access.channels');
-        $channels = is_array($channels) ? array_values($channels) : [['type' => 'form']];
+        $channels = is_array($channels)
+            ? array_values(array_map(fn ($c) => $this->normalizeChannel((array) $c), $channels))
+            : [['type' => 'form']];
 
         $stored = $this->get('access.fields');
         $stored = is_array($stored) ? $stored : [];
@@ -167,6 +171,25 @@ class ShowcaseSettings
     }
 
     /**
+     * Textes facultatifs d'un canal jamais nuls (les chaînes vides arrivent à null) :
+     * message / objet vides = '', libellé de lien vide = libellé par défaut.
+     *
+     * @param  array<string, mixed>  $channel
+     * @return array<string, mixed>
+     */
+    private function normalizeChannel(array $channel): array
+    {
+        $str = fn ($v) => is_string($v) ? trim($v) : '';
+
+        return match ($channel['type'] ?? null) {
+            'whatsapp' => ['type' => 'whatsapp', 'number' => $channel['number'] ?? null, 'message' => $str($channel['message'] ?? null)],
+            'email' => ['type' => 'email', 'address' => $channel['address'] ?? null, 'subject' => $str($channel['subject'] ?? null)],
+            'link' => ['type' => 'link', 'url' => $channel['url'] ?? null, 'label' => $str($channel['label'] ?? null) !== '' ? $str($channel['label']) : self::ACCESS_LINK_LABEL],
+            default => $channel,
+        };
+    }
+
+    /**
      * Enregistre la configuration de la demande d'accès (déjà validée) en la normalisant.
      *
      * @param  array<string, mixed>  $validated
@@ -178,13 +201,13 @@ class ShowcaseSettings
 
         $channels = [];
         foreach ($validated['channels'] ?? [] as $channel) {
-            $channels[] = match ($channel['type']) {
+            $channels[] = $this->normalizeChannel(match ($channel['type']) {
                 'whatsapp' => ['type' => 'whatsapp', 'number' => $number($channel['number'] ?? null), 'message' => $channel['message'] ?? null],
                 'phone' => ['type' => 'phone', 'number' => $number($channel['number'] ?? null)],
                 'email' => ['type' => 'email', 'address' => $channel['address'] ?? null, 'subject' => $channel['subject'] ?? null],
                 'link' => ['type' => 'link', 'url' => $channel['url'] ?? null, 'label' => $channel['label'] ?? null],
                 default => ['type' => 'form'],
-            };
+            });
         }
 
         $fields = [];

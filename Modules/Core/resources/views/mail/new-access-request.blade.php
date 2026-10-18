@@ -16,6 +16,9 @@
 @if ($accessRequest->group)
 - {{ term('Group') }} souhaité{{ term('fem_e') }} : {{ \Modules\Core\Mail\NewAccessRequestMail::md($accessRequest->group->name) }}
 @endif
+@foreach ($accessRequest->extra_fields ?? [] as $extra)
+- {{ \Modules\Core\Mail\NewAccessRequestMail::md($extra['label'] ?? '') }} : {{ \Modules\Core\Mail\NewAccessRequestMail::md($extra['value'] ?? '') }}
+@endforeach
 @if ($accessRequest->message)
 
 > {{ \Modules\Core\Mail\NewAccessRequestMail::md($accessRequest->message) }}
