@@ -58,6 +58,7 @@ class CoreServiceProvider extends ServiceProvider
         // Enregistrer les services
         $this->app->singleton(\Modules\Core\Services\ShowcaseSettings::class);
         $this->app->singleton(\Modules\Core\Services\Terminology::class);
+        $this->app->bind(\Modules\Core\Services\Push\PushSender::class, \Modules\Core\Services\Push\WebPushSender::class);
         $this->app->singleton(\Modules\Core\Services\ModuleService::class);
         $this->app->singleton(\Modules\Core\Services\PermissionService::class);
     }

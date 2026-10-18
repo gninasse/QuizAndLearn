@@ -88,7 +88,7 @@ class SessionController extends Controller
 
         // Clé publique VAPID : null (fonction inerte) si une des deux clés manque.
         $profile['push'] = [
-            'public_key' => filled(config('push.vapid.public_key')) && filled(config('push.vapid.private_key'))
+            'public_key' => \Modules\Core\Services\Push\PushSettings::vapidConfigured()
                 ? config('push.vapid.public_key')
                 : null,
         ];

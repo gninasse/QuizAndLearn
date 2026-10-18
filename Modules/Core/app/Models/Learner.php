@@ -182,4 +182,9 @@ class Learner extends Model
     {
         return $this->hasOne(LearnerPreference::class);
     }
+
+    public function pushSubscriptions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(PushSubscription::class);
+    }
 }
