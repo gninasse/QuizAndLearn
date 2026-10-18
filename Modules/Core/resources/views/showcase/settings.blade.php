@@ -85,6 +85,133 @@
     </div>
   </div>
 
+  <div class="card mb-3" id="accessRequestCard">
+    <div class="card-header"><h3 class="card-title">Demande d'accès</h3></div>
+    <div class="card-body">
+      <div class="form-check form-switch mb-4">
+        <input class="form-check-input" type="checkbox" role="switch" id="ar_enabled">
+        <label class="form-check-label" for="ar_enabled">Accepter les demandes d'accès</label>
+      </div>
+
+      <h5 class="mb-1">Canaux de contact</h5>
+      <p class="form-text mt-0">Cochez les moyens proposés aux visiteurs et ordonnez-les avec les flèches. Seul le formulaire alimente le suivi des demandes.</p>
+      <div id="ar_channels" class="mb-4">
+        @foreach ([
+          'form' => 'Formulaire de demande',
+          'whatsapp' => 'WhatsApp',
+          'phone' => 'Appel téléphonique',
+          'email' => 'E-mail',
+          'link' => 'Lien externe',
+        ] as $type => $label)
+          <div class="border rounded p-2 mb-2 ar-channel" data-type="{{ $type }}">
+            <div class="d-flex align-items-center gap-2">
+              <div class="form-check flex-grow-1 mb-0">
+                <input class="form-check-input ar-channel-on" type="checkbox" id="ar_ch_{{ $type }}">
+                <label class="form-check-label" for="ar_ch_{{ $type }}">{{ $label }}</label>
+              </div>
+              <button type="button" class="btn btn-outline-secondary btn-sm ar-up" title="Monter" aria-label="Monter"><i class="bi bi-arrow-up"></i></button>
+              <button type="button" class="btn btn-outline-secondary btn-sm ar-down" title="Descendre" aria-label="Descendre"><i class="bi bi-arrow-down"></i></button>
+            </div>
+            @if ($type !== 'form')
+            <div class="row g-2 mt-1 ar-sub d-none">
+              @if ($type === 'whatsapp')
+                <div class="col-md-4"><input type="text" class="form-control" data-sub="number" placeholder="Numéro WhatsApp" maxlength="30"></div>
+                <div class="col-md-8"><input type="text" class="form-control" data-sub="message" placeholder="Message pré-rempli" maxlength="500"></div>
+              @elseif ($type === 'phone')
+                <div class="col-md-4"><input type="text" class="form-control" data-sub="number" placeholder="Numéro de téléphone" maxlength="30"></div>
+              @elseif ($type === 'email')
+                <div class="col-md-5"><input type="email" class="form-control" data-sub="address" placeholder="Adresse e-mail" maxlength="190"></div>
+                <div class="col-md-7"><input type="text" class="form-control" data-sub="subject" placeholder="Objet" maxlength="150"></div>
+              @else
+                <div class="col-md-7"><input type="url" class="form-control" data-sub="url" placeholder="https://" maxlength="500"></div>
+                <div class="col-md-5"><input type="text" class="form-control" data-sub="label" placeholder="Libellé du lien" maxlength="60"></div>
+              @endif
+            </div>
+            @endif
+          </div>
+        @endforeach
+        <div class="text-danger small ar-err" data-path="channels"></div>
+      </div>
+
+      <h5 class="mb-2">Champs du formulaire</h5>
+      <div class="table-responsive mb-4">
+        <table class="table table-sm align-middle mb-0">
+          <thead><tr><th>Champ</th><th>Affichage</th></tr></thead>
+          <tbody>
+            @foreach (['first_name' => 'Prénom', 'last_name' => 'Nom', 'phone' => 'Téléphone', 'consent' => 'Consentement'] as $key => $label)
+              <tr class="table-secondary text-muted"><td>{{ $label }}</td><td>Obligatoire (non modifiable)</td></tr>
+            @endforeach
+            @foreach (['whatsapp' => 'WhatsApp', 'email' => 'E-mail', 'organization' => 'Organisation', 'group' => term('Group'), 'message' => 'Message'] as $key => $label)
+              <tr class="ar-field" data-field="{{ $key }}">
+                <td>{{ $label }}</td>
+                <td>
+                  <div class="btn-group btn-group-sm" role="group" aria-label="{{ $label }}">
+                    @foreach (['hidden' => 'Masqué', 'optional' => 'Facultatif', 'required' => 'Obligatoire'] as $mode => $modeLabel)
+                      <input type="radio" class="btn-check" name="ar_field_{{ $key }}" id="ar_f_{{ $key }}_{{ $mode }}" value="{{ $mode }}" autocomplete="off">
+                      <label class="btn btn-outline-primary" for="ar_f_{{ $key }}_{{ $mode }}">{{ $modeLabel }}</label>
+                    @endforeach
+                  </div>
+                </td>
+              </tr>
+            @endforeach
+          </tbody>
+        </table>
+      </div>
+
+      <h5 class="mb-1">Champs personnalisés</h5>
+      <p class="form-text mt-0">Jusqu'à 5 champs supplémentaires.</p>
+      <div id="ar_custom"></div>
+      <div class="text-danger small ar-err mb-2" data-path="custom_fields"></div>
+      <button type="button" class="btn btn-outline-primary btn-sm mb-4" id="ar_addCustom"><i class="bi bi-plus-lg"></i> Ajouter un champ</button>
+
+      <h5 class="mb-2">Textes</h5>
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label class="form-label" for="ar_button_label">Libellé du bouton</label>
+          <input type="text" class="form-control" id="ar_button_label" maxlength="40">
+          <div class="text-danger small ar-err" data-path="button_label"></div>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label" for="ar_title">Titre</label>
+          <input type="text" class="form-control" id="ar_title" maxlength="80">
+          <div class="text-danger small ar-err" data-path="title"></div>
+        </div>
+        <div class="col-12 mb-3">
+          <label class="form-label" for="ar_intro">Introduction</label>
+          <textarea class="form-control" id="ar_intro" rows="2" maxlength="1000"></textarea>
+          <div class="text-danger small ar-err" data-path="intro"></div>
+        </div>
+        <div class="col-12 mb-0">
+          <label class="form-label" for="ar_confirmation">Message de confirmation</label>
+          <textarea class="form-control" id="ar_confirmation" rows="2" maxlength="500"></textarea>
+          <div class="text-danger small ar-err" data-path="confirmation"></div>
+          <div class="form-text">Laissez un texte vide pour afficher le texte par défaut (indiqué en grisé).</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <template id="ar_customRow">
+    <div class="border rounded p-2 mb-2 ar-custom-row">
+      <div class="row g-2">
+        <div class="col-md-5"><input type="text" class="form-control" data-cf="label" placeholder="Libellé" maxlength="80"></div>
+        <div class="col-6 col-md-3">
+          <select class="form-select" data-cf="type">
+            <option value="text">Texte court</option>
+            <option value="textarea">Texte long</option>
+            <option value="select">Liste de choix</option>
+          </select>
+        </div>
+        <div class="col-4 col-md-2 d-flex align-items-center">
+          <div class="form-check mb-0"><input class="form-check-input" type="checkbox" data-cf="required"><label class="form-check-label">Obligatoire</label></div>
+        </div>
+        <div class="col-2 col-md-2"><button type="button" class="btn btn-outline-danger w-100 ar-remove-custom" title="Supprimer" aria-label="Supprimer"><i class="bi bi-trash"></i></button></div>
+        <div class="col-12 d-none ar-options"><textarea class="form-control" rows="3" data-cf="options" placeholder="Un choix par ligne (2 à 20)"></textarea></div>
+      </div>
+      <div class="text-danger small ar-err" data-cf-err></div>
+    </div>
+  </template>
+
   <button type="submit" class="btn btn-primary" id="saveBtn"><i class="bi bi-check-lg"></i> Enregistrer</button>
 </form>
 
@@ -105,6 +232,13 @@
 @endsection
 
 @push('js')
+<script>
+  window.ACCESS_REQUEST = {
+    config: @json($settings->accessRequest()),
+    defaults: @json(\Modules\Core\Services\ShowcaseSettings::ACCESS_DEFAULTS)
+  };
+</script>
+<script src="{{ asset('js/modules/core/showcase/access-request.js') }}"></script>
 <script>
   $(function () {
     var initial = @json($settings->paymentAccounts());
@@ -146,9 +280,11 @@
         notification_emails: $('#notification_emails').val(),
         privacy_text: $('#privacy_text').val(),
         privacy_url: $('#privacy_url').val(),
-        retention_months: $('#retention_months').val()
+        retention_months: $('#retention_months').val(),
+        access_request: window.AccessRequestForm.collect()
       };
 
+      window.AccessRequestForm.clearErrors();
       $('#saveBtn').prop('disabled', true);
       $.ajax({
         url: this.action, method: 'PUT', contentType: 'application/json', dataType: 'json',
@@ -158,6 +294,7 @@
       }).fail(function (xhr) {
         var msg = (xhr.responseJSON && (xhr.responseJSON.message || 'Erreur')) || 'Erreur';
         var errors = xhr.responseJSON && xhr.responseJSON.errors;
+        if (errors) { window.AccessRequestForm.showErrors(errors); }
         if (errors) { msg = Object.values(errors).flat().join('\n'); }
         Swal.fire({ icon: 'error', title: 'Enregistrement impossible', text: msg });
       }).always(function () { $('#saveBtn').prop('disabled', false); });

@@ -215,4 +215,27 @@ class AccessRequestSettingsTest extends TestCase
         $this->assertStringNotContainsString('notification_emails', $json);
         $this->assertStringNotContainsString('retention', $json);
     }
+
+    public function test_settings_page_shows_access_section(): void
+    {
+        $admin = $this->makeUser('admin', 'admin');
+
+        $this->actingAs($admin)->get(route('cores.showcase.settings'))
+            ->assertOk()
+            ->assertSee("Demande d'accès", false)
+            ->assertSee("Accepter les demandes d'accès", false)
+            ->assertSee('Seul le formulaire alimente le suivi des demandes.', false);
+    }
+
+    public function test_settings_page_embeds_current_config(): void
+    {
+        $this->save($this->payload([
+            'custom_fields' => [['key' => 'cf_zz9988', 'label' => 'Ville', 'type' => 'text', 'required' => false]],
+        ]))->assertOk();
+
+        $admin = User::where('user_name', 'admin')->first();
+        $this->actingAs($admin)->get(route('cores.showcase.settings'))
+            ->assertOk()
+            ->assertSee('cf_zz9988', false);
+    }
 }
