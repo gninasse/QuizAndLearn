@@ -7,7 +7,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Modules\Core\Models\ImpersonationSession;
 use Modules\Core\Services\GamificationService;
+use Modules\Core\Services\ImpersonationService;
 use Modules\Core\Support\LoginResolver;
 
 /**
@@ -79,8 +81,9 @@ class SessionController extends Controller
         $profile = $this->serializeUser($user);
 
         // Consultation « Voir en tant que » : état du compte pour le bandeau.
-        if ($request->attributes->get('impersonation') !== null) {
-            $profile['suspended'] = (bool) $user->learner?->isSuspended();
+        $session = $request->attributes->get('impersonation');
+        if ($session instanceof ImpersonationSession && $user->learner) {
+            $profile = [...$profile, ...app(ImpersonationService::class)->profileExtras($session, $user->learner)];
         }
 
         return response()->json([

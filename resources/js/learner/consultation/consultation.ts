@@ -13,6 +13,7 @@
  */
 
 import { escapeHtml } from '../core/html';
+import type { UserProfile } from '../domain/types';
 import { toast } from '../ui/app-toast';
 
 const STORAGE_KEY = 'learner:consultation';
@@ -23,9 +24,15 @@ export const CONSULTATION_DB_NAME = 'LearnQuizDB-v2026-consultation';
 
 export const CONSULTATION_BLOCKED_MESSAGE = 'Action indisponible en consultation.';
 
+/**
+ * Jeton mémorisé pour ce chargement : reste disponible même si le
+ * `sessionStorage` est indisponible (navigation privée stricte…).
+ */
+let cachedToken: string | null = null;
 /** La consultation a pris fin dans cet onglet : il reste en lecture seule, inerte. */
 let ended = false;
 let ending: Promise<void> | null = null;
+const endListeners = new Set<() => void>();
 
 function storageGet(): string | null {
   try {
@@ -39,7 +46,7 @@ function storageSet(token: string): void {
   try {
     sessionStorage.setItem(STORAGE_KEY, token);
   } catch {
-    /* stockage indisponible : le jeton reste dans l'URL de ce chargement seulement */
+    /* stockage indisponible : le jeton reste en mémoire pour ce chargement (perdu au rechargement) */
   }
 }
 
@@ -68,12 +75,15 @@ export function readConsultationToken(): string | null {
     history.replaceState(history.state, '', window.location.pathname + window.location.search);
     if (token) {
       ended = false;
+      cachedToken = token;
       storageSet(token);
       return token;
     }
   }
 
-  return storageGet();
+  if (ended) return null;
+  cachedToken ??= storageGet();
+  return cachedToken;
 }
 
 /** Onglet en consultation (y compris après sa fin : il reste en lecture seule). */
@@ -89,6 +99,38 @@ export function isConsultationEnded(): boolean {
 /** Base IndexedDB à ouvrir : séparée en consultation (jamais celle d'un apprenant). */
 export function consultationDbName(): string {
   return readConsultationToken() !== null ? CONSULTATION_DB_NAME : LEARNER_DB_NAME;
+}
+
+/** Abonnement à la fin de la consultation (ex. arrêt de la sync périodique). */
+export function onConsultationEnd(listener: () => void): () => void {
+  endListeners.add(listener);
+  return () => endListeners.delete(listener);
+}
+
+/** Filigrane des médias : auteur de la consultation (super admin). */
+export function consultationWatermark(user: UserProfile | null): string {
+  const admin = user?.consultation?.admin_name?.trim();
+  return admin ? `Consultation · ${admin}` : 'Consultation';
+}
+
+/** Date au format « 25/10/2026 à 07:46 ». */
+function formatFrDateTime(iso: string): string | null {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return null;
+  const day = date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const time = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  return `${day} à ${time}`;
+}
+
+/** Avis du bandeau secondaire : état du compte consulté. */
+export function consultationNotices(user: UserProfile): string[] {
+  const notices: string[] = [];
+  if (user.suspended === true) {
+    const until = user.suspended_until ? formatFrDateTime(user.suspended_until) : null;
+    notices.push(until ? `Compte suspendu jusqu'au ${until}` : 'Compte suspendu');
+  }
+  if (user.must_change_password === true) notices.push('Mot de passe provisoire non encore changé');
+  return notices;
 }
 
 /** Retour visuel d'une action d'écriture neutralisée. */
@@ -152,7 +194,15 @@ export function endConsultation(reason: 'quit' | 'ended'): Promise<void> {
     }
 
     ended = true;
+    cachedToken = null;
     storageClear();
+    endListeners.forEach((listener) => {
+      try {
+        listener();
+      } catch {
+        /* un abonné défaillant ne bloque pas la fin */
+      }
+    });
     renderEndedScreen();
 
     try {

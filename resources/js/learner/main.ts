@@ -4,7 +4,13 @@
 
 import './components/app-shell';
 import type { AppShell } from './components/app-shell';
-import { endConsultation, isConsultation, isImpersonationEnded } from './consultation/consultation';
+import {
+  consultationWatermark,
+  endConsultation,
+  isConsultation,
+  isImpersonationEnded,
+  onConsultationEnd,
+} from './consultation/consultation';
 import { db } from './db/schema';
 import { loadGuestSettings } from './guest/guest-session';
 import { Router, type RouteDefinition } from './router';
@@ -102,7 +108,7 @@ async function boot(): Promise<void> {
   const updateWatermark = (): void => {
     const user = sessionStore.get();
     if (consultation) {
-      setWatermark(user ? `Consultation · ${user.full_name}` : 'Consultation');
+      setWatermark(consultationWatermark(user));
       return;
     }
     if (user?.is_guest) {
@@ -169,6 +175,9 @@ async function boot(): Promise<void> {
       );
     } else if (event.kind === 'action-rejected') {
       toast(`Une action n'a pas pu être synchronisée : ${event.message}`, 'warning', 5000);
+    } else if (event.kind === 'account-suspended' && consultation) {
+      // Ne devrait pas arriver (verrou contourné côté serveur) : surtout ne
+      // rien purger ni rediriger vers la connexion.
     } else if (event.kind === 'account-suspended') {
       try {
         sessionStorage.setItem('learner:notice', event.message);
@@ -196,7 +205,8 @@ async function boot(): Promise<void> {
   if (consultation) {
     // Bootstrap déjà fait. Delta périodique : détecte aussi la fin serveur
     // (expiration à 30 min, admin déconnecté) pour afficher l'écran de fin.
-    window.setInterval(() => void sync(), CONSULTATION_POLL_MS);
+    const poll = window.setInterval(() => void sync(), CONSULTATION_POLL_MS);
+    onConsultationEnd(() => window.clearInterval(poll));
     return;
   }
   if (hasLocalSession && navigator.onLine) {

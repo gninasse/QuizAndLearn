@@ -4,7 +4,7 @@ import { isDue } from '../domain/sm2';
 import { avatarHtml } from '../ui/avatar';
 import { logoMark, logoWordmark } from '../ui/logo';
 import { guestBannerHtml } from '../guest/guest-ui';
-import { endConsultation, isConsultation } from '../consultation/consultation';
+import { consultationNotices, endConsultation, isConsultation } from '../consultation/consultation';
 import type { UserProfile } from '../domain/types';
 import { articlesStore, decksStore, quizzesStore, sessionStore, syncStore } from '../stores';
 
@@ -40,14 +40,11 @@ const NAV: NavItem[] = [
 
 /** Bandeau permanent du mode consultation « Voir en tant que » (lecture seule). */
 function consultationBannerHtml(user: UserProfile): string {
-  const notices = [
-    user.suspended === true ? 'Compte suspendu' : null,
-    user.must_change_password === true ? 'Mot de passe provisoire non encore changé' : null,
-  ].filter((n): n is string => n !== null);
+  const notices = consultationNotices(user);
 
   return html`
     <div data-role="consultation-banner"
-         class="sticky top-0 z-[60] bg-violet-700 text-white text-xs font-semibold py-1.5 px-4 flex items-center justify-center gap-3">
+         class="bg-violet-700 text-white text-xs font-semibold py-1.5 px-4 flex items-center justify-center gap-3">
       <span><i class="bi bi-eye mr-1"></i>Consultation de l'espace de ${user.full_name} — lecture seule</span>
       <button type="button" data-role="consultation-quit"
               class="rounded-lg bg-white/15 hover:bg-white/25 px-2.5 py-0.5 font-bold">Quitter</button>
@@ -98,6 +95,11 @@ export class AppShell extends BaseComponent {
       }),
     );
 
+    // Les bandeaux du haut peuvent passer sur deux lignes : on remesure.
+    const onResize = (): void => this.measureTopStack();
+    window.addEventListener('resize', onResize);
+    this.own(() => window.removeEventListener('resize', onResize));
+
     // Compteurs « à faire » sur la navigation, patchés en place.
     const patchBadges = (): void => this.patchNavBadges();
     this.own(articlesStore.subscribe(patchBadges));
@@ -131,6 +133,7 @@ export class AppShell extends BaseComponent {
   private patchSync(state: ReturnType<typeof syncStore.get>): void {
     const banner = this.querySelector('[data-role="conn-banner"]');
     banner?.classList.toggle('hidden', state.online);
+    this.measureTopStack();
 
     const syncEl = this.querySelector('[data-role="sync"]');
     if (syncEl) {
@@ -153,6 +156,12 @@ export class AppShell extends BaseComponent {
     if (label) {
       label.textContent = user.is_guest === true ? 'Mode découverte' : `Niveau ${user.xp.current_level} · ${user.xp.total_xp} XP`;
     }
+  }
+
+  /** Le header collant se place sous les bandeaux du haut (pas de chevauchement). */
+  private measureTopStack(): void {
+    const stack = this.querySelector<HTMLElement>('[data-role="top-stack"]');
+    this.style.setProperty('--top-stack', `${stack?.offsetHeight ?? 0}px`);
   }
 
   private refreshNav(): void {
@@ -209,16 +218,18 @@ export class AppShell extends BaseComponent {
 
     return html`
       <div class="min-h-dvh text-zinc-900 dark:text-zinc-100">
-        ${consultation ? raw(consultationBannerHtml(user)) : ''}
-        <!-- Bannière hors-ligne -->
-        <div data-role="conn-banner"
-             class="${sync.online ? 'hidden' : ''} bg-amber-500 text-amber-950 text-center text-xs font-bold py-1.5 px-4 sticky top-0 z-50">
-          <i class="bi bi-wifi-off mr-1"></i> Mode hors-ligne — vos actions seront synchronisées au retour du réseau
+        <!-- Bandeaux du haut empilés dans un seul conteneur collant (consultation, hors-ligne) -->
+        <div data-role="top-stack" class="sticky top-0 z-50">
+          ${consultation ? raw(consultationBannerHtml(user)) : ''}
+          <div data-role="conn-banner"
+               class="${sync.online ? 'hidden' : ''} bg-amber-500 text-amber-950 text-center text-xs font-bold py-1.5 px-4">
+            <i class="bi bi-wifi-off mr-1"></i> Mode hors-ligne — vos actions seront synchronisées au retour du réseau
+          </div>
         </div>
 
         <div class="flex">
           <!-- Sidebar desktop -->
-          <aside class="hidden lg:flex flex-col w-64 shrink-0 h-dvh sticky top-0 border-r border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-4 gap-1">
+          <aside class="hidden lg:flex flex-col w-64 shrink-0 h-[calc(100dvh-var(--top-stack,0px))] sticky top-[var(--top-stack,0px)] border-r border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-4 gap-1">
             <div class="px-2 py-3 mb-2">${raw(logoWordmark('w-9 h-9', 'text-lg'))}</div>
             ${raw(navLinks.join(''))}
             <div class="mt-auto px-2 py-3 flex items-center gap-3 border-t border-zinc-200 dark:border-zinc-800">
@@ -232,7 +243,7 @@ export class AppShell extends BaseComponent {
 
           <div class="flex-1 min-w-0 flex flex-col min-h-dvh">
             <!-- Header -->
-            <header class="sticky top-0 z-40 panel-glass backdrop-blur-xl border-b border-zinc-200/70 dark:border-zinc-800/70">
+            <header class="sticky top-[var(--top-stack,0px)] z-40 panel-glass backdrop-blur-xl border-b border-zinc-200/70 dark:border-zinc-800/70">
               <div class="flex items-center gap-3 px-4 py-3 max-w-5xl mx-auto w-full">
                 <span class="lg:hidden inline-flex" aria-hidden="true">${raw(logoMark('w-8 h-8', 'rounded-lg'))}</span>
                 <h1 data-role="title" class="font-bold text-lg truncate flex-1">${this.currentTitle}</h1>
@@ -280,6 +291,7 @@ export class AppShell extends BaseComponent {
       void endConsultation('quit');
     });
     this.refreshNav();
+    this.measureTopStack();
   }
 }
 

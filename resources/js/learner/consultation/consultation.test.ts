@@ -202,6 +202,62 @@ describe('consultation mode', () => {
     expect(shell.textContent).toContain('Mot de passe provisoire non encore changé');
     // Pas d'interface du mode découverte.
     expect(shell.querySelector('[data-role="guest-banner"]')).toBeNull();
+
+    // Bandeau de consultation et bandeau hors-ligne : un seul conteneur collant.
+    const stack = shell.querySelector('[data-role="top-stack"]')!;
+    expect(stack.querySelector('[data-role="consultation-banner"]')).not.toBeNull();
+    expect(stack.querySelector('[data-role="conn-banner"]')).not.toBeNull();
+    expect(shell.querySelectorAll('.sticky.top-0').length).toBe(1);
+
+    // Suspension datée. (Un seul test monte le shell : l'élément personnalisé
+    // reste lié au graphe de modules du premier `define`.)
+    sessionStore.set(null);
+    const until = new Date(2026, 9, 25, 7, 46).toISOString();
+    sessionStore.set(profile({ suspended: true, suspended_until: until }));
+    expect(shell.textContent).toContain("Compte suspendu jusqu'au 25/10/2026 à 07:46");
+    expect(shell.textContent).not.toContain('Mot de passe provisoire');
+  });
+
+  it('watermark names the super admin, with a plain fallback', async () => {
+    const { consultationWatermark } = await import('./consultation');
+    expect(
+      consultationWatermark(profile({ consultation: { admin_name: 'Root Admin', expires_at: '2026-10-18T15:00:00Z' } })),
+    ).toBe('Consultation · Root Admin');
+    expect(consultationWatermark(profile())).toBe('Consultation');
+    expect(consultationWatermark(null)).toBe('Consultation');
+  });
+
+  it('keeps the token in memory when sessionStorage is unavailable', async () => {
+    history.replaceState(null, '', `/#consultation=${TOKEN}`);
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('quota');
+    });
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('denied');
+    });
+    try {
+      const { readConsultationToken, isConsultation } = await import('./consultation');
+      expect(readConsultationToken()).toBe(TOKEN);
+      expect(window.location.hash).toBe('');
+      expect(readConsultationToken()).toBe(TOKEN);
+      expect(isConsultation()).toBe(true);
+    } finally {
+      vi.restoreAllMocks();
+    }
+  });
+
+  it('notifies end listeners (periodic sync stops) when the consultation ends', async () => {
+    startConsultation();
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(200, { success: true })));
+    const { endConsultation, onConsultationEnd, readConsultationToken } = await import('./consultation');
+    const listener = vi.fn();
+    onConsultationEnd(listener);
+
+    await endConsultation('ended');
+
+    expect(listener).toHaveBeenCalledOnce();
+    expect(readConsultationToken()).toBeNull();
+    (await import('../db/schema')).db.close();
   });
 
   it('blocked actions show a toast', async () => {

@@ -243,32 +243,43 @@ class ImpersonationTest extends TestCase
 
     public function test_profile_exposes_account_state_in_consultation_only(): void
     {
-        $this->learner->suspend(null, 'Test', $this->superAdmin->id);
+        $until = Carbon::parse('2030-10-25 07:46:00');
+        $this->learner->suspend($until, 'Test', $this->superAdmin->id);
         $this->learner->user->forceFill(['must_change_password' => true])->save();
 
         $token = $this->start();
+        $session = ImpersonationSession::sole();
 
-        $this->asAdmin($token)->getJson('/api/learner/v1/bootstrap')
-            ->assertOk()
-            ->assertJsonPath('user.suspended', true)
-            ->assertJsonPath('user.must_change_password', true);
+        foreach (['/api/learner/v1/bootstrap', '/api/learner/v1/me'] as $path) {
+            $this->asAdmin($token)->getJson($path)
+                ->assertOk()
+                ->assertJsonPath('user.suspended', true)
+                ->assertJsonPath('user.suspended_until', $until->toIso8601String())
+                ->assertJsonPath('user.must_change_password', true)
+                ->assertJsonPath('user.consultation.admin_name', $this->superAdmin->full_name)
+                ->assertJsonPath('user.consultation.expires_at', $session->expires_at->toIso8601String());
+        }
 
+        // Suspension sans date de fin : suspended_until vaut null.
+        $this->learner->liftSuspension();
+        $this->learner->suspend(null, 'Test', $this->superAdmin->id);
         $this->asAdmin($token)->getJson('/api/learner/v1/me')
             ->assertOk()
             ->assertJsonPath('user.suspended', true)
-            ->assertJsonPath('user.must_change_password', true);
+            ->assertJsonPath('user.suspended_until', null);
 
         // Hors consultation, le profil apprenant ne change pas.
         $this->learner->liftSuspension();
         $this->learner->user->refresh()->forceFill(['must_change_password' => false])->save();
         $this->flushHeaders();
         $this->app['auth']->forgetGuards();
-        $this->actingAs($this->learner->user)->getJson('/api/learner/v1/bootstrap')
-            ->assertOk()
-            ->assertJsonMissingPath('user.suspended');
-        $this->actingAs($this->learner->user)->getJson('/api/learner/v1/me')
-            ->assertOk()
-            ->assertJsonMissingPath('user.suspended');
+        foreach (['/api/learner/v1/bootstrap', '/api/learner/v1/me'] as $path) {
+            $this->actingAs($this->learner->user)->getJson($path)
+                ->assertOk()
+                ->assertJsonMissingPath('user.suspended')
+                ->assertJsonMissingPath('user.suspended_until')
+                ->assertJsonMissingPath('user.consultation');
+        }
     }
 
     public function test_inactive_learner_cannot_be_started(): void

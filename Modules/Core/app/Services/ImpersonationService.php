@@ -110,4 +110,26 @@ class ImpersonationService
             })
             ->log($event);
     }
+
+    /**
+     * Champs ajoutés au profil apprenant (/me, /bootstrap) en consultation
+     * seulement : état du compte (bandeau) et auteur de la consultation
+     * (filigrane des médias).
+     *
+     * @return array{suspended: bool, suspended_until: ?string, must_change_password: bool, consultation: array{admin_name: ?string, expires_at: string}}
+     */
+    public function profileExtras(ImpersonationSession $session, Learner $learner): array
+    {
+        $suspended = $learner->isSuspended();
+
+        return [
+            'suspended' => $suspended,
+            'suspended_until' => $suspended ? $learner->suspended_until?->toIso8601String() : null,
+            'must_change_password' => (bool) $learner->user?->must_change_password,
+            'consultation' => [
+                'admin_name' => $session->admin?->full_name,
+                'expires_at' => $session->expires_at->toIso8601String(),
+            ],
+        ];
+    }
 }
