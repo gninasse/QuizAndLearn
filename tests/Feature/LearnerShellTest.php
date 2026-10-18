@@ -44,7 +44,7 @@ class LearnerShellTest extends TestCase
 
     public function test_spa_deep_routes_serve_shell_without_auth(): void
     {
-        foreach (['/articles', '/articles/12', '/entrainement', '/examens', '/quizzes/3', '/quizzes/3/play', '/exams/4/play', '/reviser', '/reviser/2', '/profil', '/mot-de-passe', '/demande-acces'] as $path) {
+        foreach (['/articles', '/articles/12', '/entrainement', '/examens', '/quizzes/3', '/quizzes/3/play', '/exams/4/play', '/reviser', '/reviser/2', '/profil', '/progression', '/mot-de-passe', '/demande-acces'] as $path) {
             $this->get($path)->assertStatus(200)->assertSee('id="app"', false);
         }
     }

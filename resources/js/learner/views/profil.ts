@@ -2,6 +2,7 @@ import { api } from '../api/client';
 import { escapeHtml, html, raw } from '../core/html';
 import { db } from '../db/schema';
 import type { Preferences } from '../domain/types';
+import { isGuest, leaveGuestMode } from '../guest/guest-session';
 import { badgesStore, preferencesStore, sessionStore, syncStore } from '../stores';
 import { clearLocalData, dispatch, sync } from '../sync/engine';
 import { applyPreferences } from '../theme';
@@ -14,6 +15,11 @@ import { levelProgress } from './helpers';
 export function mount(el: HTMLElement): void {
   const user = sessionStore.get();
   if (!user) return;
+
+  if (isGuest()) {
+    mountGuest(el);
+    return;
+  }
 
   const preferences = preferencesStore.get();
   const badges = badgesStore.get();
@@ -75,7 +81,95 @@ export function mount(el: HTMLElement): void {
         </div>
       </section>
 
-      <!-- Préférences -->
+      ${raw(preferencesSection(preferences))}
+
+      <!-- Sécurité -->
+      <section class="rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-5 flex flex-col gap-3">
+        <h3 class="font-bold text-sm">Sécurité</h3>
+        <p class="text-xs text-zinc-500">Le changement de mot de passe nécessite une connexion internet.</p>
+        <button id="btn-password" class="rounded-xl border border-zinc-300 dark:border-zinc-700 font-bold text-sm py-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-800">
+          <i class="bi bi-key"></i> Changer mon mot de passe
+        </button>
+      </section>
+
+      <!-- Application -->
+      ${canOfferInstall()
+        ? raw(`
+          <section class="rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-5 flex flex-col gap-3">
+            <h3 class="font-bold text-sm">Application</h3>
+            <p class="text-xs text-zinc-500">Installez Learn&Quiz sur votre écran d'accueil : plein écran, hors-ligne, comme une vraie application.</p>
+            <button id="btn-install" class="rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-sm py-2.5">
+              <i class="bi bi-download"></i> Installer l'application
+            </button>
+          </section>`)
+        : ''}
+
+      <!-- Synchronisation -->
+      <section class="rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-5 flex flex-col gap-3">
+        <h3 class="font-bold text-sm">Synchronisation</h3>
+        <p class="text-xs text-zinc-500">
+          ${syncState.pendingActions > 0
+            ? `${syncState.pendingActions} action(s) en attente de synchronisation.`
+            : 'Toutes vos données sont synchronisées.'}
+          ${syncState.lastSyncAt ? ` Dernière sync : ${new Date(syncState.lastSyncAt).toLocaleTimeString('fr-FR')}` : ''}
+        </p>
+        <button id="btn-sync" class="rounded-xl border border-sky-300 dark:border-sky-500/40 text-sky-600 dark:text-sky-400 font-bold text-sm py-2.5 hover:bg-sky-50 dark:hover:bg-sky-500/10">
+          <i class="bi bi-arrow-repeat"></i> Synchroniser maintenant
+        </button>
+      </section>
+
+      <button id="btn-logout" class="rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold py-3 text-sm">
+        <i class="bi bi-box-arrow-right"></i> Se déconnecter
+      </button>
+    </div>
+  `;
+
+  // ------------------------------------------------------------- Handlers
+
+  bindPreferences(el);
+
+  el.querySelector('#btn-install')?.addEventListener('click', () => {
+    void triggerInstall();
+  });
+
+  el.querySelector('#btn-password')?.addEventListener('click', () => {
+    if (!syncStore.get().online) {
+      toast('Connexion internet requise pour changer le mot de passe.', 'warning');
+      return;
+    }
+    openPasswordDialog();
+  });
+
+  el.querySelector('#btn-sync')?.addEventListener('click', () => {
+    void sync().then(() => toast('Synchronisation terminée.', 'success'));
+  });
+
+  el.querySelector('#btn-logout')?.addEventListener('click', () => {
+    void (async () => {
+      const pendingCount = syncStore.get().pendingActions;
+      const ok = await confirmDialog(
+        'Se déconnecter ?',
+        pendingCount > 0
+          ? `${pendingCount} action(s) non synchronisée(s) seront perdues. Synchronisez d'abord si possible.`
+          : 'Vos données locales seront effacées de cet appareil.',
+        'Déconnexion',
+      );
+      if (!ok) return;
+
+      try {
+        await sync();
+        await api.logout();
+      } catch {
+        /* hors-ligne : la session serveur expirera d'elle-même */
+      }
+      await clearLocalData();
+      window.dispatchEvent(new CustomEvent('learner:logged-out'));
+    })();
+  });
+}
+
+function preferencesSection(preferences: Preferences): string {
+  return html`
       <section class="rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-5 flex flex-col gap-4">
         <h3 class="font-bold text-sm">Préférences</h3>
 
@@ -125,56 +219,17 @@ export function mount(el: HTMLElement): void {
           </button>
         </div>
       </section>
-
-      <!-- Sécurité -->
-      <section class="rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-5 flex flex-col gap-3">
-        <h3 class="font-bold text-sm">Sécurité</h3>
-        <p class="text-xs text-zinc-500">Le changement de mot de passe nécessite une connexion internet.</p>
-        <button id="btn-password" class="rounded-xl border border-zinc-300 dark:border-zinc-700 font-bold text-sm py-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-800">
-          <i class="bi bi-key"></i> Changer mon mot de passe
-        </button>
-      </section>
-
-      <!-- Application -->
-      ${canOfferInstall()
-        ? raw(`
-          <section class="rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-5 flex flex-col gap-3">
-            <h3 class="font-bold text-sm">Application</h3>
-            <p class="text-xs text-zinc-500">Installez Learn&Quiz sur votre écran d'accueil : plein écran, hors-ligne, comme une vraie application.</p>
-            <button id="btn-install" class="rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-sm py-2.5">
-              <i class="bi bi-download"></i> Installer l'application
-            </button>
-          </section>`)
-        : ''}
-
-      <!-- Synchronisation -->
-      <section class="rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-5 flex flex-col gap-3">
-        <h3 class="font-bold text-sm">Synchronisation</h3>
-        <p class="text-xs text-zinc-500">
-          ${syncState.pendingActions > 0
-            ? `${syncState.pendingActions} action(s) en attente de synchronisation.`
-            : 'Toutes vos données sont synchronisées.'}
-          ${syncState.lastSyncAt ? ` Dernière sync : ${new Date(syncState.lastSyncAt).toLocaleTimeString('fr-FR')}` : ''}
-        </p>
-        <button id="btn-sync" class="rounded-xl border border-sky-300 dark:border-sky-500/40 text-sky-600 dark:text-sky-400 font-bold text-sm py-2.5 hover:bg-sky-50 dark:hover:bg-sky-500/10">
-          <i class="bi bi-arrow-repeat"></i> Synchroniser maintenant
-        </button>
-      </section>
-
-      <button id="btn-logout" class="rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold py-3 text-sm">
-        <i class="bi bi-box-arrow-right"></i> Se déconnecter
-      </button>
-    </div>
   `;
+}
 
-  // ------------------------------------------------------------- Handlers
-
+function bindPreferences(el: HTMLElement): void {
   const savePrefs = (patch: Partial<Preferences>): void => {
     const next = { ...preferencesStore.get(), ...patch };
     preferencesStore.set(next);
     applyPreferences(next);
     void db.preferences.put({ ...next, _key: 'me' });
-    void dispatch('preferences_update', patch as Record<string, unknown>);
+    // Invité : enregistrement strictement local, rien à synchroniser.
+    if (!isGuest()) void dispatch('preferences_update', patch as Record<string, unknown>);
     mount(el); // re-rendu avec l'état à jour
   };
 
@@ -187,44 +242,21 @@ export function mount(el: HTMLElement): void {
   el.querySelector('[data-pref-sound]')?.addEventListener('click', () => {
     savePrefs({ sound_enabled: !preferencesStore.get().sound_enabled });
   });
+}
 
-  el.querySelector('#btn-install')?.addEventListener('click', () => {
-    void triggerInstall();
-  });
-
-  el.querySelector('#btn-password')?.addEventListener('click', () => {
-    if (!syncStore.get().online) {
-      toast('Connexion internet requise pour changer le mot de passe.', 'warning');
-      return;
-    }
-    openPasswordDialog();
-  });
-
-  el.querySelector('#btn-sync')?.addEventListener('click', () => {
-    void sync().then(() => toast('Synchronisation terminée.', 'success'));
-  });
-
-  el.querySelector('#btn-logout')?.addEventListener('click', () => {
-    void (async () => {
-      const pendingCount = syncStore.get().pendingActions;
-      const ok = await confirmDialog(
-        'Se déconnecter ?',
-        pendingCount > 0
-          ? `${pendingCount} action(s) non synchronisée(s) seront perdues. Synchronisez d'abord si possible.`
-          : 'Vos données locales seront effacées de cet appareil.',
-        'Déconnexion',
-      );
-      if (!ok) return;
-
-      try {
-        await sync();
-        await api.logout();
-      } catch {
-        /* hors-ligne : la session serveur expirera d'elle-même */
-      }
-      await clearLocalData();
-      window.dispatchEvent(new CustomEvent('learner:logged-out'));
-    })();
+/** Profil invité : préférences locales et sortie du mode découverte. */
+function mountGuest(el: HTMLElement): void {
+  el.innerHTML = html`
+    <div class="max-w-xl mx-auto flex flex-col gap-5">
+      ${raw(preferencesSection(preferencesStore.get()))}
+      <button id="btn-leave-guest" class="rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold py-3 text-sm">
+        <i class="bi bi-box-arrow-right"></i> Quitter le mode découverte
+      </button>
+    </div>
+  `;
+  bindPreferences(el);
+  el.querySelector('#btn-leave-guest')?.addEventListener('click', () => {
+    void leaveGuestMode();
   });
 }
 

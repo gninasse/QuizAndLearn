@@ -1,5 +1,7 @@
 import { api } from '../api/client';
 import { escapeHtml, html, raw } from '../core/html';
+import { isGuest } from '../guest/guest-session';
+import { lockedCardHtml } from '../guest/guest-ui';
 import { getMeta, setMeta } from '../db/schema';
 import type { LeaderboardGroup } from '../domain/types';
 import { decksStore, quizzesStore, sessionStore, syncStore } from '../stores';
@@ -16,6 +18,11 @@ const LEADERBOARD_CACHE_KEY = 'leaderboard_cache';
 export function mount(el: HTMLElement): void {
   const user = sessionStore.get();
   if (!user) return;
+
+  if (isGuest()) {
+    el.innerHTML = html`<div class="max-w-md mx-auto py-6">${raw(lockedCardHtml('progression'))}</div>`;
+    return;
+  }
 
   const quizzes = quizzesStore.get();
   const decks = decksStore.get();

@@ -378,6 +378,7 @@ foreach ([
     '/reviser',
     '/reviser/{deckId}',
     '/profil',
+    '/progression',
     '/mot-de-passe',
     '/demande-acces',
 ] as $spaPath) {

@@ -3,6 +3,8 @@ import { db } from '../db/schema';
 import { xpForQuizCompletion } from '../domain/gamification';
 import { scoreQuiz, type AnswerValue } from '../domain/scoring';
 import type { QuizDraft, QuizItem, QuizQuestion } from '../domain/types';
+import { isGuest } from '../guest/guest-session';
+import { accessCtaHtml } from '../guest/guest-ui';
 import { quizzesStore, sessionStore } from '../stores';
 import { dispatch } from '../sync/engine';
 import { confirmDialog, dangerDialog } from '../ui/app-dialog';
@@ -634,6 +636,8 @@ async function mountAsync(el: HTMLElement, params: Record<string, string>): Prom
               </details>
             `)
           : ''}
+
+        ${isGuest() ? raw(accessCtaHtml('quiz')) : ''}
 
         <div class="flex gap-3 justify-center flex-wrap">
           ${!state.practice && result.passed

@@ -1,4 +1,6 @@
 import { html, raw } from '../core/html';
+import { isGuest } from '../guest/guest-session';
+import { lockedCardHtml } from '../guest/guest-ui';
 import type { ExamItem } from '../domain/types';
 import { examsStore } from '../stores';
 import { formatDateTime } from './helpers';
@@ -66,6 +68,11 @@ function examCard(exam: ExamItem): string {
 }
 
 export function mount(el: HTMLElement): void {
+  if (isGuest()) {
+    el.innerHTML = html`<div class="max-w-md mx-auto py-6">${raw(lockedCardHtml('exams'))}</div>`;
+    return;
+  }
+
   const exams = examsStore.get();
   const open = exams.filter((e) => e.status === 'available' || e.status === 'in_progress');
   const others = exams.filter((e) => !open.includes(e));
