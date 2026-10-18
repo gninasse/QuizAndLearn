@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Modules\Core\Services\GamificationService;
+use Modules\Core\Support\LoginResolver;
 
 /**
  * Session du volet apprenant (API v1) : login, profil courant, logout.
@@ -28,21 +30,16 @@ class SessionController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        $login = $request->input('login');
-        $field = filter_var($login, FILTER_VALIDATE_EMAIL) ? 'email' : 'user_name';
+        $user = LoginResolver::find($request->input('login'));
 
-        if (! Auth::attempt([
-            $field => $login,
-            'password' => $request->input('password'),
-            'is_active' => true,
-        ], true)) {
+        if (! $user || ! $user->is_active || ! Hash::check($request->input('password'), $user->password)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Identifiants invalides.',
             ], 401);
         }
 
-        $user = Auth::user();
+        Auth::login($user, true);
 
         if (! $user->learner()->exists()) {
             Auth::logout();

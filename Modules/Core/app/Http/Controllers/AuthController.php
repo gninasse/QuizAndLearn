@@ -5,6 +5,8 @@ namespace Modules\Core\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Modules\Core\Support\LoginResolver;
 
 class AuthController extends Controller
 {
@@ -24,12 +26,10 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        $login = $request->input('login');
-        $password = $request->input('password');
+        $user = LoginResolver::find($request->input('login'));
 
-        $field = filter_var($login, FILTER_VALIDATE_EMAIL) ? 'email' : 'user_name';
-
-        if (Auth::attempt([$field => $login, 'password' => $password, 'is_active' => true], true)) {
+        if ($user && $user->is_active && Hash::check($request->input('password'), $user->password)) {
+            Auth::login($user, true);
             $request->session()->regenerate();
 
             return redirect()->intended(route('cores.dashboard'));

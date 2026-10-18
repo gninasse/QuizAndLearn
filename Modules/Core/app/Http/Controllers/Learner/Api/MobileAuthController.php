@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Modules\Core\Models\User;
 use Modules\Core\Services\GamificationService;
+use Modules\Core\Support\LoginResolver;
 
 /**
  * Authentification de l'application mobile (Sanctum Bearer tokens).
@@ -50,12 +51,9 @@ class MobileAuthController extends Controller
             ], 429, ['Retry-After' => $seconds]);
         }
 
-        $login = $request->input('login');
-        $field = filter_var($login, FILTER_VALIDATE_EMAIL) ? 'email' : 'user_name';
+        $user = LoginResolver::find($request->input('login'));
 
-        $user = User::where($field, $login)->where('is_active', true)->first();
-
-        if (! $user || ! Hash::check($request->input('password'), $user->password)) {
+        if (! $user || ! $user->is_active || ! Hash::check($request->input('password'), $user->password)) {
             RateLimiter::hit($throttleKey, 60);
 
             return response()->json([
