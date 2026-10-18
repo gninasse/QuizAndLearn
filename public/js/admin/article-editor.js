@@ -268,8 +268,9 @@
               if (!value) {
                 return 'Vous devez saisir une URL !';
               }
-              if (!window.parseVideoEmbed(value)) {
-                return 'Lien non reconnu : seuls les liens YouTube et Vimeo sont acceptés.';
+              var err = window.videoEmbedError(value, window.VIDEO_EMBED_PROVIDERS);
+              if (err) {
+                return err;
               }
             }
           }).then((result) => {

@@ -102,7 +102,9 @@ class GeneralSettingsController extends Controller
         try {
             $result = $videos->driver()->healthCheck();
         } catch (\Throwable $e) {
-            $result = ['ok' => false, 'message' => 'Test impossible : '.class_basename($e).'.'];
+            report($e);
+
+            return response()->json(['ok' => false, 'message' => 'Test impossible. Consultez les journaux.']);
         }
 
         return response()->json(['ok' => (bool) $result['ok'], 'message' => (string) $result['message']]);

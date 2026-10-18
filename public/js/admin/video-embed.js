@@ -6,7 +6,7 @@
 (function (root, factory) {
     var api = factory();
     if (typeof module === 'object' && module.exports) { module.exports = api; }
-    if (root) { root.parseVideoEmbed = api.parseVideoEmbed; root.buildVideoEmbedHtml = api.buildVideoEmbedHtml; }
+    if (root) { root.parseVideoEmbed = api.parseVideoEmbed; root.buildVideoEmbedHtml = api.buildVideoEmbedHtml; root.videoEmbedError = api.videoEmbedError; }
 })(typeof window !== 'undefined' ? window : null, function () {
     var YT_ID = /^[A-Za-z0-9_-]{11}$/;
     var VIMEO_ID = /^\d+$/;
@@ -59,5 +59,15 @@
             ' contenteditable="false"><span>Vidéo ' + label + '</span></div><p><br></p>';
     }
 
-    return { parseVideoEmbed: parseVideoEmbed, buildVideoEmbedHtml: buildVideoEmbedHtml };
+    /** Message d'erreur FR pour une saisie refusée, ou null si l'URL est acceptée. */
+    function videoEmbedError(value, allowed) {
+        var v = parseVideoEmbed(value);
+        if (!v) { return 'Lien non reconnu : seuls les liens YouTube et Vimeo sont acceptés.'; }
+        if (Array.isArray(allowed) && allowed.indexOf(v.provider) === -1) {
+            return (v.provider === 'youtube' ? 'YouTube' : 'Vimeo') + ' n\'est pas activé dans les réglages vidéo.';
+        }
+        return null;
+    }
+
+    return { parseVideoEmbed: parseVideoEmbed, buildVideoEmbedHtml: buildVideoEmbedHtml, videoEmbedError: videoEmbedError };
 });

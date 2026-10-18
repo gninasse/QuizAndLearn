@@ -135,7 +135,7 @@ window.insertWysiwygTag = function($textarea, cmd) {
         case 'video':
             uploadAndInsertMedia('video/mp4,video/webm,video/ogg,video/quicktime,.mp4,.m4v,.webm,.ogv,.mov', 'la vidéo', function(res) {
                 // Par référence : le lecteur obtient une source (éventuellement signée) à la lecture.
-                if (res.ref) {
+                if (res.ref && /^[0-9a-f-]{36}$/i.test(res.ref)) {
                     return `<video data-video-ref="${res.ref}" controls playsinline preload="metadata" class="my-2 w-100"></video>`;
                 }
                 return `<video controls playsinline preload="metadata" src="${res.url}" class="my-2 w-100"></video>`;
@@ -163,7 +163,7 @@ window.insertWysiwygTag = function($textarea, cmd) {
             cancelButtonText: 'Annuler',
             inputValidator: (value) => {
                 if (!value) return 'Vous devez saisir une URL !';
-                if (!window.parseVideoEmbed(value)) return 'Lien non reconnu : seuls les liens YouTube et Vimeo sont acceptés.';
+                return window.videoEmbedError(value, window.VIDEO_EMBED_PROVIDERS) || undefined;
             }
         }).then((result) => {
             if (!result.isConfirmed) return;

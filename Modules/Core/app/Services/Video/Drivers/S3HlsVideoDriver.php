@@ -73,7 +73,10 @@ class S3HlsVideoDriver implements AfterStoreHook, VideoDriver
 
             return ['ok' => true, 'message' => 'Stockage S3 accessible.'];
         } catch (Throwable $e) {
-            return ['ok' => false, 'message' => 'Stockage S3 inaccessible : '.$e->getMessage()];
+            // Le détail (bucket, endpoint, clé…) reste dans les journaux, jamais dans l'interface.
+            report($e);
+
+            return ['ok' => false, 'message' => 'Stockage S3 inaccessible. Consultez les journaux.'];
         }
     }
 }

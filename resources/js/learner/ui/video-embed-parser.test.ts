@@ -49,3 +49,12 @@ describe('parseVideoEmbed', () => {
         expect(html).toBe('<div class="brand-video" data-embed="vimeo" data-id="1" data-hash="ab" contenteditable="false"><span>Vidéo Vimeo</span></div><p><br></p>');
     });
 });
+
+describe('videoEmbedError', () => {
+    const { videoEmbedError } = mod.exports;
+    it('refuse un fournisseur désactivé et accepte les autres', () => {
+        expect(videoEmbedError('https://youtu.be/dQw4w9WgXcQ', ['vimeo'])).toMatch(/pas activé/);
+        expect(videoEmbedError('https://youtu.be/dQw4w9WgXcQ', ['youtube'])).toBeNull();
+        expect(videoEmbedError('https://evil.com/x', ['youtube'])).toMatch(/non reconnu/);
+    });
+});

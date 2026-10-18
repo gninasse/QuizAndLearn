@@ -72,6 +72,8 @@ return [
             'endpoint' => env('VIDEO_S3_ENDPOINT'),
             'use_path_style_endpoint' => env('VIDEO_S3_PATH_STYLE', false),
             'visibility' => 'private',
+            // Délais courts : un point d'accès injoignable ne doit pas bloquer le back-office.
+            'http' => ['connect_timeout' => 5, 'timeout' => 15],
             'throw' => true,
             'report' => false,
         ],

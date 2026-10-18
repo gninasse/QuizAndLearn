@@ -142,4 +142,28 @@ class VideoSettingsTest extends TestCase
         $this->assertStringNotContainsString('data-element="video-placeholder"', $html);
         $this->assertStringContainsString('VIDEO_EMBEDS_ENABLED = false', $html);
     }
+
+    public function test_health_check_never_forwards_exception_text(): void
+    {
+        $admin = $this->makeUser('boss', 'admin');
+        $driver = \Mockery::mock(VideoDriver::class);
+        $driver->shouldReceive('healthCheck')->andThrow(new \RuntimeException('AKIAFAKEKEY123 bucket-secret'));
+        $manager = \Mockery::mock(VideoManager::class)->makePartial();
+        $manager->shouldReceive('driver')->andReturn($driver);
+        $this->app->instance(VideoManager::class, $manager);
+
+        $res = $this->actingAs($admin)->postJson(route('cores.settings.video.test'))->assertOk();
+        $this->assertFalse($res->json('ok'));
+        $this->assertStringNotContainsString('AKIAFAKEKEY123', $res->getContent());
+    }
+
+    public function test_s3_health_check_message_hides_exception_detail(): void
+    {
+        \Illuminate\Support\Facades\Storage::shouldReceive('disk')->with('videos')
+            ->andThrow(new \RuntimeException('AKIAFAKEKEY123 https://bucket.s3.example/key'));
+        $result = (new \Modules\Core\Services\Video\Drivers\S3HlsVideoDriver('videos'))->healthCheck();
+
+        $this->assertFalse($result['ok']);
+        $this->assertStringNotContainsString('AKIAFAKEKEY123', $result['message']);
+    }
 }
