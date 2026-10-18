@@ -59,7 +59,12 @@ export function mount(el: HTMLElement, _params?: Record<string, string>): void {
           await db.profile.put({ ...updated, _key: 'me' });
         }
         toast('Mot de passe enregistré', 'success');
-        await fullBootstrap();
+        // Le mot de passe est changé : un échec du bootstrap ne doit plus rouvrir le formulaire.
+        try {
+          await fullBootstrap();
+        } catch {
+          /* la prochaine synchronisation rattrapera les données */
+        }
         // main.ts réagit à cet événement : retour à l'accueil.
         window.dispatchEvent(new CustomEvent('learner:authenticated'));
       } catch (e) {
