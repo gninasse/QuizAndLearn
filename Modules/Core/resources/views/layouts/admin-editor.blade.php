@@ -26,7 +26,7 @@
   
     <script>
       window.APP_TERMS = @json(app(\Modules\Core\Services\Terminology::class)->toArray() + ['fem_e' => term('fem_e')]);
-      window.T = function (key) { return (window.APP_TERMS && window.APP_TERMS[key]) || key; };
+      window.T = function (k) { var v = window.APP_TERMS && window.APP_TERMS[k]; return v == null ? k : v; };
     </script>
   @stack('css')
 </head>

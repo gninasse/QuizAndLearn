@@ -28,13 +28,16 @@ class GeneralSettingsController extends Controller
     {
         $this->authorizeAdmin();
 
-        $word = ['regex:/^[\pL][\pL \'’-]*$/u', 'max:30'];
+        $word = ['regex:/^[\pL][\pL \'’-]*$/u', 'max:30', 'not_regex:/^(l|le|la|les|un|une|du|des)([\'’ ]|$)/iu'];
         $validated = $request->validate([
             'preset' => ['required', Rule::in([...array_keys(Terminology::PRESETS), 'custom'])],
             'singular' => ['exclude_unless:preset,custom', 'required', 'string', ...$word],
             'plural' => ['exclude_unless:preset,custom', 'required', 'string', ...$word],
             'feminine' => ['exclude_unless:preset,custom', 'nullable', 'boolean'],
-        ], [], [
+        ], [
+            'singular.not_regex' => 'Saisissez le mot seul, sans article (ex. « équipe », pas « l\'équipe »).',
+            'plural.not_regex' => 'Saisissez le mot seul, sans article (ex. « équipes », pas « les équipes »).',
+        ], [
             'singular' => 'terme au singulier',
             'plural' => 'terme au pluriel',
         ]);

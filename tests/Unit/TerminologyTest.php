@@ -78,4 +78,18 @@ class TerminologyTest extends TestCase
         $this->assertSame('groupes', $arr['groups']);
         $this->assertSame('groupes', term('groups'));
     }
+
+    public function test_to_group_and_fem_e(): void
+    {
+        $t = new Terminology;
+        $this->assertSame('au groupe', $t->label('to_group'));
+        $this->assertSame('', $t->label('fem_e'));
+        $t->save(['preset' => 'classe']);
+        $this->assertSame('à la classe', $t->label('to_group'));
+        $this->assertSame('e', $t->label('fem_e'));
+        $t->save(['preset' => 'custom', 'singular' => 'équipe', 'plural' => 'équipes', 'feminine' => true]);
+        $this->assertSame("à l'équipe", $t->label('to_group'));
+        $t->save(['preset' => 'custom', 'singular' => 'atelier', 'plural' => 'ateliers', 'feminine' => false]);
+        $this->assertSame("à l'atelier", $t->label('to_group'));
+    }
 }

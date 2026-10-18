@@ -90,4 +90,26 @@ class TerminologySettingsTest extends TestCase
             ->assertJsonPath('terms.group', 'promotion')
             ->assertJsonPath('terms.the_group', 'la promotion');
     }
+
+    public function test_custom_rejects_leading_article(): void
+    {
+        $admin = $this->makeUser('boss', 'admin');
+
+        foreach (["l'équipe", 'la classe', 'les équipes', 'un atelier'] as $word) {
+            $this->actingAs($admin)->putJson(route('cores.settings.general.save'), [
+                'preset' => 'custom', 'singular' => $word, 'plural' => 'équipes',
+            ])->assertStatus(422)->assertJsonValidationErrors(['singular']);
+        }
+        $this->actingAs($admin)->putJson(route('cores.settings.general.save'), [
+            'preset' => 'custom', 'singular' => 'lab', 'plural' => 'labs',
+        ])->assertOk();
+    }
+
+    public function test_layout_fem_e_not_masked(): void
+    {
+        $admin = $this->makeUser('boss', 'admin');
+
+        $this->actingAs($admin)->get(route('cores.groups.index'))
+            ->assertSee('"fem_e":""', false);
+    }
 }

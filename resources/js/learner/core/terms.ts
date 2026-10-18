@@ -16,6 +16,7 @@ export const DEFAULT_TERMS: Readonly<Terms> = Object.freeze({
   a_group: 'un groupe',
   the_group: 'le groupe',
   of_group: 'du groupe',
+  to_group: 'au groupe',
   this_group: 'ce groupe',
   no_group: 'aucun groupe',
 });

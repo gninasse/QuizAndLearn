@@ -21,7 +21,7 @@ class Terminology
         'session' => ['singular' => 'session', 'plural' => 'sessions', 'feminine' => true],
     ];
 
-    public const KEYS = ['group', 'groups', 'Group', 'Groups', 'a_group', 'the_group', 'of_group', 'this_group', 'no_group'];
+    public const KEYS = ['group', 'groups', 'Group', 'Groups', 'a_group', 'the_group', 'of_group', 'to_group', 'this_group', 'no_group'];
 
     /**
      * @return array{preset: string, singular: string, plural: string, feminine: bool}
@@ -59,6 +59,7 @@ class Terminology
             'a_group' => ($fem ? 'une ' : 'un ').$s,
             'the_group' => $vowel ? "l'".$s : ($fem ? 'la ' : 'le ').$s,
             'of_group' => $vowel ? "de l'".$s : ($fem ? 'de la ' : 'du ').$s,
+            'to_group' => $vowel ? "à l'".$s : ($fem ? 'à la ' : 'au ').$s,
             'this_group' => $fem ? 'cette '.$s : ($vowel ? 'cet ' : 'ce ').$s,
             'no_group' => ($fem ? 'aucune ' : 'aucun ').$s,
             'fem_e' => $fem ? 'e' : '', // accord des adjectifs : « assigné{e}s » (usage Blade uniquement)

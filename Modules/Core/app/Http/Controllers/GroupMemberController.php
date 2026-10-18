@@ -183,8 +183,8 @@ class GroupMemberController extends Controller
         return response()->json([
             'success' => true,
             'message' => count($validated['learner_ids']) > 1
-                ? count($validated['learner_ids']).' apprenants ajoutés à '.term('the_group').'.'
-                : 'Apprenant ajouté à '.term('the_group').'.',
+                ? count($validated['learner_ids']).' apprenants ajoutés '.term('to_group').'.'
+                : 'Apprenant ajouté '.term('to_group').'.',
         ]);
     }
 
@@ -216,7 +216,7 @@ class GroupMemberController extends Controller
 
         $group->trainers()->syncWithoutDetaching($validated['trainer_ids']);
 
-        return response()->json(['success' => true, 'message' => 'Formateur(s) ajouté(s) à '.term('the_group').'.']);
+        return response()->json(['success' => true, 'message' => 'Formateur(s) ajouté(s) '.term('to_group').'.']);
     }
 
     public function removeTrainer(int $id, int $trainerId): JsonResponse

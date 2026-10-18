@@ -282,4 +282,16 @@ class ArticleEditorTest extends TestCase
             'article_id' => $this->article->id,
         ]);
     }
+
+    public function test_assign_group_message_default_and_feminine(): void
+    {
+        $url = route('cores.editor.articles.groups.assign', $this->article->id);
+
+        $this->actingAs($this->user)->postJson($url, ['group_id' => $this->group->id])
+            ->assertOk()->assertJsonPath('message', "Le groupe a été autorisé à accéder à l'article.");
+
+        app(\Modules\Core\Services\Terminology::class)->save(['preset' => 'classe']);
+        $this->actingAs($this->user)->postJson($url, ['group_id' => $this->group->id])
+            ->assertOk()->assertJsonPath('message', "La classe a été autorisée à accéder à l'article.");
+    }
 }

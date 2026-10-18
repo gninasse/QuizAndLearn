@@ -179,4 +179,22 @@ class GroupMemberPageTest extends TestCase
         auth()->forgetGuards();
         $this->withToken($token)->getJson('/api/mobile/v1/bootstrap')->assertUnauthorized();
     }
+
+    public function test_add_messages_default_and_feminine_wording(): void
+    {
+        $other = Learner::create(['user_id' => $this->makeUser('moussa')->id, 'matricule' => 'MAT-002']);
+        $trainer = Trainer::create(['user_id' => $this->makeUser('coach')->id]);
+
+        $this->actingAs($this->admin)
+            ->postJson(route('cores.groups.members.learners.add', $this->group->id), ['learner_ids' => [$other->id]])
+            ->assertOk()->assertJsonPath('message', 'Apprenant ajouté au groupe.');
+        $this->actingAs($this->admin)
+            ->postJson(route('cores.groups.members.trainers.add', $this->group->id), ['trainer_ids' => [$trainer->id]])
+            ->assertOk()->assertJsonPath('message', 'Formateur(s) ajouté(s) au groupe.');
+
+        app(\Modules\Core\Services\Terminology::class)->save(['preset' => 'classe']);
+        $this->actingAs($this->admin)
+            ->postJson(route('cores.groups.members.learners.add', $this->group->id), ['learner_ids' => [$other->id]])
+            ->assertOk()->assertJsonPath('message', 'Apprenant ajouté à la classe.');
+    }
 }

@@ -601,7 +601,7 @@
         data: { group_id: gId },
         success: function(response) {
           if (response.success) {
-            showToast('success', response.message || ('Accès accordé ' + T('of_group') + '.'));
+            showToast('success', response.message || ('Accès accordé ' + T('to_group') + '.'));
             $('#noGroupsPlaceholder').remove();
             
             var badgeHtml = '<div class="group-badge-card" data-id="' + gId + '">' +
