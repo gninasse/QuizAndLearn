@@ -22,6 +22,9 @@ class Video extends Model
         static::creating(function (Video $video) {
             $video->ref ??= (string) Str::uuid();
         });
+        // Les fichiers locaux des vidéos vitrine font partie de la liste invitée.
+        static::saved(fn () => \Modules\Core\Services\ShowcaseMedia::flush());
+        static::deleted(fn () => \Modules\Core\Services\ShowcaseMedia::flush());
     }
 
     public function uploader(): BelongsTo

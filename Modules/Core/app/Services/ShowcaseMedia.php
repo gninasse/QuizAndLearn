@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Cache;
 use Modules\Core\Models\Article;
 use Modules\Core\Models\FlashcardItem;
 use Modules\Core\Models\Question;
+use Modules\Core\Models\Video;
 
 /**
  * Médias (/storage/...) référencés par le contenu vitrine actif : seuls
@@ -69,6 +70,25 @@ class ShowcaseMedia
                 $collect($card->recto);
                 $collect($card->verso);
             });
+
+        // Vidéos du pilote local : la lecture renvoie /storage/{location},
+        // servi par MediaController — leur fichier doit donc être autorisé.
+        $refs = [];
+        foreach (array_keys($found) as $key) {
+            if (str_starts_with($key, self::VIDEO_PREFIX)) {
+                $refs[] = substr($key, strlen(self::VIDEO_PREFIX));
+            }
+        }
+        if ($refs !== []) {
+            Video::whereIn('ref', $refs)->where('driver', 'local')
+                ->pluck('location')
+                ->each(function (?string $location) use (&$found): void {
+                    $path = ltrim((string) $location, '/');
+                    if ($path !== '' && ! str_contains($path, '..') && ! str_contains($path, "\0")) {
+                        $found[$path] = true;
+                    }
+                });
+        }
 
         return $found;
     }

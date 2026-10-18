@@ -133,7 +133,28 @@ class VideoDriverLocalTest extends TestCase
         $this->withHeader('X-Guest-Token', $token)->getJson("/api/showcase/v1/videos/{$shown->ref}/playback")
             ->assertOk()->assertJsonPath('url', '/storage/uploads/media/a.mp4');
         $this->withHeader('X-Guest-Token', $token)->getJson("/api/showcase/v1/videos/{$hidden->ref}/playback")
-            ->assertForbidden();    }
+            ->assertForbidden();
+    }
+
+    public function test_guest_can_read_local_file_of_showcase_video_only(): void
+    {
+        AppSetting::put('showcase.enabled', true);
+        Storage::disk('public')->put('uploads/media/a.mp4', 'shown');
+        Storage::disk('public')->put('uploads/media/b.mp4', 'hidden');
+        $shown = $this->makeVideo();
+        $this->makeVideo(['location' => 'uploads/media/b.mp4']);
+        Article::create([
+            'title' => 'Vitrine',
+            'content' => '<div data-video-ref="'.$shown->ref.'"></div>',
+            'is_active' => true, 'is_showcase' => true, 'estimated_reading_time' => 1,
+        ]);
+        $token = GuestToken::issue();
+
+        $url = $this->withHeader('X-Guest-Token', $token)
+            ->getJson("/api/showcase/v1/videos/{$shown->ref}/playback")->assertOk()->json('url');
+        $this->withHeader('X-Guest-Token', $token)->get($url)->assertOk();
+        $this->withHeader('X-Guest-Token', $token)->get('/storage/uploads/media/b.mp4')->assertForbidden();
+    }
 
     public function test_impersonation_can_read_playback(): void
     {
