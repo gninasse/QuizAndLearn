@@ -155,6 +155,73 @@ client_max_body_size 120M;
 
 Puis `sudo systemctl reload php8.2-fpm nginx`.
 
+## 5 bis. Vidéos (pilotes d'hébergement)
+
+Le pilote se choisit par `MEDIA_VIDEO_DRIVER` (`local` par défaut). Chaque vidéo
+mémorise son pilote d'origine : changer de pilote n'affecte que les nouveaux
+envois, les vidéos existantes restent lues par leur pilote.
+
+| Pilote | Stockage | Lecture |
+|---|---|---|
+| `local` | disque `public` (`/storage/…`) | fichier MP4 direct, aucun service externe |
+| `s3_hls` | bucket S3 compatible (AWS, Scaleway, MinIO…) | HLS généré par ffmpeg, segments en URL temporaires (15 min) |
+| `bunny` | Bunny Stream | HLS du CDN Bunny, URL signées par jeton (15 min) |
+
+### Pilote `s3_hls`
+
+```dotenv
+MEDIA_VIDEO_DRIVER=s3_hls
+VIDEO_S3_DISK=videos
+VIDEO_S3_KEY=…
+VIDEO_S3_SECRET=…
+VIDEO_S3_REGION=…
+VIDEO_S3_BUCKET=…
+VIDEO_S3_ENDPOINT=https://…      # vide pour AWS
+VIDEO_S3_PATH_STYLE=false        # true pour MinIO
+FFMPEG_BINARY=ffmpeg
+```
+
+- **ffmpeg** doit être installé sur le serveur qui exécute le worker :
+  `sudo apt install ffmpeg` puis `ffmpeg -version` (ou indiquer le chemin dans `FFMPEG_BINARY`).
+- **Worker de file obligatoire** : la conversion HLS est un job (`QUEUE_CONNECTION=database`
+  ou `redis`, jamais `sync` en production). Voir §7 : `php artisan queue:work --timeout=3700`
+  (le job peut durer jusqu'à 1 h ; le `retry_after` de la connexion doit être supérieur).
+- Tant que la conversion n'est pas terminée, la vidéo affiche « Vidéo en cours de préparation ».
+- **CORS du bucket** : le lecteur charge les segments directement depuis le bucket.
+  Autoriser `GET` (et `HEAD`) depuis l'origine de l'application :
+
+```json
+[{"AllowedOrigins": ["https://learn.example.com"],
+  "AllowedMethods": ["GET", "HEAD"],
+  "AllowedHeaders": ["*"],
+  "MaxAgeSeconds": 3000}]
+```
+
+Le bucket doit rester **privé** (pas de lecture publique) : seules les URL temporaires y donnent accès.
+
+### Pilote `bunny`
+
+```dotenv
+MEDIA_VIDEO_DRIVER=bunny
+BUNNY_STREAM_LIBRARY_ID=…   # identifiant de la bibliothèque Stream
+BUNNY_STREAM_API_KEY=…      # clé d'API de la bibliothèque (jamais exposée)
+BUNNY_STREAM_CDN_HOST=vz-xxxx.b-cdn.net   # nom d'hôte CDN de la bibliothèque
+BUNNY_STREAM_TOKEN_KEY=…    # « URL Token Authentication Key » de la Pull Zone
+```
+
+Dans la console Bunny, sur la bibliothèque Stream :
+
+1. **Security → Token Authentication** : activer (méthode avancée, SHA-256) et copier la clé dans `BUNNY_STREAM_TOKEN_KEY`.
+   L'application signe un jeton de **répertoire** (`token_path=/{guid}/`) qui couvre la playlist et tous les segments.
+2. **Security → Allowed Domains** (restriction de domaine / referrer) : n'autoriser que le domaine de l'application,
+   afin que les liens ne soient pas utilisables depuis un autre site.
+3. Désactiver le téléchargement MP4 d'origine (**Encoding → MP4 Fallback**) pour ne servir que le HLS.
+
+La conversion est faite par Bunny : aucun ffmpeg ni worker n'est nécessaire. Le statut des vidéos en
+cours de traitement est interrogé à la lecture (au plus une fois par minute et par vidéo).
+
+Les clés ne s'affichent jamais dans le back-office (seulement « configuré / manquant »).
+
 ## 6. Serveur web
 
 ### Nginx (recommandé)

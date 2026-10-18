@@ -7,6 +7,7 @@ use Illuminate\Http\UploadedFile;
 use InvalidArgumentException;
 use Modules\Core\Models\User;
 use Modules\Core\Models\Video;
+use Modules\Core\Services\Video\Drivers\BunnyVideoDriver;
 use Modules\Core\Services\Video\Drivers\LocalVideoDriver;
 use Modules\Core\Services\Video\Drivers\S3HlsVideoDriver;
 
@@ -22,6 +23,7 @@ class VideoManager
     {
         $this->factories['local'] = fn () => new LocalVideoDriver;
         $this->factories['s3_hls'] = fn () => new S3HlsVideoDriver((string) config('media.video.s3_hls.disk', 'videos'));
+        $this->factories['bunny'] = fn () => new BunnyVideoDriver((array) config('media.video.bunny', []));
     }
 
     public function extend(string $name, Closure $factory): static

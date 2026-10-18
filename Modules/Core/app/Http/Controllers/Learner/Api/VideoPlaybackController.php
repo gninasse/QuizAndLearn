@@ -4,8 +4,9 @@ namespace Modules\Core\Http\Controllers\Learner\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Response;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Modules\Core\Models\User;
 use Modules\Core\Models\Video;
@@ -43,6 +44,16 @@ class VideoPlaybackController extends Controller
     {
         $video = preg_match('/^[0-9a-f-]{36}$/i', $ref) ? Video::where('ref', $ref)->first() : null;
         abort_unless($video, 404);
+
+        // Interroge le pilote au plus une fois par minute et par vidéo.
+        if ($video->status === 'processing' && Cache::add("video-refresh:{$video->id}", 1, 60)) {
+            try {
+                $this->videos->driver($video->driver)->refreshStatus($video);
+                $video->refresh();
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
 
         if ($video->status === 'processing') {
             return response()->json(['status' => 'processing'], 202);
