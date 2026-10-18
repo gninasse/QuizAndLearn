@@ -157,4 +157,27 @@ class KpiDashboardTest extends TestCase
         $this->actingAs($this->admin)->get(route('cores.dashboard'))
             ->assertOk()->assertSee('Tableau de bord');
     }
+
+    public function test_page_contains_filters_and_containers(): void
+    {
+        $res = $this->actingAs($this->admin)->get(route('cores.dashboard'));
+
+        $res->assertOk();
+        foreach (['kpi-period', 'kpi-group', 'kpi-weekly-chart', 'kpi-completion-chart', 'kpi-failed-table', 'kpi-inactive-table'] as $id) {
+            $res->assertSee('id="'.$id.'"', false);
+        }
+        $res->assertSee(term('Group'));
+        $res->assertSee('Tous les '.term('groups'));
+    }
+
+    public function test_trainer_filter_lists_only_own_groups(): void
+    {
+        $trainer = $this->makeTrainer('coach', [$this->groupA]);
+
+        $res = $this->actingAs($trainer)->get(route('cores.dashboard'));
+
+        $res->assertOk();
+        $res->assertSee('>A</option>', false);
+        $res->assertDontSee('>B</option>', false);
+    }
 }

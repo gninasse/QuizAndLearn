@@ -13,22 +13,10 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class DashboardController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Page du tableau de bord (les données arrivent en AJAX via kpis()).
      */
     public function index()
     {
-        $stats = [
-            'users_count' => \Modules\Core\Models\User::count(),
-            'roles_count' => \Spatie\Permission\Models\Role::count(),
-            'modules_count' => \Modules\Core\Models\Module::count(),
-            'activities_today' => \Modules\Core\Models\Activity::whereDate('created_at', today())->count(),
-        ];
-
-        $recentActivities = \Modules\Core\Models\Activity::with('causer')
-            ->latest()
-            ->limit(10)
-            ->get();
-
         $user = auth()->user();
         $groups = Group::query()
             ->when(! $user->hasAnyRole(['super-admin', 'admin', 'Admin']), function ($q) use ($user) {
@@ -38,7 +26,7 @@ class DashboardController extends Controller
             ->orderBy('name')
             ->get(['id', 'name']);
 
-        return view('core::dashboard.index', compact('stats', 'recentActivities', 'groups'));
+        return view('core::dashboard.index', compact('groups'));
     }
 
     /** Tous les indicateurs (JSON, mis en cache par KpiService). */
