@@ -170,6 +170,16 @@ export const api = {
     );
   },
 
+  // ------------------------------------------------ Notifications push
+
+  subscribePush(body: { endpoint: string; keys: { p256dh: string; auth: string } }) {
+    return request<unknown>('POST', '/push-subscriptions', body);
+  },
+
+  unsubscribePush(endpoint: string) {
+    return request<unknown>('DELETE', '/push-subscriptions', { endpoint });
+  },
+
   // ------------------------------------------------ Vitrine (mode découverte)
 
   /** Contenu vitrine ; pose le cookie httpOnly `lq_guest` (accès aux médias). */

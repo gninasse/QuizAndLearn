@@ -114,6 +114,7 @@ Route::middleware(['auth', 'staff'])->group(function () {
 
         Route::get('/parametres', [GeneralSettingsController::class, 'edit'])->name('settings.general');
         Route::put('/parametres', [GeneralSettingsController::class, 'save'])->name('settings.general.save');
+        Route::post('/parametres/notifications/test', [GeneralSettingsController::class, 'sendPushTest'])->name('settings.push.test');
 
         Route::get('/showcase/settings', [ShowcaseAdminController::class, 'settings'])->name('showcase.settings');
         Route::put('/showcase/settings', [ShowcaseAdminController::class, 'saveSettings'])->name('showcase.settings.save');
@@ -360,6 +361,9 @@ Route::prefix('api/learner/v1')->name('learn.v1.')->group(function () {
         Route::get('/leaderboard', [\Modules\Core\Http\Controllers\Learner\Api\ContentController::class, 'leaderboard'])->name('leaderboard');
 
         Route::post('/actions', [\Modules\Core\Http\Controllers\Learner\Api\ActionController::class, 'store'])->name('actions');
+
+        Route::post('/push-subscriptions', [\Modules\Core\Http\Controllers\Learner\Api\PushSubscriptionController::class, 'store'])->name('push.store');
+        Route::delete('/push-subscriptions', [\Modules\Core\Http\Controllers\Learner\Api\PushSubscriptionController::class, 'destroy'])->name('push.destroy');
 
         Route::post('/exams/{exam}/attempts', [\Modules\Core\Http\Controllers\Learner\Api\ExamAttemptController::class, 'store'])->name('exams.attempts.store');
         Route::patch('/exams/{exam}/attempts/{attempt}', [\Modules\Core\Http\Controllers\Learner\Api\ExamAttemptController::class, 'update'])->name('exams.attempts.update');

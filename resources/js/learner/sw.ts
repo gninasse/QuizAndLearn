@@ -17,6 +17,8 @@ import { cleanupOutdatedCaches, createHandlerBoundToURL, precacheAndRoute } from
 import { NavigationRoute, registerRoute } from 'workbox-routing';
 import { CacheFirst, NetworkOnly } from 'workbox-strategies';
 
+import { pickLearnerClient } from './sw-clients';
+
 declare const self: ServiceWorkerGlobalScope;
 
 self.skipWaiting();
@@ -85,4 +87,82 @@ self.addEventListener('message', (event) => {
   if (event.data === 'skip-waiting') {
     void self.skipWaiting();
   }
+});
+
+// ---------------------------------------------------------------- Web Push
+// Aucun cache : le service worker se contente d'afficher la notification.
+
+interface PushPayload {
+  title: string;
+  body: string;
+  url: string;
+  tag?: string;
+  icon: string;
+}
+
+function parsePushPayload(event: PushEvent): PushPayload {
+  const fallback: PushPayload = {
+    title: 'Learn&Quiz',
+    body: 'Nouvelle notification',
+    url: '/',
+    icon: '/icons/icon-192x192.png',
+  };
+  try {
+    const data = event.data?.json() as Partial<PushPayload> | undefined;
+    if (!data || typeof data.title !== 'string' || data.title === '') return fallback;
+    return {
+      title: data.title,
+      body: typeof data.body === 'string' ? data.body : '',
+      url: typeof data.url === 'string' ? data.url : '/',
+      tag: typeof data.tag === 'string' ? data.tag : undefined,
+      icon: typeof data.icon === 'string' ? data.icon : fallback.icon,
+    };
+  } catch {
+    return fallback;
+  }
+}
+
+/** Seules les URL de même origine sont ouvertes ; sinon l'accueil. */
+function safeSameOriginUrl(raw: unknown): string {
+  try {
+    const url = new URL(typeof raw === 'string' ? raw : '/', self.location.origin);
+    return url.origin === self.location.origin ? url.href : new URL('/', self.location.origin).href;
+  } catch {
+    return new URL('/', self.location.origin).href;
+  }
+}
+
+self.addEventListener('push', (event) => {
+  const payload = parsePushPayload(event);
+  event.waitUntil(
+    self.registration.showNotification(payload.title, {
+      body: payload.body,
+      icon: payload.icon,
+      badge: '/icons/icon-192x192.png',
+      tag: payload.tag,
+      data: { url: payload.url },
+    }),
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const target = safeSameOriginUrl((event.notification.data as { url?: string } | null)?.url);
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (clients) => {
+      // Jamais un onglet back-office : seule une fenêtre apprenant est réutilisée.
+      const client = pickLearnerClient(clients as readonly WindowClient[], self.location.origin);
+      if (client) {
+        try {
+          await client.focus();
+          await client.navigate(target);
+          return;
+        } catch {
+          /* client non contrôlé : navigate() est refusé, repli sur openWindow */
+        }
+      }
+      await self.clients.openWindow(target);
+    }),
+  );
 });

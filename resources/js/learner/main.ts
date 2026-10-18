@@ -11,6 +11,7 @@ import {
   isImpersonationEnded,
   onConsultationEnd,
 } from './consultation/consultation';
+import { resyncPushSubscription } from './core/push';
 import { db } from './db/schema';
 import { loadGuestSettings } from './guest/guest-session';
 import { Router, type RouteDefinition } from './router';
@@ -143,6 +144,8 @@ async function boot(): Promise<void> {
 
   window.addEventListener('learner:authenticated', () => {
     applyPreferences(preferencesStore.get());
+    // Navigateur partagé : l'abonnement push présent passe au compte connecté.
+    void resyncPushSubscription(sessionStore.get(), consultation);
     if (sessionStore.get()?.must_change_password) {
       void router.go('/mot-de-passe', true);
       return;
@@ -214,6 +217,8 @@ async function boot(): Promise<void> {
   if (hasLocalSession && navigator.onLine) {
     void sync();
     maybeShowInstallBanner();
+    // Session existante : réaffecte l'abonnement push de ce navigateur (sans attendre).
+    void resyncPushSubscription(sessionStore.get(), consultation);
   }
 
   // Compteur d'actions en attente affiché dans le header (déjà via stores).

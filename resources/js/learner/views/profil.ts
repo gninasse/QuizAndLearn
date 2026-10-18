@@ -12,6 +12,7 @@ import { avatarHtml } from '../ui/avatar';
 import { canOfferInstall, triggerInstall } from '../ui/install';
 import { confirmDialog } from '../ui/app-dialog';
 import { toast } from '../ui/app-toast';
+import { disablePush, enablePush, pushState, pushSupport } from '../core/push';
 import { levelProgress } from './helpers';
 
 export function mount(el: HTMLElement): void {
@@ -88,6 +89,10 @@ export function mount(el: HTMLElement): void {
 
       ${consultation ? '' : raw(preferencesSection(preferences))}
 
+      ${!consultation && user.push?.public_key
+        ? raw('<section data-push-card hidden class="rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-5 flex flex-col gap-3"></section>')
+        : ''}
+
       <!-- Sécurité -->
       ${consultation ? '' : raw(html`<section class="rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-5 flex flex-col gap-3">
         <h3 class="font-bold text-sm">Sécurité</h3>
@@ -140,6 +145,7 @@ export function mount(el: HTMLElement): void {
   // ------------------------------------------------------------- Handlers
 
   bindPreferences(el);
+  if (!consultation && user.push?.public_key) void renderPushCard(el, user.push.public_key);
 
   el.querySelector('#btn-install')?.addEventListener('click', () => {
     void triggerInstall();
@@ -169,6 +175,10 @@ export function mount(el: HTMLElement): void {
       );
       if (!ok) return;
 
+      // Navigateur partagé : plus aucune notification de l'ancien compte.
+      // Jamais bloquant : erreurs ignorées, 3 s maximum.
+      await Promise.race([disablePush(), new Promise<void>((resolve) => setTimeout(resolve, 3000))]).catch(() => undefined);
+
       try {
         await sync();
         await api.logout();
@@ -177,6 +187,66 @@ export function mount(el: HTMLElement): void {
       }
       await clearLocalData();
       window.dispatchEvent(new CustomEvent('learner:logged-out'));
+    })();
+  });
+}
+
+/** Carte « Notifications » : rendue après lecture de l'état (aucune demande de permission ici). */
+async function renderPushCard(el: HTMLElement, publicKey: string): Promise<void> {
+  const card = el.querySelector<HTMLElement>('[data-push-card]');
+  if (!card) return;
+
+  const support = pushSupport();
+  // `serviceWorker.ready` ne se résout jamais sans SW enregistré : 3 s max, puis carte masquée.
+  const state =
+    support === 'supported'
+      ? await Promise.race([pushState(), new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000))])
+      : 'off';
+  if (state === null) {
+    card.remove();
+    return;
+  }
+  card.hidden = false;
+  const title = '<h3 class="font-bold text-sm">Notifications</h3>';
+
+  if (support === 'unsupported') {
+    card.remove();
+    return;
+  }
+  if (support === 'ios-install-needed') {
+    card.innerHTML = html`${raw(title)}<p class="text-xs text-zinc-500">Sur iPhone, ajoutez d'abord l'application à l'écran d'accueil (Partager → Sur l'écran d'accueil).</p>`;
+    return;
+  }
+  if (state === 'denied') {
+    card.innerHTML = html`${raw(title)}<p class="text-xs text-zinc-500">Notifications bloquées dans les réglages du navigateur.</p>`;
+    return;
+  }
+
+  const on = state === 'on';
+  card.innerHTML = html`
+    ${raw(title)}
+    <div class="flex items-center justify-between">
+      <span class="text-sm font-medium">Recevoir les notifications</span>
+      <button data-push-switch role="switch" aria-checked="${on}" aria-label="Recevoir les notifications"
+              class="relative w-12 h-7 rounded-full transition-colors ${on ? 'bg-sky-600' : 'bg-zinc-300 dark:bg-zinc-700'}">
+        <span class="absolute top-1 ${on ? 'left-6' : 'left-1'} w-5 h-5 rounded-full bg-white transition-all"></span>
+      </button>
+    </div>
+    ${on ? raw('<p class="text-xs text-zinc-500">Nouveaux contenus, révisions et examens. Jamais la nuit.</p>') : ''}`;
+
+  const toggle = card.querySelector<HTMLButtonElement>('[data-push-switch]');
+  toggle?.addEventListener('click', () => {
+    if (toggle.disabled) return;
+    toggle.disabled = true;
+    toggle.setAttribute('aria-busy', 'true');
+    void (async () => {
+      if (on) {
+        await disablePush();
+      } else {
+        const result = await enablePush(publicKey);
+        if (result === 'error') toast("Impossible d'activer les notifications.", 'error');
+      }
+      await renderPushCard(el, publicKey);
     })();
   });
 }
