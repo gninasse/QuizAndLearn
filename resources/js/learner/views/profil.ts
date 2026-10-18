@@ -3,6 +3,7 @@ import { escapeHtml, html, raw } from '../core/html';
 import { db } from '../db/schema';
 import type { Preferences } from '../domain/types';
 import { isGuest, leaveGuestMode } from '../guest/guest-session';
+import { accessCtaHtml } from '../guest/guest-ui';
 import { badgesStore, preferencesStore, sessionStore, syncStore } from '../stores';
 import { clearLocalData, dispatch, sync } from '../sync/engine';
 import { applyPreferences } from '../theme';
@@ -248,6 +249,7 @@ function bindPreferences(el: HTMLElement): void {
 function mountGuest(el: HTMLElement): void {
   el.innerHTML = html`
     <div class="max-w-xl mx-auto flex flex-col gap-5">
+      ${raw(accessCtaHtml('profile'))}
       ${raw(preferencesSection(preferencesStore.get()))}
       <button id="btn-leave-guest" class="rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold py-3 text-sm">
         <i class="bi bi-box-arrow-right"></i> Quitter le mode découverte

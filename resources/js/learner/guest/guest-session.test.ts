@@ -19,7 +19,7 @@ import { db } from '../db/schema';
 import { enqueue } from '../db/outbox';
 import { articlesStore, sessionStore } from '../stores';
 import { clearLocalData, dispatch, sync } from '../sync/engine';
-import { enterGuestMode, guestSettings, isGuest, leaveGuestMode } from './guest-session';
+import { enterGuestMode, guestSettings, isGuest, leaveGuestMode, PendingOutboxError } from './guest-session';
 
 function article(id: number, title: string): ArticleItem {
   return {
@@ -123,6 +123,19 @@ describe('session invité (mode découverte)', () => {
     expect(articlesStore.get().map((a) => a.title)).toEqual(['Vitrine A']);
     expect(isGuest()).toBe(true);
     expect(guestSettings()?.registration.currency).toBe('XOF');
+  });
+
+  it('refuses to enter guest mode while a learner outbox is pending (no purge)', async () => {
+    await db.articles.put(article(7, 'Article apprenant'));
+    await db.profile.put({ id: 5, name: 'Awa', _key: 'me' } as never);
+    await enqueue('article_progress', { article_id: 7, progress_percentage: 50 });
+
+    await expect(enterGuestMode()).rejects.toBeInstanceOf(PendingOutboxError);
+
+    expect(await db.outbox.count()).toBe(1);
+    expect(await db.articles.count()).toBe(1);
+    expect((await db.profile.get('me'))?.id).toBe(5);
+    expect(mocked.showcaseContent).not.toHaveBeenCalled();
   });
 
   it('dispatch is a no-op in guest mode (outbox stays empty)', async () => {

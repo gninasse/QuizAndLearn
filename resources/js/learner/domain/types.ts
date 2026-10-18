@@ -236,8 +236,8 @@ export interface AccessRequestBody {
   consent: boolean;
   /** Pot de miel : doit rester vide. */
   website: string;
-  /** Horodatage (ms) d'ouverture du formulaire, contrôle anti-robot. */
-  started_at: number;
+  /** Durée (ms) écoulée depuis l'ouverture du formulaire, contrôle anti-robot. */
+  elapsed_ms: number;
 }
 
 export interface AccessRequestResponse {

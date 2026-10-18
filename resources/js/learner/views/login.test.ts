@@ -1,9 +1,10 @@
 // @vitest-environment happy-dom
 import { describe, expect, it, vi } from 'vitest';
 
-const { showcaseSettings, enterGuestMode } = vi.hoisted(() => ({
+const { showcaseSettings, enterGuestMode, PendingOutboxError } = vi.hoisted(() => ({
   showcaseSettings: vi.fn(),
   enterGuestMode: vi.fn(),
+  PendingOutboxError: class extends Error {},
 }));
 
 vi.mock('../api/client', () => ({
@@ -11,7 +12,7 @@ vi.mock('../api/client', () => ({
   ApiError: class extends Error {},
   NetworkError: class extends Error {},
 }));
-vi.mock('../guest/guest-session', () => ({ enterGuestMode, isGuest: () => false }));
+vi.mock('../guest/guest-session', () => ({ enterGuestMode, isGuest: () => false, PendingOutboxError }));
 vi.mock('../sync/engine', () => ({ fullBootstrap: vi.fn(), hydrateFromDb: vi.fn(), clearLocalData: vi.fn() }));
 vi.mock('../db/schema', () => ({ db: { profile: { put: vi.fn() } } }));
 
@@ -53,5 +54,29 @@ describe('bouton « Découvrir sans compte »', () => {
     window.removeEventListener('learner:authenticated', authenticated);
     expect(enterGuestMode).toHaveBeenCalledOnce();
     expect(authenticated).toHaveBeenCalledOnce();
+  });
+
+  it('affiche le message d’activités non synchronisées sans ouvrir la session', async () => {
+    showcaseSettings.mockResolvedValue({ success: true, enabled: true });
+    enterGuestMode.mockRejectedValue(
+      new PendingOutboxError('Vous avez des activités non synchronisées : reconnectez-vous d’abord pour les envoyer.'),
+    );
+    const authenticated = vi.fn();
+    window.addEventListener('learner:authenticated', authenticated);
+
+    const btn = await setup();
+    btn.click();
+    await new Promise((r) => setTimeout(r, 0));
+
+    window.removeEventListener('learner:authenticated', authenticated);
+    const error = document.querySelector<HTMLParagraphElement>('#login-error:not(.hidden)');
+    expect(error?.textContent).toContain('Vous avez des activités non synchronisées');
+    expect(authenticated).not.toHaveBeenCalled();
+  });
+
+  it('libellé « E-mail, téléphone ou identifiant »', async () => {
+    showcaseSettings.mockResolvedValue({ success: true, enabled: false });
+    await setup();
+    expect(document.body.textContent).toContain('E-mail, téléphone ou identifiant');
   });
 });

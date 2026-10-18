@@ -24,6 +24,8 @@ describe('profil invité', () => {
     mount(el);
     expect(el.textContent).toContain('Préférences');
     expect(el.textContent).toContain('Quitter le mode découverte');
+    expect(el.querySelector('[data-guest-cta="profile"] a[href="/demande-acces"]')).not.toBeNull();
+    expect(el.textContent).toContain('Demander un accès');
     expect(el.textContent).not.toContain('Sécurité');
     expect(el.textContent).not.toContain('Se déconnecter');
 

@@ -1,7 +1,7 @@
 import { api, ApiError, NetworkError } from '../api/client';
 import { html, raw } from '../core/html';
 import { db } from '../db/schema';
-import { enterGuestMode, isGuest } from '../guest/guest-session';
+import { enterGuestMode, isGuest, PendingOutboxError } from '../guest/guest-session';
 import { clearLocalData, fullBootstrap, hydrateFromDb } from '../sync/engine';
 import { sessionStore } from '../stores';
 import { toast } from '../ui/app-toast';
@@ -22,7 +22,7 @@ export function mount(el: HTMLElement): void {
 
         <form id="login-form" class="bg-white/5 border border-white/10 rounded-2xl p-6 flex flex-col gap-4 backdrop-blur">
           <label class="flex flex-col gap-1.5">
-            <span class="text-xs font-semibold text-zinc-300 uppercase tracking-wide">E-mail ou téléphone</span>
+            <span class="text-xs font-semibold text-zinc-300 uppercase tracking-wide">E-mail, téléphone ou identifiant</span>
             <input name="login" type="text" required autocomplete="username" autocapitalize="none"
                    class="rounded-xl bg-white/10 border border-white/10 px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-sky-500"
                    placeholder="07 00 00 00 00 ou prenom.nom@exemple.fr" />
@@ -58,7 +58,9 @@ export function mount(el: HTMLElement): void {
   const guestBtn = el.querySelector<HTMLButtonElement>('#guest-enter')!;
 
   const showError = (e: unknown): void => {
-    if (e instanceof NetworkError) {
+    if (e instanceof PendingOutboxError) {
+      errorEl.textContent = e.message;
+    } else if (e instanceof NetworkError) {
       errorEl.textContent = 'Impossible de joindre le serveur. Vérifiez votre connexion.';
     } else if (e instanceof ApiError) {
       errorEl.textContent = e.message;

@@ -90,7 +90,8 @@ function successView(result: AccessRequestResponse): string {
 /** Formulaire public de demande d'accès (mode découverte). */
 export async function mount(el: HTMLElement, _params?: Record<string, string>): Promise<void> {
   const settings = await loadSettings();
-  const startedAt = Date.now();
+  // Chronomètre monotone local : le serveur ne compare aucune horloge.
+  const mountedAt = performance.now();
   const prefix = settings?.default_country_code ? `+${settings.default_country_code}` : '';
   const groups = settings?.groups ?? [];
   const draft = readDraft();
@@ -269,7 +270,7 @@ export async function mount(el: HTMLElement, _params?: Record<string, string>): 
           message: text('message') || null,
           consent: checked('consent'),
           website: text('website'),
-          started_at: startedAt,
+          elapsed_ms: Math.max(0, Math.round(performance.now() - mountedAt)),
         });
         writeDraft(null);
         el.innerHTML = html`<div class="max-w-md mx-auto py-8 px-4">${raw(successView(result))}</div>`;

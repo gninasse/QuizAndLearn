@@ -124,6 +124,21 @@ describe('demande d\'accès', () => {
     expect(sessionStorage.getItem('learner:access-draft')).toBeNull();
   });
 
+  it('sends elapsed_ms measured locally since mount (no absolute timestamp)', async () => {
+    submit.mockResolvedValue({ success: true, message: 'Demande envoyée.', phone: '+2250700000000', registration: SETTINGS.registration });
+    const now = vi.spyOn(performance, 'now').mockReturnValue(1000);
+    const { el, set } = await setup();
+    fillValid(el, set);
+    now.mockReturnValue(6500);
+    el.querySelector('form')!.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+    await vi.waitFor(() => expect(submit).toHaveBeenCalledOnce());
+    now.mockRestore();
+
+    const body = submit.mock.calls[0]![0] as Record<string, unknown>;
+    expect(body.elapsed_ms).toBe(5500);
+    expect(body).not.toHaveProperty('started_at');
+  });
+
   it('server validation errors are shown next to fields', async () => {
     submit.mockRejectedValue(
       new ApiError(422, 'Invalide', { errors: { phone: ['Numéro invalide.'] } }),

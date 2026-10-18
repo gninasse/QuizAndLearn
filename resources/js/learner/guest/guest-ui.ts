@@ -57,8 +57,8 @@ export function lockedCardHtml(feature: LockedFeature): string {
   `;
 }
 
-/** Appel à l'action de fin de quiz / de révision. */
-export function accessCtaHtml(context: 'quiz' | 'review'): string {
+/** Appel à l'action de fin de quiz / de révision et du profil invité. */
+export function accessCtaHtml(context: 'quiz' | 'review' | 'profile'): string {
   return html`
     <div data-guest-cta="${context}"
          class="rounded-2xl border border-sky-200/70 dark:border-sky-500/25 bg-sky-50/70 dark:bg-sky-500/10 p-5 flex flex-col items-center gap-3">

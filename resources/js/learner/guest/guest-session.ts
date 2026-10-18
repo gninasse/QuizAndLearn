@@ -7,6 +7,7 @@
  */
 
 import { api } from '../api/client';
+import { pendingCount } from '../db/outbox';
 import { db, getMeta, setMeta } from '../db/schema';
 import type {
   ArticleItem,
@@ -20,6 +21,18 @@ import { sessionStore } from '../stores';
 import { clearLocalData, hydrateFromDb } from '../sync/engine';
 
 export const META_SHOWCASE_SETTINGS = 'showcase-settings';
+
+/**
+ * Refus d'ouvrir le mode découverte : des actions d'un apprenant attendent
+ * encore d'être envoyées (ex. après une session expirée). Les purger les
+ * perdrait définitivement.
+ */
+export class PendingOutboxError extends Error {
+  constructor() {
+    super('Vous avez des activités non synchronisées : reconnectez-vous d’abord pour les envoyer.');
+    this.name = 'PendingOutboxError';
+  }
+}
 
 const GUEST_PROFILE: UserProfile = {
   id: 0,
@@ -62,6 +75,8 @@ function stripSuccess<T extends { success?: boolean }>(payload: T): Omit<T, 'suc
 
 /** Ouvre une session invité : vitrine + réglages, profil « Invité ». */
 export async function enterGuestMode(): Promise<void> {
+  if ((await pendingCount()) > 0) throw new PendingOutboxError();
+
   const [content, rawSettings] = await Promise.all([api.showcaseContent(), api.showcaseSettings()]);
   const showcaseSettings = stripSuccess(rawSettings) as ShowcaseSettings;
 
