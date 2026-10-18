@@ -35,6 +35,7 @@ const routes: RouteDefinition[] = [
   { path: '/exams/:id/play', title: 'Examen', view: () => import('./views/exam-play') },
   { path: '/reviser', title: 'Révision', view: () => import('./views/reviser') },
   { path: '/reviser/:deckId', title: 'Révision', view: () => import('./views/reviser') },
+  { path: '/demande-acces', title: 'Demander un accès', public: true, view: () => import('./views/demande-acces') },
   { path: '/mot-de-passe', title: 'Nouveau mot de passe', view: () => import('./views/mot-de-passe') },
   { path: '/profil', title: 'Profil', view: () => import('./views/profil') },
   { path: '/progression', title: 'Ma progression', view: () => import('./views/progression') },
