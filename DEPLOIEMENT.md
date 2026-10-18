@@ -271,6 +271,25 @@ php artisan up
 Les apprenants reçoivent la nouvelle version de la PWA automatiquement au
 chargement suivant (message « Application mise à jour ✨ »).
 
+### Passage à la version « mode découverte / connexion par téléphone »
+
+**Avant** le `php artisan migrate --force` sur une installation existante :
+
+1. **Sauvegarder la base** (`pg_dump -Fc learnquiz > avant-telephone-$(date +%F).dump`, voir §9).
+2. **Contrôler les téléphones** des utilisateurs : la migration
+   `2026_10_19_100000_phone_login_on_users` les normalise au format E.164
+   (indicatif par défaut 225). Un numéro illisible ou en doublon après normalisation
+   est **remis à NULL** ; ce retrait n'est tracé que dans `storage/logs/laravel.log`
+   (« Téléphone invalide… » / « Téléphone en doublon… ») et le `down()` **ne peut pas
+   restaurer** les valeurs. Repérer au préalable les numéros à corriger :
+
+   ```sql
+   SELECT id, phone FROM users WHERE phone IS NOT NULL AND phone <> '' ORDER BY phone;
+   ```
+
+   Après migration, relire les avertissements du journal et ressaisir les numéros
+   retirés depuis le back-office ; en cas de problème, restaurer la sauvegarde.
+
 ## 9. Sauvegardes
 
 À planifier quotidiennement et à copier hors du serveur :
