@@ -63,40 +63,49 @@
 
         {{-- Tuiles --}}
         <div class="row">
-            <div class="col-lg-2 col-md-4 col-6">
+            <div class="col-lg col-md-4 col-6">
                 <div class="small-box text-bg-primary">
                     <div class="inner">
-                        <h3><span id="kpi-active-7d">—</span> <i id="kpi-active-7d-trend" class="bi bi-dash fs-5"></i></h3>
+                        <h3><span id="kpi-active-7d">—</span> <i id="kpi-active-7d-trend" class="bi bi-dash fs-5" aria-hidden="true"></i><span id="kpi-active-7d-trend-sr" class="visually-hidden"></span></h3>
                         <p>Actifs 7 j</p>
                     </div>
                     <i class="small-box-icon bi bi-people"></i>
                 </div>
             </div>
-            <div class="col-lg-2 col-md-4 col-6">
+            <div class="col-lg col-md-4 col-6">
                 <div class="small-box text-bg-info">
-                    <div class="inner"><h3 id="kpi-active-30d">—</h3><p>Actifs 30 j</p></div>
+                    <div class="inner">
+                        <h3><span id="kpi-active-30d">—</span> <i id="kpi-active-30d-trend" class="bi bi-dash fs-5" aria-hidden="true"></i><span id="kpi-active-30d-trend-sr" class="visually-hidden"></span></h3>
+                        <p>Actifs 30 j</p>
+                    </div>
                     <i class="small-box-icon bi bi-person-check"></i>
                 </div>
             </div>
-            <div class="col-lg-2 col-md-4 col-6">
+            <div class="col-lg col-md-4 col-6">
                 <div class="small-box text-bg-success">
                     <div class="inner"><h3 id="kpi-activation">—</h3><p>Activation</p></div>
                     <i class="small-box-icon bi bi-rocket-takeoff"></i>
                 </div>
             </div>
-            <div class="col-lg-2 col-md-4 col-6">
+            <div class="col-lg col-md-4 col-6">
                 <div class="small-box text-bg-warning">
                     <div class="inner"><h3 id="kpi-retention">—</h3><p>Rétention 30 j</p></div>
                     <i class="small-box-icon bi bi-arrow-repeat"></i>
                 </div>
             </div>
-            <div class="col-lg-2 col-md-4 col-6">
+            <div class="col-lg col-md-4 col-6">
+                <div class="small-box text-bg-dark">
+                    <div class="inner"><h3 id="kpi-review-regularity">—</h3><p>Régularité des révisions</p></div>
+                    <i class="small-box-icon bi bi-calendar2-check"></i>
+                </div>
+            </div>
+            <div class="col-lg col-md-4 col-6">
                 <div class="small-box text-bg-secondary">
                     <div class="inner"><h3 id="kpi-quiz-score">—</h3><p>Score moyen quiz</p></div>
                     <i class="small-box-icon bi bi-patch-question"></i>
                 </div>
             </div>
-            <div class="col-lg-2 col-md-4 col-6">
+            <div class="col-lg col-md-4 col-6">
                 <div class="small-box text-bg-danger">
                     <div class="inner"><h3 id="kpi-exam-note">—</h3><p>Moyenne examens</p></div>
                     <i class="small-box-icon bi bi-journal-check"></i>

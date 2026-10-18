@@ -19,6 +19,19 @@
     function note(v) { return v === null || v === undefined ? DASH : v + '/20'; }
     function num(v) { return v === null || v === undefined ? DASH : String(v); }
 
+    // ApexCharts injecte le titre de l'infobulle en innerHTML : tout texte
+    // venant des données doit passer par escapeHtml (les axes SVG, eux, sont en texte brut).
+    function escapeHtml(v) {
+        return String(v === null || v === undefined ? '' : v)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function shortDate(iso) {
+        var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || ''));
+        return m ? m[3] + '/' + m[2] : DASH;
+    }
+
     function formatDate(iso) {
         if (!iso) return DASH;
         var d = new Date(String(iso).length === 10 ? iso + 'T00:00:00' : iso);
@@ -50,14 +63,22 @@
         return 'Impossible de charger les indicateurs (erreur ' + xhr.status + '). Veuillez réessayer.';
     }
 
-    function renderTrend(value, trend) {
+    function renderTrend(id, value, trend) {
         var cls = 'bi bi-dash fs-5';
+        var sr = 'Tendance indisponible';
         if (typeof value === 'number' && typeof trend === 'number') {
-            if (value > trend) cls = 'bi bi-arrow-up-right fs-5 text-success';
-            else if (value < trend) cls = 'bi bi-arrow-down-right fs-5 text-danger';
+            sr = 'Stable par rapport à la période précédente (' + trend + ')';
+            if (value > trend) {
+                cls = 'bi bi-arrow-up-right fs-5 text-success';
+                sr = 'En hausse par rapport à la période précédente (' + trend + ')';
+            } else if (value < trend) {
+                cls = 'bi bi-arrow-down-right fs-5 text-danger';
+                sr = 'En baisse par rapport à la période précédente (' + trend + ')';
+            }
         }
-        $('#kpi-active-7d-trend').attr('class', cls)
+        $('#' + id).attr('class', cls)
             .attr('title', typeof trend === 'number' ? 'Période précédente : ' + trend : '');
+        $('#' + id + '-sr').text(sr);
     }
 
     function renderWeekly(points) {
@@ -65,10 +86,19 @@
         var options = {
             chart: { type: 'line', height: 280, toolbar: { show: false }, animations: { enabled: false } },
             series: [{ name: 'Actifs', data: points.map(function (p) { return p.active; }) }],
-            xaxis: { categories: points.map(function (p) { return formatDate(p.week_start); }) },
+            xaxis: { categories: points.map(function (p) { return shortDate(p.week_start); }) },
             yaxis: { min: 0, forceNiceScale: true, labels: { formatter: function (v) { return Math.round(v); } } },
             stroke: { curve: 'smooth', width: 3 },
             markers: { size: 4 },
+            grid: { padding: { left: 16, right: 16 } },
+            tooltip: {
+                x: {
+                    formatter: function (v, o) {
+                        var p = o && points[o.dataPointIndex];
+                        return escapeHtml(p ? 'Semaine du ' + formatDate(p.week_start) : v);
+                    }
+                }
+            },
             noData: { text: 'Aucune donnée' }
         };
         if (weeklyChart) weeklyChart.destroy();
@@ -86,15 +116,24 @@
         $(el).empty();
         completionChart = new ApexCharts(el, {
             chart: { type: 'bar', height: Math.max(200, rows.length * 32 + 60), toolbar: { show: false }, animations: { enabled: false } },
-            plotOptions: { bar: { horizontal: true, barHeight: '60%' } },
+            plotOptions: {
+                bar: { horizontal: true, barHeight: '60%', dataLabels: { position: 'top', hideOverflowingLabels: false } }
+            },
             series: [{ name: 'Complétion', data: rows.map(function (r) { return r.rate; }) }],
             xaxis: {
                 categories: rows.map(function (r) { return r.title; }),
                 min: 0, max: 100,
                 labels: { formatter: function (v) { return Math.round(v) + ' %'; } }
             },
-            dataLabels: { enabled: true, formatter: function (v) { return v + ' %'; } },
+            // étiquette à droite de la barre, en sombre : lisible même à 0 %
+            dataLabels: {
+                enabled: true, offsetX: 30,
+                style: { colors: ['#212529'] },
+                formatter: function (v) { return v + ' %'; }
+            },
+            grid: { padding: { right: 40 } },
             tooltip: {
+                x: { formatter: function (v) { return escapeHtml(v); } },
                 y: {
                     formatter: function (v, o) {
                         var r = rows[o.dataPointIndex];
@@ -122,15 +161,23 @@
         });
     }
 
+    // « le groupe », « la classe », « l'équipe » selon la terminologie configurée
+    function groupWithArticle() {
+        var g = window.T('group');
+        if (/^[aeiouyhàâéèêëîïôûü]/i.test(g)) return 'l\'' + g;
+        return (window.T('fem_e') === 'e' ? 'la ' : 'le ') + g;
+    }
+
     function renderInactive(rows) {
         var $tb = $('#kpi-inactive-table tbody').empty();
         if (!rows.length) return emptyRow($tb, 4, 'Aucun apprenant à relancer.');
         rows.forEach(function (r) {
             var $link = $('<td>');
             if (r.group_id) {
+                var label = 'Voir ' + groupWithArticle() + ' de ' + (r.name || 'cet apprenant');
                 $link.append($('<a>').attr('href', urls.members.replace('__ID__', encodeURIComponent(r.group_id)))
-                    .addClass('btn btn-outline-primary btn-sm').attr('title', 'Voir les membres')
-                    .append($('<i>').addClass('bi bi-people')));
+                    .addClass('btn btn-outline-primary btn-sm').attr({ title: label, 'aria-label': label })
+                    .append($('<i>').addClass('bi bi-people').attr('aria-hidden', 'true')));
             }
             $tb.append($('<tr>')
                 .append($('<td>').text(r.name || DASH))
@@ -142,10 +189,12 @@
 
     function render(d) {
         $('#kpi-active-7d').text(num(d.active_7d.value));
-        renderTrend(d.active_7d.value, d.active_7d.trend);
+        renderTrend('kpi-active-7d-trend', d.active_7d.value, d.active_7d.trend);
         $('#kpi-active-30d').text(num(d.active_30d.value));
+        renderTrend('kpi-active-30d-trend', d.active_30d.value, d.active_30d.trend);
         $('#kpi-activation').text(pct(d.activation_rate));
         $('#kpi-retention').text(pct(d.retention_30d));
+        $('#kpi-review-regularity').text(pct(d.review_regularity));
         $('#kpi-quiz-score').text(pct(d.quiz_avg_score));
         $('#kpi-exam-note').text(note(d.exam_avg_note));
 
@@ -170,10 +219,18 @@
         }
     }
 
+    var CUSTOM_MISSING = 'Renseignez les deux dates de la période personnalisée.';
+
+    function customIncomplete(p) { return p.period === 'custom' && (!p.from || !p.to); }
+
     function load() {
         var p = params();
-        if (p.period === 'custom' && (!p.from || !p.to)) {
-            showError('Renseignez les deux dates de la période personnalisée.');
+        if (customIncomplete(p)) {
+            // invalide toute requête en cours : sa réponse ne doit plus s'afficher
+            ++requestSeq;
+            $('#kpi-loading').addClass('d-none');
+            $('#kpi-apply').prop('disabled', false);
+            showError(CUSTOM_MISSING);
             return;
         }
         var seq = ++requestSeq;
@@ -202,8 +259,13 @@
     $('#kpi-apply').on('click', load);
 
     $('.kpi-export').on('click', function () {
+        var p = params();
+        if (customIncomplete(p)) {
+            showError(CUSTOM_MISSING);
+            return;
+        }
         var url = urls.exp.replace('__TABLE__', encodeURIComponent($(this).data('table')));
-        window.location.href = url + '?' + $.param(params());
+        window.location.href = url + '?' + $.param(p);
     });
 
     load();
