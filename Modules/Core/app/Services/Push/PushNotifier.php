@@ -70,6 +70,26 @@ class PushNotifier
         return true;
     }
 
+    /**
+     * Envoi de test (admin) : contourne plafond, plage silencieuse, dédoublonnage
+     * et réglages par type, mais exige les clés VAPID. N'écrit pas dans push_deliveries.
+     * Renvoie le nombre d'abonnements visés.
+     */
+    public function sendTest(Learner $learner): int
+    {
+        if (! PushSettings::vapidConfigured()) {
+            return 0;
+        }
+
+        $message = new PushMessage('test', 'Notification de test', 'Les notifications fonctionnent.', '/');
+        $subscriptions = $learner->pushSubscriptions()->get();
+        foreach ($subscriptions as $subscription) {
+            SendPushNotification::dispatch($subscription, $message);
+        }
+
+        return $subscriptions->count();
+    }
+
     private function blockedByPreference(Learner $learner, PushMessage $m): bool
     {
         if ($m->type !== 'new_content' || $m->ref === null) {

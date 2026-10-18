@@ -47,6 +47,38 @@
       <div class="alert alert-light border mb-0" id="termPreview"></div>
     </div>
   </div>
+  <div class="card mb-3">
+    <div class="card-header"><h3 class="card-title">Notifications</h3></div>
+    <div class="card-body">
+      <p class="mb-3">
+        @if ($vapidConfigured)
+          <span class="badge text-bg-success">Clés VAPID configurées</span>
+        @else
+          <span class="badge text-bg-warning">Non configuré — voir DEPLOIEMENT.md (php artisan push:vapid)</span>
+        @endif
+      </p>
+      @foreach (['new_content' => 'Nouveau contenu', 'cards_due' => 'Cartes à réviser', 'streak' => 'Série en danger', 'exam_open' => 'Examen ouvert'] as $type => $label)
+        <div class="form-check form-switch mb-2">
+          <input class="form-check-input push-type" type="checkbox" role="switch" id="push_{{ $type }}" data-type="{{ $type }}" @checked($push['types'][$type])>
+          <label class="form-check-label" for="push_{{ $type }}">{{ $label }}</label>
+        </div>
+      @endforeach
+      <div class="row mt-3">
+        <div class="col-md-4 mb-3">
+          <label class="form-label" for="pushDailyHour">Heure du rappel quotidien</label>
+          <input type="number" class="form-control" id="pushDailyHour" min="0" max="23" step="1" value="{{ $push['daily_hour'] }}">
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="form-label" for="pushDailyCap">Notifications par jour et par apprenant (maximum)</label>
+          <input type="number" class="form-control" id="pushDailyCap" min="1" max="5" step="1" value="{{ $push['daily_cap'] }}">
+        </div>
+      </div>
+      <button type="button" class="btn btn-outline-secondary" id="pushTestBtn" @disabled(! $vapidConfigured || ! $canTestPush)>Envoyer une notification de test</button>
+      @unless ($canTestPush)
+        <div class="form-text">Abonnez-vous depuis l'espace apprenant d'un compte de test pour recevoir la notification de test.</div>
+      @endunless
+    </div>
+  </div>
   <button type="submit" class="btn btn-primary" id="saveBtn">Enregistrer</button>
 </form>
 @endsection
@@ -93,6 +125,8 @@
         data.plural = $.trim($('#plural').val());
         data.feminine = $('#genderF').is(':checked');
       }
+      data.push = { types: {}, daily_hour: parseInt($('#pushDailyHour').val(), 10), daily_cap: parseInt($('#pushDailyCap').val(), 10) };
+      $('.push-type').each(function () { data.push.types[$(this).data('type')] = this.checked; });
       $('#saveBtn').prop('disabled', true);
       $.ajax({
         url: this.action, method: 'PUT', contentType: 'application/json', dataType: 'json',
@@ -106,6 +140,18 @@
         if (errors) { msg = Object.values(errors).flat().join('\n'); }
         Swal.fire({ icon: 'error', title: 'Enregistrement impossible', text: msg });
       }).always(function () { $('#saveBtn').prop('disabled', false); });
+    });
+
+    $('#pushTestBtn').on('click', function () {
+      var $btn = $(this).prop('disabled', true);
+      $.ajax({
+        url: @json(route('cores.settings.push.test')), method: 'POST', dataType: 'json',
+        headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
+      }).done(function (res) {
+        Swal.fire({ icon: 'success', title: res.message, timer: 2000, showConfirmButton: false });
+      }).fail(function (xhr) {
+        Swal.fire({ icon: 'error', title: 'Envoi impossible', text: (xhr.responseJSON && xhr.responseJSON.message) || 'Erreur' });
+      }).always(function () { $btn.prop('disabled', false); });
     });
   });
 </script>
