@@ -179,13 +179,26 @@ VIDEO_S3_BUCKET=…
 VIDEO_S3_ENDPOINT=https://…      # vide pour AWS
 VIDEO_S3_PATH_STYLE=false        # true pour MinIO
 FFMPEG_BINARY=ffmpeg
+VIDEO_QUEUE=videos               # file dédiée aux conversions HLS
+DB_QUEUE_RETRY_AFTER=4200        # > durée max du job (4000 s) ; REDIS_QUEUE_RETRY_AFTER si redis
 ```
 
 - **ffmpeg** doit être installé sur le serveur qui exécute le worker :
   `sudo apt install ffmpeg` puis `ffmpeg -version` (ou indiquer le chemin dans `FFMPEG_BINARY`).
-- **Worker de file obligatoire** : la conversion HLS est un job (`QUEUE_CONNECTION=database`
-  ou `redis`, jamais `sync` en production). Voir §7 : `php artisan queue:work --timeout=3700`
-  (le job peut durer jusqu'à 1 h ; le `retry_after` de la connexion doit être supérieur).
+  Le bouton « Tester la connexion » du back-office vérifie le bucket **et** `ffmpeg -version`.
+- **Worker dédié obligatoire** : la conversion HLS est un job (`QUEUE_CONNECTION=database`
+  ou `redis`, jamais `sync` en production) placé sur la file **`videos`** (`VIDEO_QUEUE`),
+  afin qu'une conversion longue ne retarde jamais les notifications push (file `default`).
+  Délais : ffmpeg s'arrête au bout de 3600 s, le job au bout de 4000 s ; le worker doit
+  utiliser `--timeout=4000` et **`DB_QUEUE_RETRY_AFTER=4200`** (ou `REDIS_QUEUE_RETRY_AFTER`),
+  sinon le job serait relancé pendant qu'il tourne encore. Voir §7 :
+  `php artisan queue:work --queue=videos --tries=1 --timeout=4000`.
+  Ce `retry_after` s'applique à toute la connexion : le worker `default` garde `--timeout=90`.
+- Un job interrompu (délai dépassé, worker tué) marque la vidéo « échouée » et supprime
+  les fichiers temporaires et le HLS partiel ; renvoyer la vidéo depuis l'éditeur.
+- Accès S3 : délais généreux pour l'envoi et la conversion (disque `videos` : connexion 10 s,
+  requête 600 s) ; le test de connexion utilise le disque `videos_health` (5 s / 15 s).
+  Avec un disque personnalisé (`VIDEO_S3_DISK`), définir `VIDEO_S3_HEALTH_DISK` si besoin.
 - Tant que la conversion n'est pas terminée, la vidéo affiche « Vidéo en cours de préparation ».
 - **CORS du bucket** : le lecteur charge les segments directement depuis le bucket.
   Autoriser `GET` (et `HEAD`) depuis l'origine de l'application :
@@ -214,7 +227,9 @@ Dans la console Bunny, sur la bibliothèque Stream :
 1. **Security → Token Authentication** : activer (méthode avancée, SHA-256) et copier la clé dans `BUNNY_STREAM_TOKEN_KEY`.
    L'application signe un jeton de **répertoire** (`token_path=/{guid}/`) qui couvre la playlist et tous les segments.
 2. **Security → Allowed Domains** (restriction de domaine / referrer) : n'autoriser que le domaine de l'application,
-   afin que les liens ne soient pas utilisables depuis un autre site.
+   afin que les liens ne soient pas utilisables depuis un autre site. Laisser **« Block empty referrer »
+   désactivé** si l'application mobile native lit les vidéos : ExoPlayer n'envoie pas de `Referer`
+   et serait refusé (la signature par jeton protège déjà les URL).
 3. Désactiver le téléchargement MP4 d'origine (**Encoding → MP4 Fallback**) pour ne servir que le HLS.
 
 La conversion est faite par Bunny : aucun ffmpeg ni worker n'est nécessaire. Le statut des vidéos en
@@ -295,8 +310,19 @@ Purge périodique du journal d'activité (selon la politique de rétention) :
 php artisan activities:cleanup-expired
 ```
 
-Si des files d'attente sont utilisées (`QUEUE_CONNECTION=database`), lancer un
-worker supervisé (systemd ou supervisor) : `php artisan queue:work --tries=3`.
+Si des files d'attente sont utilisées (`QUEUE_CONNECTION=database`), lancer des
+workers supervisés (systemd ou supervisor) — **les mêmes commandes partout** :
+
+```bash
+# File par défaut (notifications push, tâches courtes)
+php artisan queue:work --queue=default --tries=3 --timeout=90
+# File vidéo (pilote s3_hls uniquement) : conversions HLS longues, un seul essai
+php artisan queue:work --queue=videos --tries=1 --timeout=4000
+```
+
+Avec le pilote `s3_hls`, `DB_QUEUE_RETRY_AFTER` (ou `REDIS_QUEUE_RETRY_AFTER`) doit valoir
+au moins `4200` (supérieur au `--timeout` le plus long), voir §5 bis. Sans worker `videos`,
+les vidéos `s3_hls` restent indéfiniment « en cours de préparation ».
 
 Le planificateur lance aussi chaque jour `php artisan showcase:purge-requests`
 (suppression des demandes d'accès `rejected` / `abandoned` plus anciennes que
@@ -319,7 +345,9 @@ Désactivées tant que les clés VAPID sont absentes (aucun envoi, bouton masqu�
    l'heure des rappels. Puis `php artisan config:cache`. Ne jamais régénérer les clés en
    production : tous les abonnements existants deviendraient invalides.
 3. Le planificateur (`schedule:run`, voir §7) doit tourner chaque minute.
-4. Un worker de file doit tourner en continu : `php artisan queue:work --tries=3` (supervisé).
+4. Un worker de file doit tourner en continu sur la file par défaut :
+   `php artisan queue:work --queue=default --tries=3 --timeout=90` (supervisé, voir §7).
+   Les conversions vidéo ont leur propre worker (`--queue=videos`) : elles ne retardent pas les push.
 5. Migrer : `php artisan migrate` (tables `push_subscriptions`, `push_deliveries`,
    `push_assignment_snapshots`).
 6. Seuls les services push des navigateurs sont acceptés à l'abonnement (liste
@@ -421,6 +449,13 @@ l'archive des médias dans `storage/app/public`.
 - [ ] Connexion apprenant sur `/connexion`, installation de la PWA proposée, contenu visible hors-ligne après une première synchronisation.
 - [ ] Upload d'une image, d'un audio et d'une vidéo depuis l'éditeur de quiz.
 - [ ] `APP_DEBUG=false` dans le `.env`.
+- [ ] Vidéo `s3_hls` : `php artisan queue:work --queue=videos …` tourne, une vidéo envoyée passe de « en cours de préparation » à lue.
+- [ ] **Lecteur de marque YouTube / Vimeo sur appareils réels** (à faire par l'équipe, non couvert par les tests automatisés) :
+  - [ ] Safari iOS (iPhone) et Chrome Android : toucher « Lire la vidéo » démarre la lecture ; si le navigateur exige un geste dans le lecteur, l'indication « Touchez la vidéo pour lancer la lecture » apparaît et un toucher sur la vidéo la lance.
+  - [ ] Une fois la lecture lancée, l'indication disparaît et un toucher sur la vidéo met en pause (calque rétabli) : aucun lien « Regarder sur YouTube », titre, logo ni menu du fournisseur n'est atteignable.
+  - [ ] Pause, progression, muet, volume et plein écran (pseudo plein écran sur iPhone) fonctionnent ; le filigrane reste visible.
+  - [ ] PWA installée (mode autonome) sur iOS et Android : mêmes vérifications.
+  - [ ] Hors ligne : « Vidéo disponible en ligne uniquement. », puis montage automatique au retour du réseau.
 - [ ] Consultation en lecture seule : en super admin, « Voir en tant que » sur un apprenant ouvre la PWA avec le bandeau et le filigrane, toute action d'écriture est refusée, et la consultation est journalisée.
 
 ## 11. Application mobile native

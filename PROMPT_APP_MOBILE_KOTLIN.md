@@ -653,10 +653,22 @@ formes de vidéo. Les anciennes `<video src="/storage/…">` restent valables (p
      `X-Guest-Token` (la vidéo doit figurer dans un contenu vitrine, sinon `403`).
 3. Réponses :
    - `200 {"type":"mp4"|"hls","url":"…","expires_at":"ISO 8601"|null}` → lire `url`
-     avec **ExoPlayer** (`mp4` : progressive ; `hls` : `HlsMediaSource`). `url` peut être
-     relative (`/storage/…`, `/videos/…/hls/index.m3u8?signature=…`) : la rebaser sur
-     `{{BASE_URL}}`. La playlist HLS signée ne demande ni cookie ni jeton ; ses segments
-     sont des URL S3 signées.
+     avec **ExoPlayer** (`mp4` : progressive ; `hls` : `HlsMediaSource`). Selon le pilote :
+     - `local` : `url` **relative** `/storage/uploads/media/…` → la rebaser sur
+       `{{BASE_URL}}` et l'ouvrir avec l'en-tête **`Authorization: Bearer <token>`**
+       (invité : `X-Guest-Token`) via `DefaultHttpDataSource.Factory().setDefaultRequestProperties(…)` :
+       sans lui, `/storage` répond `403` ;
+     - `s3_hls` : `url` **absolue**
+       `{{BASE_URL}}/api/learner/v1/videos/{ref}/hls/index.m3u8?expires=…&signature=…`
+       (y compris pour les invités). La playlist signée ne demande ni cookie ni jeton —
+       ne pas y ajouter d'en-tête ni modifier la requête (la signature couvre l'URL
+       entière) ; ses segments sont des URL S3 signées absolues ;
+     - `bunny` : `url` **absolue** sur le CDN Bunny (`https://vz-….b-cdn.net/bcdn_token=…/{guid}/playlist.m3u8`),
+       sans en-tête d'authentification. Attention : si l'option Bunny **« Block empty
+       referrer »** (Allowed Domains) est active, ExoPlayer, qui n'envoie pas de
+       `Referer`, est refusé (`403`). Soit l'administrateur laisse cette option
+       désactivée (la signature par jeton suffit), soit l'application envoie
+       `Referer: {{BASE_URL}}/` via `setDefaultRequestProperties`.
    - `202 {"status":"processing"}` → placeholder « Vidéo en cours de préparation »,
      nouvel essai après 30 s (3 fois au plus).
    - `404` / `410 {"status":"failed"}` → placeholder « Vidéo indisponible ».
