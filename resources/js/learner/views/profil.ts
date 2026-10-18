@@ -90,7 +90,7 @@ export function mount(el: HTMLElement): void {
       ${consultation ? '' : raw(preferencesSection(preferences))}
 
       ${!consultation && user.push?.public_key
-        ? raw('<section data-push-card class="rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-5 flex flex-col gap-3"></section>')
+        ? raw('<section data-push-card hidden class="rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-5 flex flex-col gap-3"></section>')
         : ''}
 
       <!-- Sécurité -->
@@ -197,7 +197,16 @@ async function renderPushCard(el: HTMLElement, publicKey: string): Promise<void>
   if (!card) return;
 
   const support = pushSupport();
-  const state = support === 'supported' ? await pushState() : 'off';
+  // `serviceWorker.ready` ne se résout jamais sans SW enregistré : 3 s max, puis carte masquée.
+  const state =
+    support === 'supported'
+      ? await Promise.race([pushState(), new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000))])
+      : 'off';
+  if (state === null) {
+    card.remove();
+    return;
+  }
+  card.hidden = false;
   const title = '<h3 class="font-bold text-sm">Notifications</h3>';
 
   if (support === 'unsupported') {
@@ -218,14 +227,18 @@ async function renderPushCard(el: HTMLElement, publicKey: string): Promise<void>
     ${raw(title)}
     <div class="flex items-center justify-between">
       <span class="text-sm font-medium">Recevoir les notifications</span>
-      <button data-push-switch role="switch" aria-checked="${on}"
+      <button data-push-switch role="switch" aria-checked="${on}" aria-label="Recevoir les notifications"
               class="relative w-12 h-7 rounded-full transition-colors ${on ? 'bg-sky-600' : 'bg-zinc-300 dark:bg-zinc-700'}">
         <span class="absolute top-1 ${on ? 'left-6' : 'left-1'} w-5 h-5 rounded-full bg-white transition-all"></span>
       </button>
     </div>
     ${on ? raw('<p class="text-xs text-zinc-500">Nouveaux contenus, révisions et examens. Au plus 2 par jour, jamais la nuit.</p>') : ''}`;
 
-  card.querySelector<HTMLButtonElement>('[data-push-switch]')?.addEventListener('click', () => {
+  const toggle = card.querySelector<HTMLButtonElement>('[data-push-switch]');
+  toggle?.addEventListener('click', () => {
+    if (toggle.disabled) return;
+    toggle.disabled = true;
+    toggle.setAttribute('aria-busy', 'true');
     void (async () => {
       if (on) {
         await disablePush();

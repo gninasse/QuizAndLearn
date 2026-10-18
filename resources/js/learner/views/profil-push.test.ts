@@ -89,4 +89,18 @@ describe('profil : carte Notifications', () => {
     await flush();
     expect(pushMock.enablePush).toHaveBeenCalledWith('KEY');
   });
+
+  it('ignores a second click while enabling (single request)', async () => {
+    let done!: (v: string) => void;
+    pushMock.enablePush.mockReturnValue(new Promise((r) => { done = r; }));
+    const el = await render();
+    const sw = el.querySelector<HTMLButtonElement>('[data-push-switch]')!;
+    expect(sw.getAttribute('aria-label')).toBe('Recevoir les notifications');
+    sw.click();
+    sw.click();
+    expect(sw.getAttribute('aria-busy')).toBe('true');
+    expect(pushMock.enablePush).toHaveBeenCalledTimes(1);
+    done('on');
+    await flush();
+  });
 });
