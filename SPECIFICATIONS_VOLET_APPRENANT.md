@@ -59,6 +59,20 @@
 
 ---
 
+### 0.5 Médias pédagogiques : consultables, non récupérables
+
+- **Accès serveur** : `/storage/...` exige une session (PWA) ou un jeton Bearer (mobile), compte actif et non suspendu ; sinon 403.
+- **Gestes neutralisés** sur les images/vidéos/audios du contenu (`.rich-content`) : menu contextuel / appui long, glisser-déposer, Ctrl+S ; lecteurs sans « Télécharger », PiP ni Cast.
+- **Filigrane nominatif** (nom · matricule · date du jour), discret et répété, sur chaque image et vidéo — y compris dans la visionneuse.
+- **Visionneuse d'image** : toucher une image (ou son bouton ⤢) ouvre un aperçu plein écran — zoom au toucher, galerie (flèches, swipe), fermeture par ✕, Échap, swipe vers le bas ou **bouton Retour** (sans démonter l'écran courant, même en plein quiz). Sur une flashcard, toucher l'image retourne la carte ; seul le bouton ⤢ ouvre l'aperçu.
+- **Vidéo** : lecture en streaming, en ligne uniquement (exclue du cache hors-ligne). Images et audio restent disponibles hors-ligne.
+- **Retour aux listes** : la position de défilement d'un écran est restaurée au retour arrière.
+- Déconnexion → le cache des médias est purgé.
+
+### 0.6 Compte suspendu
+
+Un formateur peut suspendre temporairement un apprenant (date de fin optionnelle, motif). L'apprenant reste membre de ses groupes. À la sync suivante (ou à la connexion), réponse `403 {code: "account_suspended"}` → données locales purgées, retour à `/connexion` avec le message (date de fin et motif). La suspension se lève seule à son échéance.
+
 ## 1. Connexion — `/connexion`
 
 **Objectif** : authentifier l'apprenant ; point d'entrée public unique.

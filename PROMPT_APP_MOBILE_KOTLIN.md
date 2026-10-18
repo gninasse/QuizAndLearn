@@ -516,3 +516,21 @@ catalogs), tous les écrans et règles du §4, thème Material 3 (clair/sombre,
 couleur seed bleu ciel #0284C7, violet pour les flashcards, ambre pour les
 examens), tests unitaires SM-2 + notation quiz avec les vecteurs fournis,
 README d'installation (BASE_URL, compte de test). Code commenté en français.
+
+---
+
+## Mise à jour — médias protégés, suspension, vidéo (octobre 2026)
+
+1. **Médias authentifiés** : `/storage/...` n'est plus public. Toute requête
+   d'image, d'audio ou de vidéo doit porter `Authorization: Bearer <token>`
+   (intercepteur OkHttp/Coil/ExoPlayer commun). Sans jeton → 403.
+2. **Protection** : appliquer `FLAG_SECURE` sur les écrans affichant du contenu
+   pédagogique (bloque captures et enregistrement d'écran) ; ne jamais exposer
+   d'action « Enregistrer / Partager » sur un média ; stocker le cache hors-ligne
+   dans le stockage privé de l'app.
+3. **Vidéo** : les contenus (énoncés, recto/verso) peuvent contenir
+   `<video controls src="/storage/...">` — lecture en streaming (ExoPlayer, requêtes
+   Range supportées), pas de cache hors-ligne.
+4. **Compte suspendu** : toute réponse `403` avec `{"code":"account_suspended","message":"…"}`
+   (login ou API) → purger les données locales, revenir à l'écran de connexion et
+   afficher `message` (contient la date de fin et le motif).
