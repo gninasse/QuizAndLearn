@@ -33,7 +33,9 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            // Désactivé : Laravel enregistrerait sa propre route /storage/{path}
+            // (URLs signées du disque privé) qui masquerait MediaController.
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],
@@ -73,8 +75,10 @@ return [
     |
     */
 
-    'links' => [
-        public_path('storage') => storage_path('app/public'),
-    ],
+    // Volontairement vide : les médias uploadés sont servis par la route
+    // authentifiée /storage/{path} (MediaController). Un lien symbolique
+    // public/storage court-circuiterait cette protection — ne pas lancer
+    // `php artisan storage:link`.
+    'links' => [],
 
 ];

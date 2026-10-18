@@ -55,25 +55,31 @@ class CoreController extends Controller
     public function destroy($id) {}
 
     /**
-     * Upload generic media (images) to the public storage.
+     * Upload d'un média pédagogique (image, audio, vidéo) sur le disque
+     * `public` — servi ensuite par la route authentifiée /storage/{path}.
      */
     public function uploadMedia(Request $request): \Illuminate\Http\JsonResponse
     {
         try {
-            // Image (≤5 Mo) ou audio (≤10 Mo) — utilisé par les éditeurs
-            // de quiz, d'examens et de flashcards.
+            // Image, audio ou vidéo — utilisé par les éditeurs de quiz,
+            // d'examens et de flashcards (énoncés, recto et verso).
             $file = $request->file('file');
-            $isAudio = $file && str_starts_with((string) $file->getMimeType(), 'audio/');
+            $mime = (string) $file?->getMimeType();
+            $type = match (true) {
+                str_starts_with($mime, 'audio/') => 'audio',
+                str_starts_with($mime, 'video/') => 'video',
+                default => 'image',
+            };
 
-            if ($isAudio) {
-                $request->validate([
-                    'file' => 'required|file|mimes:mp3,wav,ogg,oga,m4a,flac|max:10240',
-                ]);
-            } else {
-                $request->validate([
-                    'file' => 'required|image|max:5120',
-                ]);
-            }
+            $rules = [
+                'image' => 'required|image|max:'.config('media.image_max_kb'),
+                'audio' => 'required|file|mimes:mp3,wav,ogg,oga,m4a,flac|max:'.config('media.audio_max_kb'),
+                'video' => 'required|file|mimes:mp4,m4v,webm,ogv,mov|max:'.config('media.video_max_kb'),
+            ];
+            $request->validate(['file' => $rules[$type]], [
+                'file.max' => 'Fichier trop volumineux (maximum '.intdiv(config("media.{$type}_max_kb"), 1024).' Mo).',
+                'file.uploaded' => 'Le fichier dépasse la taille autorisée par le serveur (upload_max_filesize).',
+            ]);
 
             // Store the file in public/uploads/media
             $path = $file->store('uploads/media', 'public');
@@ -82,7 +88,7 @@ class CoreController extends Controller
             return response()->json([
                 'success' => true,
                 'url' => $url,
-                'type' => $isAudio ? 'audio' : 'image',
+                'type' => $type,
                 'name' => $file->getClientOriginalName(),
             ]);
         } catch (\Exception $e) {

@@ -55,7 +55,7 @@ window.showToast = function(type, message) {
 };
 
 /**
- * Ajoute un bouton « Insérer un audio » à côté de chaque bouton image des
+ * Ajoute les boutons « Insérer un audio » et « Insérer une vidéo » à côté de chaque bouton image des
  * barres wysiwyg (quiz, examens, flashcards) — sans modifier les vues.
  */
 $(function() {
@@ -66,7 +66,12 @@ $(function() {
             .attr('data-cmd', 'audio')
             .attr('title', 'Insérer un audio')
             .html('<i class="bi bi-music-note-beamed"></i>');
+        const $video = $img.clone()
+            .attr('data-cmd', 'video')
+            .attr('title', 'Insérer une vidéo')
+            .html('<i class="bi bi-camera-video"></i>');
         $img.after($audio);
+        $audio.after($video);
     });
 });
 
@@ -120,6 +125,11 @@ window.insertWysiwygTag = function($textarea, cmd) {
                 return `<audio controls preload="metadata" src="${res.url}" class="my-2 w-100"></audio>`;
             });
             return;
+        case 'video':
+            uploadAndInsertMedia('video/mp4,video/webm,video/ogg,video/quicktime,.mp4,.m4v,.webm,.ogv,.mov', 'la vidéo', function(res) {
+                return `<video controls playsinline preload="metadata" src="${res.url}" class="my-2 w-100"></video>`;
+            });
+            return;
     }
 
     // Téléverse un fichier vers /cores/media/upload puis insère le HTML rendu.
@@ -165,7 +175,10 @@ window.insertWysiwygTag = function($textarea, cmd) {
                 },
                 error: function(xhr) {
                     Swal.close();
-                    Swal.fire('Erreur', xhr.responseJSON?.message || 'Une erreur est survenue lors du téléversement.', 'error');
+                    const message = xhr.status === 413
+                        ? 'Fichier trop volumineux pour le serveur (post_max_size).'
+                        : (xhr.responseJSON?.message || 'Une erreur est survenue lors du téléversement.');
+                    Swal.fire('Erreur', message, 'error');
                 }
             });
         };

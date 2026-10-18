@@ -39,9 +39,15 @@ registerRoute(
 registerRoute(({ url }) => url.pathname.startsWith('/api/'), new NetworkOnly());
 
 // Assets statiques hors precache (avatars, médias, plugins legacy).
+// Vidéos exclues : lues en streaming (requêtes Range), trop lourdes pour le
+// cache hors-ligne — elles restent accessibles en ligne uniquement.
+const VIDEO_PATH = /\.(mp4|m4v|webm|ogv|mov)$/i;
+
 registerRoute(
   ({ url, request }) =>
     url.origin === self.location.origin &&
+    request.destination !== 'video' &&
+    !VIDEO_PATH.test(url.pathname) &&
     (request.destination === 'image' ||
       request.destination === 'font' ||
       url.pathname.startsWith('/plugins/') ||

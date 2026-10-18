@@ -236,9 +236,17 @@ class ArticleController extends Controller
         // Convertir les images locales du contenu en Base64 inline pour l'autonomie offline
         $content = preg_replace_callback('/<img[^>]+src="([^"]+)"/i', function ($matches) {
             $src = $matches[1];
-            // Si c'est un chemin absolu local vers le dossier public
-            if (str_starts_with($src, '/') && ! str_starts_with($src, '//')) {
+            // Médias uploadés (/storage/… relatif ou absolu) : lus directement
+            // sur le disque — il n'y a plus de lien symbolique public/storage.
+            $local = preg_replace('#^https?://[^/]+#i', '', $src);
+            if (str_starts_with($local, '/storage/')) {
+                $path = \Illuminate\Support\Facades\Storage::disk('public')->path(substr($local, strlen('/storage/')));
+            } elseif (str_starts_with($src, '/') && ! str_starts_with($src, '//')) {
                 $path = public_path(ltrim($src, '/'));
+            } else {
+                $path = null;
+            }
+            if ($path && ! str_contains($src, '..')) {
                 if (file_exists($path)) {
                     $type = pathinfo($path, PATHINFO_EXTENSION);
                     $data = file_get_contents($path);
