@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Modules\Core\Mail\NewAccessRequestMail;
@@ -133,9 +134,26 @@ class AccessRequestSubmitTest extends TestCase
         $this->assertSame(0, AccessRequest::count());
     }
 
+    /**
+     * Active la vraie validation CSRF (désactivée par défaut sous PHPUnit).
+     */
+    private function enforceCsrf(): void
+    {
+        $this->app->bind(ValidateCsrfToken::class, fn ($app) => new class($app, $app['encrypter']) extends ValidateCsrfToken
+        {
+            protected function runningUnitTests()
+            {
+                return false;
+            }
+        });
+    }
+
     public function test_post_without_csrf_token_works(): void
     {
-        $this->withMiddleware(\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class);
+        $this->enforceCsrf();
+
+        // Contrôle : une route POST non exemptée du même groupe refuse sans jeton.
+        $this->postJson('/api/learner/v1/session', [])->assertStatus(419);
 
         $this->postJson(self::URL, $this->payload())->assertCreated();
     }
