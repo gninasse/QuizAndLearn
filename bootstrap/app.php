@@ -24,12 +24,20 @@ return Application::configure(basePath: dirname(__DIR__))
         // Dépôt de demande d'accès : l'appli native n'a pas de session (pas de jeton CSRF).
         $middleware->validateCsrfTokens(except: ['api/showcase/v1/access-requests']);
 
+        // « Voir en tant que » : la résolution du jeton de consultation doit
+        // précéder `auth` (sinon le tri par priorité remonte Authenticate).
+        $middleware->prependToPriorityList(
+            before: \Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests::class,
+            prepend: \Modules\Core\Http\Middleware\ResolveImpersonation::class,
+        );
+
         $middleware->alias([
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
             'learner' => \Modules\Core\Http\Middleware\EnsureUserIsLearner::class,
             'staff' => \Modules\Core\Http\Middleware\EnsureUserIsStaff::class,
+            'impersonation' => \Modules\Core\Http\Middleware\ResolveImpersonation::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

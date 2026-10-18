@@ -19,6 +19,7 @@ import type {
   ShowcaseSettings,
   UserProfile,
 } from '../domain/types';
+import { readConsultationToken } from '../consultation/consultation';
 
 const BASE = '/api/learner/v1';
 
@@ -44,14 +45,23 @@ function csrfToken(): string {
 }
 
 function request<T>(method: string, path: string, body?: unknown): Promise<T> {
-  return send<T>(BASE, method, path, body);
+  // Consultation « Voir en tant que » : le jeton accompagne le cookie de
+  // session du super admin (indispensable côté serveur).
+  const token = readConsultationToken();
+  return send<T>(BASE, method, path, body, token ? { 'X-Impersonation-Token': token } : {});
 }
 
 function showcaseRequest<T>(method: string, path: string, body?: unknown): Promise<T> {
   return send<T>(SHOWCASE_BASE, method, path, body);
 }
 
-async function send<T>(base: string, method: string, path: string, body?: unknown): Promise<T> {
+async function send<T>(
+  base: string,
+  method: string,
+  path: string,
+  body?: unknown,
+  extraHeaders: Record<string, string> = {},
+): Promise<T> {
   let response: Response;
   try {
     response = await fetch(`${base}${path}`, {
@@ -61,6 +71,7 @@ async function send<T>(base: string, method: string, path: string, body?: unknow
         Accept: 'application/json',
         'X-Requested-With': 'XMLHttpRequest',
         'X-XSRF-TOKEN': csrfToken(),
+        ...extraHeaders,
       },
       credentials: 'same-origin',
       body: body === undefined ? undefined : JSON.stringify(body),
@@ -99,6 +110,11 @@ export const api = {
       password,
       password_confirmation: passwordConfirmation,
     });
+  },
+
+  /** Fin de la consultation « Voir en tant que » (avec l'en-tête du jeton). */
+  endConsultation() {
+    return request<{ success: boolean }>('DELETE', '/impersonation');
   },
 
   me() {

@@ -14,6 +14,7 @@ use Modules\Core\Http\Controllers\FlashcardDeckController;
 use Modules\Core\Http\Controllers\GeneralSettingsController;
 use Modules\Core\Http\Controllers\GroupController;
 use Modules\Core\Http\Controllers\GroupMemberController;
+use Modules\Core\Http\Controllers\ImpersonationController;
 use Modules\Core\Http\Controllers\LearnerController;
 use Modules\Core\Http\Controllers\MediaController;
 use Modules\Core\Http\Controllers\ModuleController;
@@ -104,6 +105,8 @@ Route::middleware(['auth', 'staff'])->group(function () {
             Route::delete('/{id}', [LearnerController::class, 'destroy'])->name('destroy');
             Route::post('/{id}/toggle-status', [LearnerController::class, 'toggleStatus'])->name('toggle-status');
             Route::post('/{id}/reset-password', [LearnerController::class, 'resetPassword'])->name('reset-password');
+            // « Voir en tant que » : {learnerId} = id de la table learners (super-admin seulement).
+            Route::post('/{learnerId}/impersonate', [ImpersonationController::class, 'start'])->name('impersonate');
         });
 
         Route::get('/parametres', [GeneralSettingsController::class, 'edit'])->name('settings.general');
@@ -333,9 +336,18 @@ Route::get('/sw.js', function () {
 // API Apprenant v1 (session + cookie + CSRF, SPA same-origin)
 // -------------------------------------------------------------------------
 Route::prefix('api/learner/v1')->name('learn.v1.')->group(function () {
-    Route::post('/session', [\Modules\Core\Http\Controllers\Learner\Api\SessionController::class, 'store'])->name('session.store');
+    Route::post('/session', [\Modules\Core\Http\Controllers\Learner\Api\SessionController::class, 'store'])
+        ->middleware('impersonation')
+        ->name('session.store');
 
-    Route::middleware(['auth', 'learner'])->group(function () {
+    // Fin de consultation « Voir en tant que » : hors auth/learner, l'en-tête suffit.
+    Route::delete('/impersonation', [ImpersonationController::class, 'end'])
+        ->middleware('impersonation')
+        ->name('impersonation.end');
+
+    // `impersonation` AVANT `auth` : en consultation, l'apprenant devient
+    // l'utilisateur de la requête (lecture seule, liste blanche).
+    Route::middleware(['impersonation', 'auth', 'learner'])->group(function () {
         Route::get('/me', [\Modules\Core\Http\Controllers\Learner\Api\SessionController::class, 'show'])->name('me');
         Route::put('/password', [\Modules\Core\Http\Controllers\Learner\Api\SessionController::class, 'updatePassword'])->name('password.update');
         Route::delete('/session', [\Modules\Core\Http\Controllers\Learner\Api\SessionController::class, 'destroy'])->name('session.destroy');

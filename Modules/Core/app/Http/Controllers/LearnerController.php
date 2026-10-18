@@ -70,6 +70,7 @@ class LearnerController extends Controller
         // Formater pour insérer le matricule et les groupes
         $rows = $learners->map(function ($user) {
             $user->matricule = $user->learner?->matricule;
+            $user->learner_id = $user->learner?->id;
             $user->groups_list = $user->learner?->groups->pluck('name')->toArray() ?? [];
 
             return $user;

@@ -1,4 +1,5 @@
 import Dexie, { type Table } from 'dexie';
+import { consultationDbName } from '../consultation/consultation';
 import type {
   ArticleItem,
   GroupInfo,
@@ -18,6 +19,10 @@ import type {
  *
  * Nouvelle base (`LearnQuizDB-v2026`), indépendante de l'ancienne
  * `LearnQuizDB` du SPA legacy pour permettre une bascule sans migration.
+ *
+ * En consultation « Voir en tant que », le nom est choisi à l'import
+ * (`LearnQuizDB-v2026-consultation`) : la base d'un vrai apprenant sur ce
+ * navigateur n'est jamais ouverte.
  */
 
 interface MetaRow {
@@ -53,7 +58,7 @@ export class LearnerDb extends Dexie {
   mistakes!: Table<MistakeEntry, number>;
 
   constructor() {
-    super('LearnQuizDB-v2026');
+    super(consultationDbName());
 
     this.version(1).stores({
       profile: '_key',

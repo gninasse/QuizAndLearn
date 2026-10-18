@@ -1,5 +1,6 @@
 import { html, raw } from '../core/html';
 import { t } from '../core/terms';
+import { blockedInConsultation, isConsultation } from '../consultation/consultation';
 import { isGuest } from '../guest/guest-session';
 import { lockedCardHtml } from '../guest/guest-ui';
 import type { ExamItem } from '../domain/types';
@@ -58,7 +59,11 @@ function examCard(exam: ExamItem): string {
             )
           : ''}
 
-        ${playable
+        ${playable && isConsultation()
+          ? raw(
+              `<button type="button" data-consultation-blocked class="mt-auto rounded-xl bg-zinc-200 dark:bg-zinc-800 text-zinc-500 text-center font-bold text-sm py-2.5 cursor-not-allowed"><i class="bi bi-eye"></i> ${exam.status === 'in_progress' ? "Reprendre l'examen" : "Commencer l'examen"}</button>`,
+            )
+          : playable
           ? raw(
               `<a data-link href="/exams/${exam.id}/play" class="mt-auto rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-center font-bold text-sm py-2.5 glow-amber transition-colors">${exam.status === 'in_progress' ? "Reprendre l'examen" : "Commencer l'examen"}</a>`,
             )
@@ -117,4 +122,8 @@ export function mount(el: HTMLElement): void {
         : ''}
     </div>
   `;
+
+  el.querySelectorAll('[data-consultation-blocked]').forEach((button) => {
+    button.addEventListener('click', () => blockedInConsultation());
+  });
 }

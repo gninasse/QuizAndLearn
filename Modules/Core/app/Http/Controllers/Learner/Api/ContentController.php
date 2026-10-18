@@ -7,6 +7,8 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Modules\Core\Models\ImpersonationSession;
+use Modules\Core\Services\ImpersonationService;
 use Modules\Core\Services\LearnerContentService;
 
 /**
@@ -16,18 +18,28 @@ class ContentController extends Controller
 {
     public function __construct(
         private readonly LearnerContentService $content,
+        private readonly ImpersonationService $impersonation,
     ) {}
 
     /**
      * GET /api/learner/v1/bootstrap — payload complet initial + cursor.
      */
-    public function bootstrap(): JsonResponse
+    public function bootstrap(Request $request): JsonResponse
     {
         $learner = Auth::user()->learner;
+        $payload = $this->content->bootstrap($learner);
+
+        // Consultation « Voir en tant que » : le bandeau signale l'état du
+        // compte (suspendu, mot de passe provisoire), contourné en lecture.
+        // (LearnerContentService::serializeUser n'expose pas must_change_password.)
+        $session = $request->attributes->get('impersonation');
+        if ($session instanceof ImpersonationSession) {
+            $payload['user'] = [...$payload['user'], ...$this->impersonation->profileExtras($session, $learner)];
+        }
 
         return response()->json([
             'success' => true,
-            ...$this->content->bootstrap($learner),
+            ...$payload,
         ]);
     }
 

@@ -21,6 +21,13 @@ export class LearnerActions {
             }
         });
 
+        $('#btn-impersonate-learner').click(() => {
+            const learnerId = this.table.getSelectedLearnerId();
+            if (learnerId) {
+                this.impersonate(learnerId);
+            }
+        });
+
         $('#btn-delete-learner').click(() => {
             const learnerId = this.table.getSelectedId();
             if (learnerId) {
@@ -46,6 +53,41 @@ export class LearnerActions {
             const learnerId = this.table.getSelectedId();
             if (learnerId) {
                 this.toggleStatus(learnerId, 'désactiver');
+            }
+        });
+    }
+
+    impersonate(learnerId) {
+        const url = $('#btn-impersonate-learner').data('url').replace('__ID__', learnerId);
+        // Ouverture synchrone (activation utilisateur conservée, Safari).
+        const tab = window.open('', '_blank');
+        $.ajax({
+            url,
+            method: 'POST',
+            success: (response) => {
+                if (response.success && response.url) {
+                    if (tab) {
+                        tab.opener = null;
+                        tab.location.href = response.url;
+                    } else {
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'Consultation prête',
+                            html: `<a href="${response.url}" target="_blank" rel="noopener">Ouvrir l'espace de l'apprenant</a>`,
+                            showConfirmButton: false
+                        });
+                    }
+                } else {
+                    tab?.close();
+                }
+            },
+            error: (xhr) => {
+                tab?.close();
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Erreur',
+                    text: xhr.responseJSON?.message || 'Consultation impossible.'
+                });
             }
         });
     }

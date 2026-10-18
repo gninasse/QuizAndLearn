@@ -33,7 +33,12 @@ class EnsureUserIsLearner
 
         // Suspension temporaire : l'accès est coupé (sessions et tokens
         // existants compris) mais l'appartenance aux groupes est conservée.
-        if ($learner->isSuspended()) {
+        // Consultation « Voir en tant que » (super admin, lecture seule) : les
+        // verrous de suspension et de mot de passe temporaire ne s'appliquent
+        // pas ; un compte désactivé reste refusé ci-dessus.
+        $impersonated = $request->attributes->get('impersonation') !== null;
+
+        if (! $impersonated && $learner->isSuspended()) {
             return $this->deny($request, $learner->suspensionMessage(), 'account_suspended');
         }
 
@@ -41,7 +46,8 @@ class EnsureUserIsLearner
         // de mot de passe et de déconnexion restent accessibles.
         // Le shell SPA (pages HTML) reste servi pour afficher l'écran de changement ;
         // seules les routes de données (API) sont bloquées.
-        if ($user->must_change_password
+        if (! $impersonated
+            && $user->must_change_password
             && $request->routeIs('learn.v1.*', 'api.mobile.v1.*')
             && ! $request->routeIs(self::PASSWORD_CHANGE_ALLOWED)) {
             return response()->json([
@@ -56,7 +62,10 @@ class EnsureUserIsLearner
     private function deny(Request $request, string $message, string $code = 'not_learner'): Response
     {
         // Requêtes JSON ou stateless (API mobile Sanctum) : 403 sec.
-        if ($request->expectsJson() || ! $request->hasSession()) {
+        // En consultation, la session web est celle du super admin : ne jamais
+        // la détruire.
+        if ($request->expectsJson() || ! $request->hasSession()
+            || $request->attributes->get('impersonation') !== null) {
             return response()->json(['message' => $message, 'code' => $code], 403);
         }
 

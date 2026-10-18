@@ -39,7 +39,9 @@ faux ») et la vérification des contenus, sans jamais rien modifier.
    - l'app apprenant habituelle s'affiche, avec un **bandeau permanent** en haut : « Consultation de l'espace de {nom} — lecture seule » et un bouton « Quitter » ;
    - le filigrane des médias affiche « Consultation · {nom admin} ».
 4. **Lecture seule :** toute action d'écriture est neutralisée côté client (pas d'outbox, pas d'envoi) et refusée côté serveur. Les boutons qui n'ont de sens qu'en écriture affichent un message « Action indisponible en consultation » au lieu d'agir : démarrer un examen, changer de mot de passe, déconnexion classique.
-5. **Fin :** « Quitter », fermeture de l'onglet ou expiration au bout de **30 minutes** (non renouvelable). L'onglet affiche alors « Consultation terminée » et purge ses données locales.
+5. **Fin :** « Quitter » ou expiration au bout de **30 minutes** (non renouvelable). L'onglet affiche alors « Consultation terminée » et purge ses données locales.
+
+> **Écart enregistré :** la fermeture de l'onglet ne termine pas la session immédiatement (aucun signal fiable côté serveur). La session expire au bout de 30 minutes ; le jeton reste inutilisable sans la session web du super admin créateur, et la durée journalisée est plafonnée à l'expiration.
 
 ## 6. Conception technique
 

@@ -1,4 +1,5 @@
 import { api, ApiError, NetworkError } from '../api/client';
+import { blockedInConsultation, isConsultation } from '../consultation/consultation';
 import { escapeHtml, html, raw } from '../core/html';
 import type { ExamStartResponse, QuizQuestion } from '../domain/types';
 import { examsStore, syncStore } from '../stores';
@@ -69,6 +70,11 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
   `;
 
   el.querySelector('#btn-start')?.addEventListener('click', () => {
+    // Consultation : un démarrage créerait une tentative au nom de l'apprenant.
+    if (isConsultation()) {
+      blockedInConsultation();
+      return;
+    }
     void begin();
   });
 

@@ -10,6 +10,7 @@ const urls = {
     candidates: root.dataset.urlCandidates,
     learners: root.dataset.urlLearners,
     trainers: root.dataset.urlTrainers,
+    impersonate: root.dataset.urlImpersonate,
 };
 const canManageTrainers = root.dataset.canManageTrainers === '1';
 const csrf = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
@@ -60,6 +61,35 @@ const notify = (message, icon = 'success') =>
     Swal.fire({ toast: true, position: 'top-end', icon, title: message, showConfirmButton: false, timer: 2600 });
 
 const fail = (error) => Swal.fire('Erreur', error.message || 'Une erreur est survenue.', 'error');
+
+async function impersonate(learner) {
+    // Ouverture synchrone (activation utilisateur conservée, Safari) ; l'URL est
+    // renseignée après la requête.
+    const tab = window.open('', '_blank');
+    try {
+        const result = await request('POST', urls.impersonate.replace('__ID__', learner.learner_id));
+        if (tab) {
+            tab.opener = null;
+            tab.location.href = result.url;
+        } else {
+            Swal.fire({
+                icon: 'info',
+                title: 'Consultation prête',
+                html: `<a href="${result.url}" target="_blank" rel="noopener">Ouvrir l'espace de l'apprenant</a>`,
+                showConfirmButton: false,
+            });
+        }
+        void load();
+    } catch (error) {
+        tab?.close();
+        fail(error);
+    }
+}
+
+const impersonateButton = () =>
+    state.can_impersonate
+        ? '<button type="button" class="btn btn-light" data-action="impersonate" title="Voir en tant que"><i class="bi bi-person-video3"></i></button>'
+        : '';
 
 // ------------------------------------------------------------- Chargement
 
@@ -156,6 +186,7 @@ function renderLearners() {
                 <td class="text-end">
                     <div class="btn-group btn-group-sm">
                         <button type="button" class="btn btn-light" data-action="details" title="Voir la fiche"><i class="bi bi-eye"></i></button>
+                        ${impersonateButton()}
                         ${l.suspended
                             ? '<button type="button" class="btn btn-light text-success" data-action="unsuspend" title="Lever la suspension"><i class="bi bi-play-circle"></i></button>'
                             : '<button type="button" class="btn btn-light text-warning" data-action="suspend" title="Suspendre temporairement"><i class="bi bi-pause-circle"></i></button>'}
@@ -209,7 +240,12 @@ function showDetails(learner) {
             <dt>Examens passés</dt><dd>${learner.exams_taken}${learner.exam_avg_note !== null ? ` (moyenne ${learner.exam_avg_note}/20)` : ''}</dd>
             <dt>Dernière activité</dt><dd>${learner.last_activity ? `${formatDate(learner.last_activity)} (${relativeDays(learner.last_activity)})` : 'Jamais'}</dd>
             <dt>Autres ${T('groups')}</dt><dd>${otherGroups}</dd>
-        </dl>`;
+            ${state.can_impersonate ? `<dt>Dernière consultation</dt><dd>${learner.last_consultation
+                ? `${formatDate(learner.last_consultation.at, true)} par ${esc(learner.last_consultation.by || '—')}`
+                : 'Jamais'}</dd>` : ''}
+        </dl>
+        ${state.can_impersonate ? `<button type="button" class="btn btn-dark w-100" id="btn-details-impersonate"><i class="bi bi-person-video3 me-1"></i>Voir en tant que</button>` : ''}`;
+    document.getElementById('btn-details-impersonate')?.addEventListener('click', () => impersonate(learner));
     bootstrap.Offcanvas.getOrCreateInstance('#learner-details').show();
 }
 
@@ -368,6 +404,8 @@ document.getElementById('learners-body').addEventListener('click', async (event)
     const action = trigger.dataset.action;
     if (action === 'details') {
         showDetails(learner);
+    } else if (action === 'impersonate') {
+        await impersonate(learner);
     } else if (action === 'suspend') {
         openSuspend(learner);
     } else if (action === 'unsuspend') {

@@ -2,6 +2,7 @@ import { api } from '../api/client';
 import { escapeHtml, html, raw } from '../core/html';
 import { db } from '../db/schema';
 import type { Preferences } from '../domain/types';
+import { endConsultation, isConsultation } from '../consultation/consultation';
 import { isGuest, leaveGuestMode } from '../guest/guest-session';
 import { accessCtaHtml } from '../guest/guest-ui';
 import { badgesStore, preferencesStore, sessionStore, syncStore } from '../stores';
@@ -22,6 +23,9 @@ export function mount(el: HTMLElement): void {
     return;
   }
 
+  // Consultation : préférences, mot de passe et déconnexion sont remplacés
+  // par « Quitter la consultation ».
+  const consultation = isConsultation();
   const preferences = preferencesStore.get();
   const badges = badgesStore.get();
   const progress = levelProgress(user.xp);
@@ -82,19 +86,19 @@ export function mount(el: HTMLElement): void {
         </div>
       </section>
 
-      ${raw(preferencesSection(preferences))}
+      ${consultation ? '' : raw(preferencesSection(preferences))}
 
       <!-- Sécurité -->
-      <section class="rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-5 flex flex-col gap-3">
+      ${consultation ? '' : raw(html`<section class="rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-5 flex flex-col gap-3">
         <h3 class="font-bold text-sm">Sécurité</h3>
         <p class="text-xs text-zinc-500">Le changement de mot de passe nécessite une connexion internet.</p>
         <button id="btn-password" class="rounded-xl border border-zinc-300 dark:border-zinc-700 font-bold text-sm py-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-800">
           <i class="bi bi-key"></i> Changer mon mot de passe
         </button>
-      </section>
+      </section>`)}
 
       <!-- Application -->
-      ${canOfferInstall()
+      ${!consultation && canOfferInstall()
         ? raw(`
           <section class="rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-5 flex flex-col gap-3">
             <h3 class="font-bold text-sm">Application</h3>
@@ -119,11 +123,19 @@ export function mount(el: HTMLElement): void {
         </button>
       </section>
 
-      <button id="btn-logout" class="rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold py-3 text-sm">
-        <i class="bi bi-box-arrow-right"></i> Se déconnecter
-      </button>
+      ${consultation
+        ? raw(`<button id="btn-quit-consultation" class="rounded-xl bg-violet-700 hover:bg-violet-600 text-white font-bold py-3 text-sm">
+            <i class="bi bi-eye-slash"></i> Quitter la consultation
+          </button>`)
+        : raw(`<button id="btn-logout" class="rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold py-3 text-sm">
+            <i class="bi bi-box-arrow-right"></i> Se déconnecter
+          </button>`)}
     </div>
   `;
+
+  el.querySelector('#btn-quit-consultation')?.addEventListener('click', () => {
+    void endConsultation('quit');
+  });
 
   // ------------------------------------------------------------- Handlers
 
