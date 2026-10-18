@@ -1,6 +1,6 @@
 # Pilotes vidéo configurables (+ vidéos YouTube / Vimeo de marque) — Conception
 
-> Date : 2026-10-18 · Statut : à valider · Projet : QuizAndLearn (Learn&Quiz)
+> Date : 2026-10-18 · Statut : validé le 2026-10-18 · Projet : QuizAndLearn (Learn&Quiz)
 
 ## 1. Intention
 
