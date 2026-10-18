@@ -1,6 +1,8 @@
 @extends('core::layouts.master')
 
-@section('header', 'Mon Profil')
+@section('title', 'Mon profil')
+
+@section('header', 'Mon profil')
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('cores.dashboard') }}">Accueil</a></li>
@@ -21,7 +23,7 @@
                          alt="User profile picture">
                     
                     <label for="profile_avatar" class="position-absolute bottom-0 end-0 bg-primary text-white p-2 rounded-circle shadow-sm" style="cursor: pointer; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
-                        <i class="fas fa-camera"></i>
+                        <i class="fas fa-camera"></i><span class="visually-hidden">Changer la photo</span>
                     </label>
                     <input type="file" id="profile_avatar" name="avatar" class="d-none" accept="image/*">
                 </div>
@@ -117,7 +119,7 @@
                         <label for="current_password" class="form-label">Mot de passe actuel</label>
                         <div class="input-group">
                             <input type="password" class="form-control" id="current_password" name="current_password" required>
-                            <button class="btn btn-outline-secondary toggle-password" type="button" data-target="#current_password">
+                            <button class="btn btn-outline-secondary toggle-password" type="button" aria-label="Afficher ou masquer le mot de passe" data-target="#current_password">
                                 <i class="fas fa-eye"></i>
                             </button>
                         </div>
@@ -126,7 +128,7 @@
                         <label for="password" class="form-label">Nouveau mot de passe</label>
                         <div class="input-group">
                             <input type="password" class="form-control" id="password" name="password" required>
-                            <button class="btn btn-outline-secondary toggle-password" type="button" data-target="#password">
+                            <button class="btn btn-outline-secondary toggle-password" type="button" aria-label="Afficher ou masquer le mot de passe" data-target="#password">
                                 <i class="fas fa-eye"></i>
                             </button>
                         </div>
@@ -136,7 +138,7 @@
                         <label for="password_confirmation" class="form-label">Confirmer le nouveau mot de passe</label>
                         <div class="input-group">
                             <input type="password" class="form-control" id="password_confirmation" name="password_confirmation" required>
-                            <button class="btn btn-outline-secondary toggle-password" type="button" data-target="#password_confirmation">
+                            <button class="btn btn-outline-secondary toggle-password" type="button" aria-label="Afficher ou masquer le mot de passe" data-target="#password_confirmation">
                                 <i class="fas fa-eye"></i>
                             </button>
                         </div>

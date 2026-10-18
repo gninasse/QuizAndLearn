@@ -359,14 +359,14 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
           </div>
 
           <div class="flex items-center gap-3">
-            <button id="btn-prev" ${index === 0 ? 'disabled' : ''}
+            <button id="btn-prev" aria-label="Question précédente" ${index === 0 ? 'disabled' : ''}
                     class="rounded-xl border border-zinc-300 dark:border-zinc-700 px-5 py-2.5 text-sm font-bold disabled:opacity-40">
               <i class="bi bi-arrow-left"></i>
             </button>
             <span class="flex-1 text-center text-xs text-zinc-500">${Object.keys(answers).length}/${total} répondues</span>
             ${index === total - 1
               ? raw('<button id="btn-submit" class="rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 text-sm font-bold glow-emerald">Soumettre</button>')
-              : raw('<button id="btn-next" class="rounded-xl bg-amber-600 hover:bg-amber-500 text-white px-5 py-2.5 text-sm font-bold"><i class="bi bi-arrow-right"></i></button>')}
+              : raw('<button id="btn-next" aria-label="Question suivante" class="rounded-xl bg-amber-600 hover:bg-amber-500 text-white px-5 py-2.5 text-sm font-bold"><i class="bi bi-arrow-right"></i></button>')}
           </div>
         </div>
       `;

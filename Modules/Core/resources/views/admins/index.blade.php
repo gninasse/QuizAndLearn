@@ -24,7 +24,7 @@
             <button id="btn-delete-admin" class="btn btn-danger" disabled data-bs-toggle="tooltip" title="Supprimer">
                 <i class="fas fa-trash"></i>
             </button>
-            <button id="btn-reset-password" class="btn btn-warning" disabled data-bs-toggle="tooltip" title="Réinitialiser MDP">
+            <button id="btn-reset-password" class="btn btn-warning" disabled data-bs-toggle="tooltip" title="Réinitialiser le mot de passe">
                 <i class="fas fa-key"></i>
             </button>
             <button id="btn-enable-admin" class="btn btn-success" disabled data-bs-toggle="tooltip" title="Activer">
@@ -85,7 +85,7 @@
     function statusFormatter(value, row, index) {
         return value 
             ? '<span class="badge bg-success">Actif</span>' 
-            : '<span class="badge bg-danger">Bloqué</span>';
+            : '<span class="badge bg-danger">Désactivé</span>';
     }
 
     function rolesFormatter(value, row, index) {

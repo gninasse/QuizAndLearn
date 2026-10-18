@@ -11,7 +11,7 @@
 @section('content')
 <div class="card">
     <div class="card-header">
-        <h3 class="card-title">Liste des paquets de cartes (Decks)</h3>
+        <h3 class="card-title">Paquets de cartes</h3>
     </div>
     <div class="card-body">
 
@@ -108,7 +108,7 @@
                         <label class="form-check-label" for="deck-is-public">Rendre ce paquet public (Visible par tous)</label>
                     </div>
                     <div class="mb-3" id="groups-select-container">
-                        <label for="deck-groups" class="form-label">Assigner aux {{ term('groups') }} d'étudiants</label>
+                        <label for="deck-groups" class="form-label">Assigner aux {{ term('groups') }} d'apprenants</label>
                         <select class="form-control select2" id="deck-groups" name="group_ids[]" multiple="multiple" style="width: 100%;">
                             @foreach($groups as $group)
                                 <option value="{{ $group->id }}">{{ $group->name }}</option>

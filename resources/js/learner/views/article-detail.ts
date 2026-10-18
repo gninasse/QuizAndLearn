@@ -74,7 +74,7 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
               [1, 2, 3, 4, 5]
                 .map(
                   (i) =>
-                    `<button data-star="${i}" aria-label="${i} étoiles" class="bi ${i <= article.rating ? 'bi-star-fill text-amber-400' : 'bi-star text-zinc-300 dark:text-zinc-600'}"></button>`,
+                    `<button data-star="${i}" aria-label="${i} ${i > 1 ? 'étoiles' : 'étoile'}" class="bi ${i <= article.rating ? 'bi-star-fill text-amber-400' : 'bi-star text-zinc-300 dark:text-zinc-600'}"></button>`,
                 )
                 .join(''),
             )}

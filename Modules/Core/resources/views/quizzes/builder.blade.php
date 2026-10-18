@@ -27,7 +27,7 @@
                 <p class="text-muted mb-0">{{ $quiz->description ?? 'Aucune description fournie.' }}</p>
             </div>
             <div class="col-md-4 text-md-end mt-3 mt-md-0">
-                <span class="badge bg-purple p-2 me-1" style="font-size: 0.9rem;">
+                <span class="badge text-bg-secondary p-2 me-1" style="font-size: 0.9rem;">
                     <i class="far fa-clock"></i> {{ $quiz->duration ? $quiz->duration . ' min' : 'Temps illimité' }}
                 </span>
                 <span class="badge bg-warning text-dark p-2" style="font-size: 0.9rem;">

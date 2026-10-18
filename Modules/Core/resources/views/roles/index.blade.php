@@ -1,5 +1,7 @@
 @extends('core::layouts.master')
 
+@section('title', 'Gestion des rôles')
+
 @section('header', 'Gestion des rôles')
 
 @section('breadcrumb')

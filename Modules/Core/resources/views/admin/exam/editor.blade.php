@@ -133,10 +133,10 @@
                 </div>
               </div>
               <div class="question-actions d-flex gap-2">
-                <button class="btn btn-sm btn-outline-primary edit-question" data-id="{{ $question->id }}" style="border-radius: 6px;">
+                <button class="btn btn-sm btn-outline-primary edit-question" data-id="{{ $question->id }}" aria-label="Modifier la question" title="Modifier la question" style="border-radius: 6px;">
                   <i class="bi bi-pencil-fill"></i>
                 </button>
-                <button class="btn btn-sm btn-outline-danger delete-question" data-id="{{ $question->id }}" style="border-radius: 6px;">
+                <button class="btn btn-sm btn-outline-danger delete-question" data-id="{{ $question->id }}" aria-label="Supprimer la question" title="Supprimer la question" style="border-radius: 6px;">
                   <i class="bi bi-trash-fill"></i>
                 </button>
               </div>
@@ -562,7 +562,7 @@
                 <div class="option-row d-flex align-items-center mb-2 gap-2">
                     <input type="checkbox" class="form-check-input correct-chk" ${isCorrect ? 'checked' : ''} style="transform:scale(1.2);">
                     <input type="text" class="form-control option-text" placeholder="Réponse alternative..." value="${text}" required style="border-radius:6px;">
-                    <button type="button" class="btn btn-sm btn-outline-danger btn-remove-option"><i class="bi bi-trash"></i></button>
+                    <button type="button" class="btn btn-sm btn-outline-danger btn-remove-option" aria-label="Supprimer cette option" title="Supprimer cette option"><i class="bi bi-trash"></i></button>
                 </div>
             `;
             $('#mcqOptionsContainer').append(html);
@@ -585,7 +585,7 @@
                     <input type="text" class="form-control pair-left" placeholder="Élément gauche..." value="${left}" required style="border-radius:6px;">
                     <i class="bi bi-arrow-right"></i>
                     <input type="text" class="form-control pair-right" placeholder="Élément droit..." value="${right}" required style="border-radius:6px;">
-                    <button type="button" class="btn btn-sm btn-outline-danger btn-remove-pair"><i class="bi bi-trash"></i></button>
+                    <button type="button" class="btn btn-sm btn-outline-danger btn-remove-pair" aria-label="Supprimer cette paire" title="Supprimer cette paire"><i class="bi bi-trash"></i></button>
                 </div>
             `;
             $('#matchingPairsContainer').append(html);
@@ -605,7 +605,7 @@
                 <div class="ordering-row d-flex align-items-center mb-2 gap-2">
                     <span class="order-idx fw-bold"></span>
                     <input type="text" class="form-control order-text" placeholder="Élément..." value="${text}" required style="border-radius:6px;">
-                    <button type="button" class="btn btn-sm btn-outline-danger btn-remove-order-row"><i class="bi bi-trash"></i></button>
+                    <button type="button" class="btn btn-sm btn-outline-danger btn-remove-order-row" aria-label="Supprimer cette ligne" title="Supprimer cette ligne"><i class="bi bi-trash"></i></button>
                 </div>
             `;
             $('#orderingItemsContainer').append(html);

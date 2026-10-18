@@ -194,6 +194,8 @@ export class AppShell extends BaseComponent {
       a.classList.toggle('dark:text-sky-400', active);
       a.classList.toggle('bg-sky-50', active);
       a.classList.toggle('dark:bg-sky-500/10', active);
+      if (active) a.setAttribute('aria-current', 'page');
+      else a.removeAttribute('aria-current');
     });
   }
 

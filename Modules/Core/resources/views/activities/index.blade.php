@@ -1,5 +1,7 @@
 @extends('core::layouts.master')
 
+@section('title', 'Journal des activités')
+
 @section('header', 'Journal des activités')
 
 @section('breadcrumb')

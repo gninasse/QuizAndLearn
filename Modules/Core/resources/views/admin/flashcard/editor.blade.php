@@ -177,7 +177,7 @@
           <h6 class="fw-bold mb-0 text-success" style="color:var(--green-mid);"><i class="bi bi-people-fill me-2"></i> {{ term('Groups') }} cibles</h6>
         </div>
         <div class="card-body">
-          <p class="text-muted small">Sélectionnez les {{ term('groups') }} d'étudiants qui auront accès à ce paquet de flashcards.</p>
+          <p class="text-muted small">Sélectionnez les {{ term('groups') }} d'apprenants qui auront accès à ce paquet de flashcards.</p>
           <div class="mb-3">
             <select class="form-control select2" id="deckGroupsAssign" multiple="multiple" style="width: 100%;">
               @foreach($groups as $group)

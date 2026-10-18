@@ -1,5 +1,7 @@
 @extends('core::layouts.master')
 
+@section('title', 'Matrice des permissions')
+
 @section('header', 'Matrice des permissions')
 
 @section('breadcrumb')

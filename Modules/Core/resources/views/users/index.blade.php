@@ -1,5 +1,7 @@
 @extends('core::layouts.master')
 
+@section('title', 'Gestion des utilisateurs')
+
 @section('header', 'Gestion des utilisateurs')
 
 @section('breadcrumb')
@@ -30,7 +32,7 @@
             </button>
             @endcan
             @can('cores.users.reset-password')
-            <button id="btn-reset-password" class="btn btn-warning" disabled data-bs-toggle="tooltip" title="Réinitialiser MDP">
+            <button id="btn-reset-password" class="btn btn-warning" disabled data-bs-toggle="tooltip" title="Réinitialiser le mot de passe">
                 <i class="fas fa-key"></i>
             </button>
             @endcan

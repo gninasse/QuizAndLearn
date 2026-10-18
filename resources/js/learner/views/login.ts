@@ -33,7 +33,7 @@ export function mount(el: HTMLElement): void {
                    class="rounded-xl bg-white/10 border border-white/10 px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-sky-500"
                    placeholder="••••••••" />
           </label>
-          <p id="login-error" class="hidden text-sm text-red-400 font-medium"></p>
+          <p id="login-error" role="alert" class="hidden text-sm text-red-400 font-medium"></p>
           <button type="submit" id="login-submit"
                   class="mt-1 rounded-xl bg-sky-600 hover:bg-sky-500 disabled:opacity-60 text-white font-bold py-3 transition-colors">
             Se connecter

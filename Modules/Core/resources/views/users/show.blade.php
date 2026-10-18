@@ -1,5 +1,7 @@
 @extends('core::layouts.master')
 
+@section('title', $user->full_name)
+
 @section('header', $user->full_name)
 
 @section('breadcrumb')

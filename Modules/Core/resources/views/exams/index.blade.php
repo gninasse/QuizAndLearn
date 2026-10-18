@@ -130,7 +130,7 @@
     }
 
     function noteMaxFormatter(value, row, index) {
-        return `<span class="badge bg-purple text-white">/${value}</span>`;
+        return `<span class="badge text-bg-secondary">/${value}</span>`;
     }
 
     function questionsCountFormatter(value, row, index) {
