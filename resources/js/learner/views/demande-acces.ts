@@ -1,6 +1,7 @@
 import { api, ApiError, NetworkError } from '../api/client';
 import { html, raw } from '../core/html';
-import type { AccessRequestResponse, ShowcaseSettings } from '../domain/types';
+import type { AccessFieldName, AccessRequestConfig, AccessRequestResponse, ShowcaseSettings } from '../domain/types';
+import { channelHref, channelLabel, isInternalHref, opensNewTab, resolveAccessConfig } from '../guest/access-channels';
 import { guestSettings } from '../guest/guest-session';
 import { toast } from '../ui/app-toast';
 
@@ -58,7 +59,7 @@ function formatFee(registration: ShowcaseSettings['registration']): string {
   return `${amount} ${registration.currency}`.trim();
 }
 
-function successView(result: AccessRequestResponse): string {
+function successView(result: AccessRequestResponse, confirmation: string): string {
   const reg = result.registration;
   const payment =
     reg && reg.accounts.length > 0
@@ -80,20 +81,68 @@ function successView(result: AccessRequestResponse): string {
       : '';
   return html`
     <div class="${CARD}">
-      <h1 class="text-lg font-bold">Demande envoyée.</h1>
+      <h1 class="text-lg font-bold">${result.confirmation || confirmation}</h1>
       <p class="text-sm text-zinc-500">Nous vous contacterons au ${result.phone}.</p>
       ${raw(payment)}
       <a data-link href="/" class="rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 text-center transition-colors">Retour à la découverte</a>
     </div>`;
 }
 
+const LINK =
+  'rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 text-center transition-colors';
+
+function closedView(): string {
+  return html`
+    <div class="max-w-md mx-auto py-8 px-4">
+      <div data-access-closed class="${CARD}">
+        <h1 class="text-lg font-bold">Demandes d'accès fermées</h1>
+        <p class="text-sm text-zinc-500">Les demandes d'accès sont fermées pour le moment.</p>
+        <a data-link href="/" class="${LINK}">Retour à la découverte</a>
+      </div>
+    </div>`;
+}
+
+function choicesView(cfg: AccessRequestConfig): string {
+  const channels = [...cfg.channels].sort((a, b) => Number(b.type === 'form') - Number(a.type === 'form'));
+  const cards = channels
+    .map((c) => {
+      const href = channelHref(c);
+      const attrs = isInternalHref(href) ? 'data-link' : opensNewTab(href) ? 'target="_blank" rel="noopener"' : '';
+      return html`<a ${raw(attrs)} href="${href}" data-channel="${c.type}" class="${LINK}">${channelLabel(c)}</a>`;
+    })
+    .join('');
+  return html`
+    <div class="max-w-md mx-auto py-8 px-4">
+      <div class="${CARD}">
+        <h1 class="text-lg font-bold">${cfg.title}</h1>
+        ${cfg.intro ? raw(html`<p class="text-sm text-zinc-500">${cfg.intro}</p>`) : ''}
+        ${raw(cards)}
+      </div>
+    </div>`;
+}
+
 /** Formulaire public de demande d'accès (mode découverte). */
 export async function mount(el: HTMLElement, _params?: Record<string, string>): Promise<void> {
   const settings = await loadSettings();
+  const cfg = resolveAccessConfig(settings);
+  if (!cfg.enabled) {
+    el.innerHTML = closedView();
+    return;
+  }
+  const hasForm = cfg.channels.some((c) => c.type === 'form');
+  const wantsForm = new URLSearchParams(window.location.search).get('canal') === 'form';
+  if (!hasForm || (cfg.channels.length > 1 && !wantsForm)) {
+    el.innerHTML = choicesView(cfg);
+    return;
+  }
+  const mode = (name: AccessFieldName): 'hidden' | 'optional' | 'required' => cfg.fields[name];
+  const show = (name: AccessFieldName): boolean => mode(name) !== 'hidden';
+  const star = (name: AccessFieldName): boolean => mode(name) === 'required';
   // Chronomètre monotone local : le serveur ne compare aucune horloge.
   const mountedAt = performance.now();
   const prefix = settings?.default_country_code ? `+${settings.default_country_code}` : '';
-  const groups = settings?.groups ?? [];
+  const groups = show('group') ? (settings?.groups ?? []) : [];
+  const customs = cfg.custom_fields;
   const draft = readDraft();
   const dv = (name: string): string => (typeof draft[name] === 'string' ? (draft[name] as string) : '');
   const whatsappSame = draft.whatsapp_same !== false;
@@ -105,11 +154,32 @@ export async function mount(el: HTMLElement, _params?: Record<string, string>): 
       <span data-error="${name}" class="hidden text-xs font-medium text-red-500"></span>
     </label>`;
 
+  const customField = (f: (typeof customs)[number]): string => {
+    const label = html`${f.label}${f.required ? ' *' : ''}`;
+    const value = dv(f.key);
+    let control: string;
+    if (f.type === 'textarea') {
+      control = html`<textarea name="${f.key}" rows="3" maxlength="2000" class="${INPUT}">${value}</textarea>`;
+    } else if (f.type === 'select') {
+      control = html`<select name="${f.key}" class="${INPUT}">
+        <option value="">—</option>
+        ${raw((f.options ?? []).map((o) => html`<option value="${o}" ${value === o ? 'selected' : ''}>${o}</option>`).join(''))}
+      </select>`;
+    } else {
+      control = html`<input name="${f.key}" type="text" maxlength="255" value="${value}" class="${INPUT}" />`;
+    }
+    return html`<label class="flex flex-col gap-1.5" data-custom="${f.key}">
+      <span class="text-xs font-bold text-zinc-500 uppercase tracking-wide">${raw(label)}</span>
+      ${raw(control)}
+      <span data-error="extra.${f.key}" class="hidden text-xs font-medium text-red-500"></span>
+    </label>`;
+  };
+
   el.innerHTML = html`
     <div class="max-w-md mx-auto py-8 px-4">
       <form id="access-form" class="${CARD}" novalidate>
-        <h1 class="text-lg font-bold">Demander un accès</h1>
-        <p class="text-sm text-zinc-500">Laissez-nous vos coordonnées : notre équipe vous recontacte pour ouvrir votre compte.</p>
+        <h1 class="text-lg font-bold">${cfg.title}</h1>
+        ${cfg.intro ? raw(html`<p class="text-sm text-zinc-500">${cfg.intro}</p>`) : ''}
         ${raw(field('first_name', 'Prénom', { required: true, auto: 'given-name' }))}
         ${raw(field('last_name', 'Nom', { required: true, auto: 'family-name' }))}
         <label class="flex flex-col gap-1.5">
@@ -120,19 +190,23 @@ export async function mount(el: HTMLElement, _params?: Record<string, string>): 
           </div>
           <span data-error="phone" class="hidden text-xs font-medium text-red-500"></span>
         </label>
-        <label class="flex items-center gap-2 text-sm">
+        ${
+          show('whatsapp')
+            ? raw(html`<label class="flex items-center gap-2 text-sm">
           <input name="whatsapp_same" type="checkbox" ${whatsappSame ? 'checked' : ''} />
           Même numéro sur WhatsApp
         </label>
         <div id="whatsapp-box" class="${whatsappSame ? 'hidden' : ''}">
-          ${raw(field('whatsapp', 'Numéro WhatsApp', { type: 'tel', auto: 'tel-national' }))}
-        </div>
-        ${raw(field('email', 'E-mail', { type: 'email', auto: 'email' }))}
-        ${raw(field('organization', 'Organisation', { auto: 'organization' }))}
+          ${raw(field('whatsapp', 'Numéro WhatsApp', { type: 'tel', auto: 'tel-national', required: star('whatsapp') }))}
+        </div>`)
+            : ''
+        }
+        ${show('email') ? raw(field('email', 'E-mail', { type: 'email', auto: 'email', required: star('email') })) : ''}
+        ${show('organization') ? raw(field('organization', 'Organisation', { auto: 'organization', required: star('organization') })) : ''}
         ${
           groups.length > 0
             ? raw(html`<label class="flex flex-col gap-1.5">
-                <span class="text-xs font-bold text-zinc-500 uppercase tracking-wide">Formation souhaitée</span>
+                <span class="text-xs font-bold text-zinc-500 uppercase tracking-wide">Formation souhaitée${star('group') ? ' *' : ''}</span>
                 <select name="group_id" class="${INPUT}">
                   <option value="">Je ne sais pas encore</option>
                   ${raw(
@@ -145,11 +219,16 @@ export async function mount(el: HTMLElement, _params?: Record<string, string>): 
               </label>`)
             : ''
         }
-        <label class="flex flex-col gap-1.5">
-          <span class="text-xs font-bold text-zinc-500 uppercase tracking-wide">Message</span>
+        ${
+          show('message')
+            ? raw(html`<label class="flex flex-col gap-1.5">
+          <span class="text-xs font-bold text-zinc-500 uppercase tracking-wide">Message${star('message') ? ' *' : ''}</span>
           <textarea name="message" rows="3" maxlength="2000" class="${INPUT}">${dv('message')}</textarea>
           <span data-error="message" class="hidden text-xs font-medium text-red-500"></span>
-        </label>
+        </label>`)
+            : ''
+        }
+        ${raw(customs.map(customField).join(''))}
         <div class="flex flex-col gap-1">
           <label class="flex items-start gap-2 text-sm">
             <input name="consent" type="checkbox" class="mt-1" ${draft.consent === true ? 'checked' : ''} />
@@ -175,11 +254,11 @@ export async function mount(el: HTMLElement, _params?: Record<string, string>): 
   const form = el.querySelector<HTMLFormElement>('#access-form')!;
   const submit = el.querySelector<HTMLButtonElement>('button[type="submit"]')!;
   const offlineNote = el.querySelector<HTMLElement>('#offline-note')!;
-  const whatsappBox = el.querySelector<HTMLElement>('#whatsapp-box')!;
-  const control = (name: string): HTMLInputElement =>
-    form.querySelector<HTMLInputElement>(`[name="${name}"]`)!;
-  const text = (name: string): string => (form.querySelector(`[name="${name}"]`) as HTMLInputElement | null)?.value.trim() ?? '';
-  const checked = (name: string): boolean => control(name).checked;
+  const whatsappBox = el.querySelector<HTMLElement>('#whatsapp-box');
+  const control = (name: string): HTMLInputElement | null =>
+    form.querySelector<HTMLInputElement>(`[name="${name}"]`);
+  const text = (name: string): string => control(name)?.value.trim() ?? '';
+  const checked = (name: string): boolean => control(name)?.checked ?? false;
   let sending = false;
 
   const collectDraft = (): Draft => ({
@@ -193,13 +272,25 @@ export async function mount(el: HTMLElement, _params?: Record<string, string>): 
     group_id: text('group_id'),
     message: text('message'),
     consent: checked('consent'),
+    ...Object.fromEntries(customs.map((f) => [f.key, text(f.key)])),
   });
 
   const refresh = (): void => {
     const online = navigator.onLine;
     offlineNote.classList.toggle('hidden', online);
+    const missing = (name: AccessFieldName, input: string): boolean =>
+      star(name) && control(input) !== null && text(input) === '';
     const complete =
-      text('first_name') !== '' && text('last_name') !== '' && text('phone') !== '' && checked('consent');
+      text('first_name') !== '' &&
+      text('last_name') !== '' &&
+      text('phone') !== '' &&
+      checked('consent') &&
+      !missing('email', 'email') &&
+      !missing('organization', 'organization') &&
+      !missing('message', 'message') &&
+      !missing('group', 'group_id') &&
+      !(star('whatsapp') && control('whatsapp') !== null && !checked('whatsapp_same') && text('whatsapp') === '') &&
+      customs.every((f) => !f.required || text(f.key) !== '');
     submit.disabled = !complete || !online || sending;
   };
 
@@ -221,7 +312,7 @@ export async function mount(el: HTMLElement, _params?: Record<string, string>): 
   };
 
   const onInput = (): void => {
-    whatsappBox.classList.toggle('hidden', checked('whatsapp_same'));
+    whatsappBox?.classList.toggle('hidden', checked('whatsapp_same'));
     writeDraft(collectDraft());
     refresh();
   };
@@ -256,7 +347,11 @@ export async function mount(el: HTMLElement, _params?: Record<string, string>): 
       clearErrors();
       sending = true;
       refresh();
-      const same = checked('whatsapp_same');
+      const same = control('whatsapp_same') === null ? true : checked('whatsapp_same');
+      const extra: Record<string, string> = {};
+      for (const f of customs) {
+        if (text(f.key) !== '') extra[f.key] = text(f.key);
+      }
       try {
         const result = await api.submitAccessRequest({
           first_name: text('first_name'),
@@ -269,12 +364,17 @@ export async function mount(el: HTMLElement, _params?: Record<string, string>): 
           group_id: text('group_id') ? Number(text('group_id')) : null,
           message: text('message') || null,
           consent: checked('consent'),
+          ...(Object.keys(extra).length > 0 ? { extra } : {}),
           website: text('website'),
           elapsed_ms: Math.max(0, Math.round(performance.now() - mountedAt)),
         });
         writeDraft(null);
-        el.innerHTML = html`<div class="max-w-md mx-auto py-8 px-4">${raw(successView(result))}</div>`;
+        el.innerHTML = html`<div class="max-w-md mx-auto py-8 px-4">${raw(successView(result, cfg.confirmation))}</div>`;
       } catch (e) {
+        if (e instanceof ApiError && e.status === 403 && (e.payload as { code?: string } | null)?.code === 'access_requests_closed') {
+          el.innerHTML = closedView();
+          return;
+        }
         sending = false;
         const payload = e instanceof ApiError ? (e.payload as { errors?: Record<string, string[]> } | null) : null;
         let shown = false;

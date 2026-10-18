@@ -1,5 +1,8 @@
 // @vitest-environment happy-dom
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const { guest } = vi.hoisted(() => ({ guest: vi.fn() }));
+vi.mock('./guest-session', () => ({ guestSettings: guest }));
 import { sessionStore } from '../stores';
 import type { UserProfile } from '../domain/types';
 import '../components/app-shell';
@@ -21,6 +24,54 @@ const profile = (guest: boolean): UserProfile => ({
 describe('guest ui', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
+    guest.mockReturnValue(null);
+  });
+
+  const withAccess = (over: Record<string, unknown>): void => {
+    guest.mockReturnValue({
+      access_request: {
+        enabled: true,
+        button_label: 'Demander un accès',
+        title: 'T',
+        intro: null,
+        confirmation: 'C',
+        channels: [{ type: 'form' }],
+        fields: {},
+        custom_fields: [],
+        ...over,
+      },
+    });
+  };
+
+  it('renders nothing when requests are closed', () => {
+    withAccess({ enabled: false });
+    expect(guestBannerHtml()).toBe('');
+    expect(lockedCardHtml('exams')).toContain('Disponible avec un compte');
+    expect(lockedCardHtml('exams')).not.toContain('<a');
+    expect(accessCtaHtml('quiz')).toBe('');
+  });
+
+  it('uses the custom label escaped', () => {
+    withAccess({ button_label: '<b>Go</b>' });
+    const banner = guestBannerHtml();
+    expect(banner).toContain('&lt;b&gt;Go&lt;/b&gt;');
+    expect(banner).not.toContain('<b>');
+    expect(lockedCardHtml('badges')).toContain('&lt;b&gt;Go&lt;/b&gt;');
+  });
+
+  it('single external channel links directly with target blank', () => {
+    withAccess({ channels: [{ type: 'whatsapp', number: '+2250700000000', message: 'Salut' }] });
+    const banner = guestBannerHtml();
+    expect(banner).toContain('href="https://wa.me/2250700000000?text=Salut"');
+    expect(banner).toContain('target="_blank" rel="noopener"');
+    expect(banner).not.toContain('data-link');
+  });
+
+  it('tel link has no target', () => {
+    withAccess({ channels: [{ type: 'phone', number: '+2250700000000' }] });
+    const banner = guestBannerHtml();
+    expect(banner).toContain('href="tel:+2250700000000"');
+    expect(banner).not.toContain('target=');
   });
 
   it('locked card shows feature copy and access link', () => {

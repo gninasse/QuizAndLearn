@@ -214,8 +214,39 @@ export interface ShowcaseGroup {
   end_date: string | null;
 }
 
+export type AccessChannel =
+  | { type: 'form' }
+  | { type: 'whatsapp'; number: string; message: string }
+  | { type: 'phone'; number: string }
+  | { type: 'email'; address: string; subject: string }
+  | { type: 'link'; url: string; label: string };
+
+export type AccessFieldMode = 'hidden' | 'optional' | 'required';
+export type AccessFieldName = 'whatsapp' | 'email' | 'organization' | 'group' | 'message';
+
+export interface AccessCustomField {
+  key: string;
+  label: string;
+  type: 'text' | 'textarea' | 'select';
+  options?: string[];
+  required: boolean;
+}
+
+/** Bloc `access_request` des réglages vitrine (absent des anciens caches). */
+export interface AccessRequestConfig {
+  enabled: boolean;
+  button_label: string;
+  title: string;
+  intro: string | null;
+  confirmation: string;
+  channels: AccessChannel[];
+  fields: Record<AccessFieldName, AccessFieldMode>;
+  custom_fields: AccessCustomField[];
+}
+
 /** GET /api/showcase/v1/settings */
 export interface ShowcaseSettings {
+  access_request?: AccessRequestConfig;
   enabled: boolean;
   brand: { name: string; tagline: string | null; logo: string | null };
   registration: {
@@ -243,6 +274,8 @@ export interface AccessRequestBody {
   group_id: number | null;
   message: string | null;
   consent: boolean;
+  /** Réponses aux champs personnalisés, par clé. */
+  extra?: Record<string, string>;
   /** Pot de miel : doit rester vide. */
   website: string;
   /** Durée (ms) écoulée depuis l'ouverture du formulaire, contrôle anti-robot. */
@@ -252,6 +285,7 @@ export interface AccessRequestBody {
 export interface AccessRequestResponse {
   success: boolean;
   message: string;
+  confirmation?: string;
   phone: string;
   registration: ShowcaseSettings['registration'];
 }
