@@ -217,7 +217,7 @@ function mountGuest(el: HTMLElement): void {
           [
             tile('/entrainement', 'bi-patch-question', 'bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-400', quizzes.length, 'Quiz'),
             tile('/articles', 'bi-journal-text', 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400', articles.length, 'Articles'),
-            tile('/entrainement?tab=cartes', 'bi-stack', 'bg-violet-100 text-violet-600 dark:bg-violet-500/15 dark:text-violet-400', decks.length, 'Decks'),
+            tile('/entrainement?tab=cartes', 'bi-stack', 'bg-violet-100 text-violet-600 dark:bg-violet-500/15 dark:text-violet-400', decks.length, 'Paquets de cartes'),
           ].join(''),
         )}
       </section>

@@ -3,6 +3,11 @@
 @section('title', 'Mode découverte')
 @section('header', 'Mode découverte')
 
+@section('breadcrumb')
+    <li class="breadcrumb-item"><a href="{{ route('cores.dashboard') }}">Accueil</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Mode découverte</li>
+@endsection
+
 @section('content')
 <form id="showcaseSettingsForm" action="{{ route('cores.showcase.settings.save') }}" novalidate>
   <div class="card mb-3">

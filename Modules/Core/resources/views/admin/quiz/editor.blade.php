@@ -1,8 +1,8 @@
 @extends('core::layouts.admin-editor')
 
-@section('title', 'Quiz Editor - ' . $quiz->title)
+@section('title', 'Édition du quiz — ' . $quiz->title)
 
-@section('page-title', 'Quiz Editor - ' . $quiz->title)
+@section('page-title', 'Édition du quiz — ' . $quiz->title)
 
 @push('css')
   <link rel="stylesheet" href="{{ asset('css/admin/quiz-editor.css') }}">
@@ -15,7 +15,7 @@
       <span class="text-truncate" style="max-width: 180px;" id="sidebarQuizTitle">{{ $quiz->title }}</span>
     </div>
     <span class="badge {{ $quiz->is_active ? 'bg-success' : 'bg-secondary' }}" id="sidebarStatusBadge">
-      {{ $quiz->is_active ? 'Actif' : 'Draft Mode' }}
+      {{ $quiz->is_active ? 'Actif' : 'Brouillon' }}
     </span>
     
     <button class="sidebar-publish-btn" id="btnPublishQuiz">
@@ -27,8 +27,8 @@
   
   <li class="menu-item">
     <a href="{{ route('cores.quizzes.index') }}" class="menu-link">
-      <i class="bi bi-eye-fill"></i>
-      <span>Overview</span>
+      <i class="bi bi-arrow-left-circle-fill"></i>
+      <span>Retour à la liste</span>
     </a>
   </li>
   <li class="menu-item active">
@@ -40,24 +40,16 @@
   <li class="menu-item">
     <a href="#settings" class="menu-link">
       <i class="bi bi-sliders"></i>
-      <span>Settings</span>
+      <span>Paramètres</span>
     </a>
   </li> 
   <li class="menu-item">
     <a href="{{ route('cores.editor.quizzes.preview', $quiz->id) }}" class="menu-link">
       <i class="bi bi-play-circle-fill"></i>
-      <span>Preview</span>
+      <span>Prévisualiser</span>
     </a>
   </li>
   
-  <div class="mt-auto border-top pt-2">
-    <li class="menu-item">
-      <a href="#" class="menu-link text-muted">
-        <i class="bi bi-question-diamond"></i>
-        <span>Help Center</span>
-      </a>
-    </li>
-  </div>
 @endsection
 
 @section('editor-content')
@@ -65,16 +57,9 @@
   
   <!-- Secondary Topbar -->
   <div class="secondary-topbar">
-    <div class="secondary-search">
-      <i class="bi bi-search"></i>
-      <input type="text" placeholder="Rechercher des ressources..." id="resourceSearch">
-    </div>
     <div class="secondary-nav">
-      <a href="{{ route('cores.dashboard') }}" class="secondary-nav-link">Dashboard</a>
-      <a href="{{ route('cores.quizzes.index') }}" class="secondary-nav-link">Quizzes</a>
-      <a href="{{ route('cores.quizzes.index') }}" class="btn btn-sm btn-primary py-2 px-3" style="border-radius: 8px; background-color: var(--green-dark); border: none;">
-        <i class="bi bi-plus"></i> Nouveau Quiz
-      </a>
+      <a href="{{ route('cores.dashboard') }}" class="secondary-nav-link">Tableau de bord</a>
+      <a href="{{ route('cores.quizzes.index') }}" class="secondary-nav-link">Quiz</a>
     </div>
   </div>
 
@@ -108,10 +93,7 @@
           </div>
           <div class="d-flex gap-2">
             <button class="btn btn-sm btn-outline-dark" id="btnPrintQuiz" style="border-radius: 8px;">
-              <i class="bi bi-print me-1"></i> Imprimer (A4)
-            </button>
-            <button class="btn btn-sm btn-outline-secondary" id="btnReorderQuestions" style="border-radius: 8px;">
-              <i class="bi bi-arrow-down-up me-1"></i> Réordonner
+              <i class="bi bi-printer me-1"></i> Imprimer (A4)
             </button>
             <button class="btn btn-sm btn-primary" id="btnAddQuestion" style="background-color: var(--green-dark); border: none; border-radius: 8px;">
               <i class="bi bi-plus-circle me-1"></i> Ajouter
@@ -252,7 +234,7 @@
       <div class="modal-content border-0" style="border-radius: 20px;">
         <div class="modal-header border-0 bg-light py-3">
           <h5 class="modal-title fw-bold" id="questionTypeModalLabel" style="color: var(--green-dark);">Choisissez un type de question</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
         </div>
         <div class="modal-body p-4">
           <div class="question-type-grid">
@@ -308,7 +290,7 @@
           <h5 class="modal-title fw-bold" id="modal-print-quiz-label" style="color: #1e6f5c;">
             <i class="bi bi-printer-fill me-2"></i> Aperçu Avant Impression - Format A4
           </h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
         </div>
         <div class="modal-body p-0 bg-light" style="height: 70vh;">
           <iframe id="print-iframe-loader" src="" style="width: 100%; height: 100%; border: none;"></iframe>

@@ -4,14 +4,14 @@
 @section('header', 'Gestion des Flashcards')
 
 @section('breadcrumb')
-    <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+    <li class="breadcrumb-item"><a href="{{ route('cores.dashboard') }}">Accueil</a></li>
     <li class="breadcrumb-item active" aria-current="page">Flashcards</li>
 @endsection
 
 @section('content')
 <div class="card">
     <div class="card-header">
-        <h3 class="card-title">Liste des paquets de cartes (Decks)</h3>
+        <h3 class="card-title">Paquets de cartes</h3>
     </div>
     <div class="card-body">
 
@@ -81,7 +81,7 @@
                 <input type="hidden" id="deck-id" name="id">
                 <div class="modal-header">
                     <h5 class="modal-title" id="modal-deck-label">Nouveau paquet de cartes</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
@@ -108,7 +108,7 @@
                         <label class="form-check-label" for="deck-is-public">Rendre ce paquet public (Visible par tous)</label>
                     </div>
                     <div class="mb-3" id="groups-select-container">
-                        <label for="deck-groups" class="form-label">Assigner aux {{ term('groups') }} d'étudiants</label>
+                        <label for="deck-groups" class="form-label">Assigner aux {{ term('groups') }} d'apprenants</label>
                         <select class="form-control select2" id="deck-groups" name="group_ids[]" multiple="multiple" style="width: 100%;">
                             @foreach($groups as $group)
                                 <option value="{{ $group->id }}">{{ $group->name }}</option>
@@ -133,7 +133,7 @@
                 <h5 class="modal-title fw-bold" id="modal-print-deck-label" style="color: #1e6f5c;">
                     <i class="bi bi-printer-fill me-2"></i> Aperçu Avant Impression - Format A4
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
             </div>
             <div class="modal-body p-0 bg-light" style="height: 70vh;">
                 <iframe id="print-iframe-loader" src="" style="width: 100%; height: 100%; border: none;"></iframe>

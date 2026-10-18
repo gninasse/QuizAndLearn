@@ -1,5 +1,7 @@
 @extends('core::layouts.master')
 
+@section('title', $user->full_name)
+
 @section('header', $user->full_name)
 
 @section('breadcrumb')
@@ -488,7 +490,7 @@
                 <h5 class="modal-title" id="assignRoleModalLabel">
                     Assigner un nouveau rôle à {{ $user->full_name }}
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
             </div>
             <form id="assign-role-form">
                 @csrf
@@ -543,7 +545,7 @@
                 <h5 class="modal-title" id="assignPermissionsModalLabel">
                     Assigner des permissions directes à {{ $user->full_name }}
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
             </div>
             <form id="assign-permissions-form">
                 @csrf

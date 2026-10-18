@@ -3,6 +3,11 @@
 @section('title', 'Paramètres généraux')
 @section('header', 'Paramètres généraux')
 
+@section('breadcrumb')
+    <li class="breadcrumb-item"><a href="{{ route('cores.dashboard') }}">Accueil</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Paramètres généraux</li>
+@endsection
+
 @section('content')
 <form id="generalSettingsForm" action="{{ route('cores.settings.general.save') }}" novalidate>
   <div class="card mb-3">

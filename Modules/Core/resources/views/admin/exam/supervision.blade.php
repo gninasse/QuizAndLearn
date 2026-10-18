@@ -4,7 +4,7 @@
 @section('header', 'Supervision en Direct - ' . $exam->title)
 
 @section('breadcrumb')
-    <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+    <li class="breadcrumb-item"><a href="{{ route('cores.dashboard') }}">Accueil</a></li>
     <li class="breadcrumb-item"><a href="{{ route('cores.exams.index') }}">Examens</a></li>
     <li class="breadcrumb-item active" aria-current="page">Supervision</li>
 @endsection
@@ -124,7 +124,7 @@
     function alertFormatter(value, row, index) {
         const val = parseInt(value) || 0;
         if (val === 0) {
-            return '<span class="text-success font-weight-bold">0</span>';
+            return '<span class="text-success fw-semibold">0</span>';
         }
         return `<span class="badge bg-danger px-2">${val} ⚠️</span>`;
     }

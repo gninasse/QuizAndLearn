@@ -97,7 +97,7 @@
           <div class="container-fluid">
             <!--begin::Row-->
             <div class="row">
-              <div class="col-sm-6"><h3 class="mb-0">@yield('header', 'Dashboard')</h3></div>
+              <div class="col-sm-6"><h3 class="mb-0">@yield('header', 'Tableau de bord')</h3></div>
               <div class="col-sm-6">
                 <ol class="breadcrumb float-sm-end">
                   @yield('breadcrumb', '')
@@ -128,9 +128,9 @@
         <!--begin::Copyright-->
         <strong>
           Copyright &copy; {{ date('Y') }}&nbsp;
-          <a href="#" class="text-decoration-none">{{ config('branding.owner') }}</a>.
+          {{ config('branding.owner') }}.
         </strong>
-        tous droits reservés.
+        Tous droits réservés.
         <!--end::Copyright-->
       </footer>
       <!--end::Footer-->

@@ -26,7 +26,7 @@
               class="nav sidebar-menu flex-column"
               data-lte-toggle="treeview"
               role="navigation"
-              aria-label="Main navigation"
+              aria-label="Navigation principale"
               data-accordion="false"
               id="navigation"
             >
@@ -43,7 +43,7 @@
                   <li class="nav-item">
                     <a href="{{ route('cores.dashboard') }}" class="nav-link {{ request()->routeIs('cores.dashboard') ? 'active' : '' }}">
                       <i class="nav-icon bi bi-speedometer2"></i>
-                      <p>Dashboard</p>
+                      <p>Tableau de bord</p>
                     </a>
                   </li>
                   @endcan

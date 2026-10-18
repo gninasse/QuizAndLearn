@@ -8,7 +8,7 @@
         <h5 class="modal-title fw-bold" id="modalMatchingLabel" style="color: var(--green-dark);">
           <i class="bi bi-arrow-left-right me-2"></i><span class="modal-title-text">Créer une Question d'appariement</span>
         </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
       </div>
       
       <!-- Body -->

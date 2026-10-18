@@ -136,7 +136,7 @@ export function mount(el: HTMLElement): void {
     if (active === 'cartes') {
       return decks.length
         ? `<div class="grid sm:grid-cols-2 gap-3">${decks.map(deckCard).join('')}</div>`
-        : emptyState('🃏', 'Aucun deck de révision', `Les decks assignés à vos ${t('groups')} apparaîtront ici.`);
+        : emptyState('🃏', 'Aucun paquet de cartes', `Les paquets de cartes assignés à vos ${t('groups')} apparaîtront ici.`);
     }
     const rows = filteredQuizzes();
     return (

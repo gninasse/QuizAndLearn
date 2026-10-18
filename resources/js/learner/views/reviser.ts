@@ -35,7 +35,7 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
 
   const deck = decksStore.get().find((d) => d.id === deckId);
   if (!deck) {
-    el.innerHTML = '<p class="text-zinc-500 py-10 text-center">Deck introuvable.</p>';
+    el.innerHTML = '<p class="text-zinc-500 py-10 text-center">Paquet introuvable.</p>';
     return;
   }
   startSession(el, deck);
@@ -232,7 +232,7 @@ function startSession(el: HTMLElement, deck: DeckItem): void {
         ${isGuest() ? raw(accessCtaHtml('review')) : ''}
         <div class="flex gap-3 justify-center">
           <a data-link href="/reviser/${deck.id}" class="rounded-xl border border-zinc-300 dark:border-zinc-700 px-5 py-2.5 text-sm font-bold">Recommencer</a>
-          <a data-link href="/entrainement?tab=cartes" class="rounded-xl glow-violet bg-violet-600 hover:bg-violet-500 text-white px-5 py-2.5 text-sm font-bold">Mes decks</a>
+          <a data-link href="/entrainement?tab=cartes" class="rounded-xl glow-violet bg-violet-600 hover:bg-violet-500 text-white px-5 py-2.5 text-sm font-bold">Mes paquets de cartes</a>
         </div>
       </div>
     `;

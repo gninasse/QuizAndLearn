@@ -4,7 +4,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="modalTitle">Ajouter un utilisateur</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
             </div>
             <form id="userForm" enctype="multipart/form-data">
                 @csrf
@@ -17,7 +17,7 @@
                                 <img id="avatar-preview" src="{{ asset('media/user_avatar.svg') }}" 
                                      class="rounded-circle img-thumbnail" style="width: 120px; height: 120px; object-fit: cover;" alt="Avatar">
                                 <label for="avatar" class="position-absolute bottom-0 end-0 bg-primary text-white p-2 rounded-circle" style="cursor: pointer;">
-                                    <i class="fas fa-camera"></i>
+                                    <i class="fas fa-camera"></i><span class="visually-hidden">Changer la photo</span>
                                 </label>
                                 <input type="file" id="avatar" name="avatar"  class="d-none" accept="image/*">
                             </div>
@@ -70,7 +70,7 @@
                                     <label for="password">Mot de passe</label>
                                     <div class="input-group">
                                         <input type="password" class="form-control" id="password" name="password" minlength="8">
-                                        <button class="btn btn-outline-secondary toggle-password" type="button" data-target="#password">
+                                        <button class="btn btn-outline-secondary toggle-password" type="button" aria-label="Afficher ou masquer le mot de passe" data-target="#password">
                                             <i class="fas fa-eye"></i>
                                         </button>
                                     </div>
@@ -82,7 +82,7 @@
                                     <label for="password_confirmation">Confirmer le mot de passe</label>
                                     <div class="input-group">
                                         <input type="password" class="form-control" id="password_confirmation" name="password_confirmation">
-                                        <button class="btn btn-outline-secondary toggle-password" type="button" data-target="#password_confirmation">
+                                        <button class="btn btn-outline-secondary toggle-password" type="button" aria-label="Afficher ou masquer le mot de passe" data-target="#password_confirmation">
                                             <i class="fas fa-eye"></i>
                                         </button>
                                     </div>

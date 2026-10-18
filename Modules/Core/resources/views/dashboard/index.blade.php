@@ -1,10 +1,12 @@
 @extends('core::layouts.master')
 
-@section('header', 'Dashboard')
+@section('title', 'Tableau de bord')
+
+@section('header', 'Tableau de bord')
 
 @section('breadcrumb')
-    <li class="breadcrumb-item"><a href="#">Accueil</a></li>
-    <li class="breadcrumb-item active" aria-current="page">Dashboard</li>
+    <li class="breadcrumb-item"><a href="{{ route('cores.dashboard') }}">Accueil</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Tableau de bord</li>
 @endsection
 
 @section('content')
@@ -132,19 +134,6 @@
     </div>
     <!-- /.row (main row) -->
 @endsection
-
-@push('css')
-    <!-- jsvectormap -->
-    <link
-      rel="stylesheet"
-      href="{{ asset('plugins/jsvectormap/css/jsvectormap.min.css') }}"
-    />
-    <!-- apexcharts -->
-    <link
-      rel="stylesheet"
-      href="{{ asset('plugins/apexcharts/apexcharts.css') }}"
-    />
-@endpush
 
 @push('js')
     <!-- Aucun script requis pour la version simplifiée -->

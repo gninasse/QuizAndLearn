@@ -12,7 +12,7 @@
         <i class="bi bi-arrow-left me-1"></i> Retour à l'éditeur
       </a>
       <button class="btn btn-sm btn-outline-dark" id="btnPrintExam" style="border-radius: 8px;">
-        <i class="bi bi-print me-1"></i> Imprimer (A4)
+        <i class="bi bi-printer me-1"></i> Imprimer (A4)
       </button>
       <h5 class="mb-0 ms-2 fw-bold text-truncate" style="max-width: 250px; color: var(--green-dark);">Aperçu : {{ $exam->title }}</h5>
     </div>
@@ -62,7 +62,7 @@
         <h5 class="modal-title fw-bold" id="modal-print-exam-label" style="color: #1a365d;">
           <i class="bi bi-printer-fill me-2"></i> Aperçu Avant Impression - Format A4
         </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
       </div>
       <div class="modal-body p-0 bg-light" style="height: 70vh;">
         <iframe id="print-iframe-loader" src="" style="width: 100%; height: 100%; border: none;"></iframe>

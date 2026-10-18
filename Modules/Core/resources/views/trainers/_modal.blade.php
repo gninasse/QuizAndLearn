@@ -4,7 +4,7 @@
         <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
             <div class="modal-header border-0 bg-light py-3">
                 <h5 class="modal-title fw-bold" id="modalTitle" style="color: var(--green-dark);">Ajouter un formateur</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
             </div>
             <form id="trainerForm" enctype="multipart/form-data">
                 @csrf
@@ -17,7 +17,7 @@
                             <img id="avatar-preview" src="{{ asset('media/user_avatar.svg') }}" 
                                  class="avatar-upload-preview" alt="Avatar Preview">
                             <label for="avatar" class="avatar-upload-overlay" title="Choisir une photo">
-                                <i class="fas fa-camera"></i>
+                                <i class="fas fa-camera"></i><span class="visually-hidden">Changer la photo</span>
                             </label>
                             <input type="file" id="avatar" name="avatar" class="d-none" accept="image/png, image/jpeg, image/gif">
                         </div>
@@ -106,7 +106,7 @@
                                 <label for="password" class="form-label fw-semibold">Mot de passe</label>
                                 <div class="input-group">
                                     <input type="password" class="form-control" id="password" name="password" minlength="8" style="border-top-left-radius: 8px; border-bottom-left-radius: 8px;">
-                                    <button class="btn btn-outline-secondary toggle-password" type="button" data-target="#password" style="border-top-right-radius: 8px; border-bottom-right-radius: 8px;">
+                                    <button class="btn btn-outline-secondary toggle-password" type="button" aria-label="Afficher ou masquer le mot de passe" data-target="#password" style="border-top-right-radius: 8px; border-bottom-right-radius: 8px;">
                                         <i class="fas fa-eye"></i>
                                     </button>
                                 </div>
@@ -116,7 +116,7 @@
                                 <label for="password_confirmation" class="form-label fw-semibold">Confirmer le mot de passe</label>
                                 <div class="input-group">
                                     <input type="password" class="form-control" id="password_confirmation" name="password_confirmation" style="border-top-left-radius: 8px; border-bottom-left-radius: 8px;">
-                                    <button class="btn btn-outline-secondary toggle-password" type="button" data-target="#password_confirmation" style="border-top-right-radius: 8px; border-bottom-right-radius: 8px;">
+                                    <button class="btn btn-outline-secondary toggle-password" type="button" aria-label="Afficher ou masquer le mot de passe" data-target="#password_confirmation" style="border-top-right-radius: 8px; border-bottom-right-radius: 8px;">
                                         <i class="fas fa-eye"></i>
                                     </button>
                                 </div>

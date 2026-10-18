@@ -6,7 +6,7 @@
         <h5 class="modal-title fw-bold" id="modalSettingsLabel" style="color: var(--green-dark);">
           <i class="bi bi-sliders me-2"></i>Paramètres & Référencement (SEO)
         </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
       </div>
       <div class="modal-body p-4">
         <form id="articleSettingsForm">

@@ -56,12 +56,8 @@
   
   <!-- Secondary Topbar -->
   <div class="secondary-topbar">
-    <div class="secondary-search">
-      <i class="bi bi-search"></i>
-      <input type="text" placeholder="Rechercher dans l'article..." id="editorSearch">
-    </div>
     <div class="secondary-nav">
-      <a href="{{ route('cores.dashboard') }}" class="secondary-nav-link">Dashboard</a>
+      <a href="{{ route('cores.dashboard') }}" class="secondary-nav-link">Tableau de bord</a>
       <a href="{{ route('cores.articles.index') }}" class="secondary-nav-link">Articles</a>
       <button class="btn btn-sm btn-outline-secondary py-2 px-3 me-2" id="btnPreviewArticle" style="border-radius: 8px;">
         <i class="bi bi-eye"></i> Prévisualiser
@@ -102,7 +98,7 @@
               <i class="bi bi-type-h3"></i>
             </button>
             <button class="toolbar-btn" data-cmd="formatBlock" data-val="p" title="Paragraphe">
-              <i class="bi bi-type-paragraph"></i>
+              <i class="bi bi-paragraph"></i>
             </button>
             <div class="toolbar-divider"></div>
             <button class="toolbar-btn" data-cmd="insertUnorderedList" title="Liste à puces">
@@ -119,7 +115,7 @@
               <i class="bi bi-link-45deg"></i>
             </button>
             <button class="toolbar-btn" data-cmd="unlink" title="Supprimer le lien">
-              <i class="bi bi-link-45deg text-danger" style="text-decoration: line-through;"></i>
+              <i class="bi bi-x-circle text-danger"></i>
             </button>
             <button class="toolbar-btn" id="btnInsertLocalImage" title="Insérer une image">
               <i class="bi bi-image"></i>

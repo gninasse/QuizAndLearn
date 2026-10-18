@@ -1,9 +1,11 @@
 @extends('core::layouts.master')
 
+@section('title', 'Journal des activités')
+
 @section('header', 'Journal des activités')
 
 @section('breadcrumb')
-    <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+    <li class="breadcrumb-item"><a href="{{ route('cores.dashboard') }}">Accueil</a></li>
     <li class="breadcrumb-item active" aria-current="page">Journal des activités</li>
 @endsection
 
@@ -189,7 +191,7 @@
         <div class="modal-content" style="width: 80%; margin-left: auto; margin-right: auto;">
             <div class="modal-header">
                 <h5 class="modal-title">Détails de l'activité</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
             </div>
             <div class="modal-body" id="modal-content">
                 <div class="text-center p-4">

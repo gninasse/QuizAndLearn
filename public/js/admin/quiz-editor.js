@@ -198,7 +198,7 @@
         $btnPublishText.text('Désactiver le Quiz');
         $btnPublishQuiz.find('i').removeClass('bi-cloud-arrow-up-fill').addClass('bi-cloud-arrow-down-fill');
       } else {
-        $sidebarStatusBadge.text('Draft Mode').removeClass('bg-success').addClass('bg-secondary');
+        $sidebarStatusBadge.text('Brouillon').removeClass('bg-success').addClass('bg-secondary');
         $btnPublishText.text('Publier le Quiz');
         $btnPublishQuiz.find('i').removeClass('bi-cloud-arrow-down-fill').addClass('bi-cloud-arrow-up-fill');
       }

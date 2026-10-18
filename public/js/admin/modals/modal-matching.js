@@ -99,7 +99,7 @@
       terms.forEach(function(term, i) {
         tableRowsHtml += '<tr>' +
           '<td class="text-start fw-bold" style="padding: 10px; border-bottom: 1px solid #eee;">' + term + '</td>' +
-          '<td style="padding: 10px; border-bottom: 1px solid #eee;"><i class="bi bi-arrow-right-left text-muted"></i></td>' +
+          '<td style="padding: 10px; border-bottom: 1px solid #eee;"><i class="bi bi-arrow-left-right text-muted"></i></td>' +
           '<td class="text-start" style="padding: 10px; border-bottom: 1px solid #eee; background-color: var(--green-xlight);">' + shuffledDefinitions[i] + '</td>' +
         '</tr>';
       });
