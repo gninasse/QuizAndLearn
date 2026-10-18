@@ -349,6 +349,17 @@ Route::prefix('api/learner/v1')->name('learn.v1.')->group(function () {
         ->middleware('impersonation')
         ->name('impersonation.end');
 
+    // Playlist HLS d'une vidéo s3_hls. Volontairement HORS groupe auth : apprenants
+    // ET invités vitrine doivent pouvoir la charger (le lecteur HLS n'envoie ni
+    // cookie ni jeton). L'autorisation est la signature temporaire (15 min)
+    // délivrée par /videos/{ref}/playback, lui-même protégé (session ou jeton
+    // invité + référence vitrine). Nom de fichier restreint à *.m3u8.
+    Route::get('/videos/{ref}/hls/{file}', [\Modules\Core\Http\Controllers\Learner\Api\VideoPlaybackController::class, 'hlsPlaylist'])
+        ->where('ref', '[0-9a-fA-F-]{36}')
+        ->where('file', '[A-Za-z0-9_-]+\.m3u8')
+        ->middleware('signed')
+        ->name('videos.hls');
+
     // `impersonation` AVANT `auth` : en consultation, l'apprenant devient
     // l'utilisateur de la requête (lecture seule, liste blanche).
     Route::middleware(['impersonation', 'auth', 'learner'])->group(function () {

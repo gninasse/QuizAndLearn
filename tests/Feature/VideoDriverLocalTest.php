@@ -97,7 +97,7 @@ class VideoDriverLocalTest extends TestCase
         {
             public function name(): string { return 'fake'; }
             public function store(UploadedFile $file): array { return ['location' => 'fake-guid', 'status' => 'ready']; }
-            public function playback(Video $video, User $viewer): PlaybackSource { return new PlaybackSource('hls', 'https://cdn.test/'.$video->location.'.m3u8', now()->addMinutes(15)); }
+            public function playback(Video $video, ?User $viewer): PlaybackSource { return new PlaybackSource('hls', 'https://cdn.test/'.$video->location.'.m3u8', now()->addMinutes(15)); }
             public function delete(Video $video): void {}
             public function refreshStatus(Video $video): string { return $video->status; }
             public function healthCheck(): array { return ['ok' => true, 'message' => 'ok']; }

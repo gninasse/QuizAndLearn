@@ -62,6 +62,20 @@ return [
             'report' => false,
         ],
 
+        // Vidéos du pilote s3_hls (S3, MinIO, R2… via VIDEO_S3_ENDPOINT).
+        'videos' => [
+            'driver' => 's3',
+            'key' => env('VIDEO_S3_KEY'),
+            'secret' => env('VIDEO_S3_SECRET'),
+            'region' => env('VIDEO_S3_REGION', 'us-east-1'),
+            'bucket' => env('VIDEO_S3_BUCKET'),
+            'endpoint' => env('VIDEO_S3_ENDPOINT'),
+            'use_path_style_endpoint' => env('VIDEO_S3_PATH_STYLE', false),
+            'visibility' => 'private',
+            'throw' => true,
+            'report' => false,
+        ],
+
     ],
 
     /*

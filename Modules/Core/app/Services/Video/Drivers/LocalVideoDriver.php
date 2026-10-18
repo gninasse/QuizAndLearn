@@ -25,7 +25,7 @@ class LocalVideoDriver implements VideoDriver
         return ['location' => $file->store('uploads/media', 'public'), 'status' => 'ready'];
     }
 
-    public function playback(Video $video, User $viewer): PlaybackSource
+    public function playback(Video $video, ?User $viewer): PlaybackSource
     {
         return new PlaybackSource('mp4', '/storage/'.ltrim($video->location, '/'), null);
     }

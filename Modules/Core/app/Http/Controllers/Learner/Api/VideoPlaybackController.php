@@ -4,7 +4,9 @@ namespace Modules\Core\Http\Controllers\Learner\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Response;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Modules\Core\Models\User;
 use Modules\Core\Models\Video;
 use Modules\Core\Services\GuestToken;
@@ -49,6 +51,36 @@ class VideoPlaybackController extends Controller
             return response()->json(['status' => 'failed'], 410);
         }
 
-        return response()->json($this->videos->playback($video, $viewer ?? new User)->toArray());
+        return response()->json($this->videos->playback($video, $viewer)->toArray());
+    }
+
+    /**
+     * Playlist HLS réécrite : chaque segment devient une URL S3 temporaire.
+     * Protégée par le middleware `signed` seulement (voir routes).
+     */
+    public function hlsPlaylist(string $ref, string $file): Response
+    {
+        $video = Video::where('ref', $ref)->where('driver', 's3_hls')->where('status', 'ready')->first();
+        abort_unless($video, 404);
+
+        $disk = Storage::disk((string) config('media.video.s3_hls.disk', 'videos'));
+        $path = "hls/{$video->ref}/{$file}";
+        abort_unless($disk->exists($path), 404);
+
+        $expires = now()->addSeconds((int) config('media.video.signed_ttl', 900));
+        $lines = preg_split('/\r\n|\n|\r/', (string) $disk->get($path));
+        $out = array_map(function (string $line) use ($disk, $video, $expires) {
+            $trim = trim($line);
+            if ($trim === '' || str_starts_with($trim, '#')) {
+                return $line;
+            }
+
+            return $disk->temporaryUrl("hls/{$video->ref}/".basename($trim), $expires);
+        }, $lines);
+
+        return response(implode("\n", $out), 200, [
+            'Content-Type' => 'application/vnd.apple.mpegurl',
+            'Cache-Control' => 'no-store, private',
+        ]);
     }
 }

@@ -10,10 +10,10 @@ interface VideoDriver
 {
     public function name(): string;
 
-    /** @return array{location: string, status: string} */
+    /** @return array{location: string, status: string, ref?: string} */
     public function store(UploadedFile $file): array;
 
-    public function playback(Video $video, User $viewer): PlaybackSource;
+    public function playback(Video $video, ?User $viewer): PlaybackSource;
 
     public function delete(Video $video): void;
 

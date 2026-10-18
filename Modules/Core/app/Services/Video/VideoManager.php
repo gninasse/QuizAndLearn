@@ -8,6 +8,7 @@ use InvalidArgumentException;
 use Modules\Core\Models\User;
 use Modules\Core\Models\Video;
 use Modules\Core\Services\Video\Drivers\LocalVideoDriver;
+use Modules\Core\Services\Video\Drivers\S3HlsVideoDriver;
 
 class VideoManager
 {
@@ -20,6 +21,7 @@ class VideoManager
     public function __construct()
     {
         $this->factories['local'] = fn () => new LocalVideoDriver;
+        $this->factories['s3_hls'] = fn () => new S3HlsVideoDriver((string) config('media.video.s3_hls.disk', 'videos'));
     }
 
     public function extend(string $name, Closure $factory): static
@@ -52,7 +54,8 @@ class VideoManager
         $driver = $this->driver();
         $stored = $driver->store($file);
 
-        return Video::create([
+        $video = Video::create([
+            'ref' => $stored['ref'] ?? null,
             'driver' => $driver->name(),
             'location' => $stored['location'],
             'status' => $stored['status'],
@@ -61,10 +64,16 @@ class VideoManager
             'original_name' => $file->getClientOriginalName(),
             'uploaded_by' => $uploader->id,
         ]);
+
+        if ($driver instanceof AfterStoreHook) {
+            $driver->afterStore($video);
+        }
+
+        return $video;
     }
 
     /** Lit avec le pilote d'origine de la vidéo, pas celui de la config. */
-    public function playback(Video $video, User $viewer): PlaybackSource
+    public function playback(Video $video, ?User $viewer): PlaybackSource
     {
         return $this->driver($video->driver)->playback($video, $viewer);
     }
