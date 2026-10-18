@@ -1,9 +1,12 @@
 // @vitest-environment happy-dom
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const { guest } = vi.hoisted(() => ({ guest: vi.fn() }));
+vi.mock('./guest-session', () => ({ guestSettings: guest }));
 import { sessionStore } from '../stores';
 import type { UserProfile } from '../domain/types';
 import '../components/app-shell';
-import { accessCtaHtml, guestBannerHtml, lockedCardHtml } from './guest-ui';
+import { accessCtaHtml, guestBannerHtml, lockedCardHtml, patchGuestBanner } from './guest-ui';
 
 const xp = { total_xp: 0, current_level: 0, current_streak: 0, longest_streak: 0, last_activity_date: null };
 const profile = (guest: boolean): UserProfile => ({
@@ -21,6 +24,68 @@ const profile = (guest: boolean): UserProfile => ({
 describe('guest ui', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
+    guest.mockReturnValue(null);
+  });
+
+  const withAccess = (over: Record<string, unknown>): void => {
+    guest.mockReturnValue({
+      access_request: {
+        enabled: true,
+        button_label: 'Demander un accès',
+        title: 'T',
+        intro: null,
+        confirmation: 'C',
+        channels: [{ type: 'form' }],
+        fields: {},
+        custom_fields: [],
+        ...over,
+      },
+    });
+  };
+
+  it('closed requests: banner text without link, no CTA', () => {
+    withAccess({ enabled: false });
+    const banner = guestBannerHtml();
+    expect(banner).toContain('data-role="guest-banner"');
+    expect(banner).toContain('Mode découverte');
+    expect(banner).not.toContain('—');
+    expect(banner).not.toContain('<a');
+    expect(lockedCardHtml('exams')).toContain('Disponible avec un compte');
+    expect(lockedCardHtml('exams')).not.toContain('<a');
+    expect(accessCtaHtml('quiz')).toBe('');
+  });
+
+  it('patchGuestBanner re-renders the displayed banner from current settings', () => {
+    document.body.innerHTML = guestBannerHtml();
+    expect(document.querySelector('[data-role="guest-banner"] a')).not.toBeNull();
+    withAccess({ enabled: false });
+    patchGuestBanner();
+    const banner = document.querySelector('[data-role="guest-banner"]')!;
+    expect(banner.textContent?.trim()).toBe('Mode découverte');
+    expect(banner.querySelector('a')).toBeNull();
+  });
+
+  it('uses the custom label escaped', () => {
+    withAccess({ button_label: '<b>Go</b>' });
+    const banner = guestBannerHtml();
+    expect(banner).toContain('&lt;b&gt;Go&lt;/b&gt;');
+    expect(banner).not.toContain('<b>');
+    expect(lockedCardHtml('badges')).toContain('&lt;b&gt;Go&lt;/b&gt;');
+  });
+
+  it('single external channel links directly with target blank', () => {
+    withAccess({ channels: [{ type: 'whatsapp', number: '+2250700000000', message: 'Salut' }] });
+    const banner = guestBannerHtml();
+    expect(banner).toContain('href="https://wa.me/2250700000000?text=Salut"');
+    expect(banner).toContain('target="_blank" rel="noopener"');
+    expect(banner).not.toContain('data-link');
+  });
+
+  it('tel link has no target', () => {
+    withAccess({ channels: [{ type: 'phone', number: '+2250700000000' }] });
+    const banner = guestBannerHtml();
+    expect(banner).toContain('href="tel:+2250700000000"');
+    expect(banner).not.toContain('target=');
   });
 
   it('locked card shows feature copy and access link', () => {

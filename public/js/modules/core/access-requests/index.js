@@ -161,6 +161,7 @@ function renderDetails() {
                 <dt class="col-4">Consentement</dt><dd class="col-8">${formatDate(r.consent_at, true)}</dd>
                 <dt class="col-4">Traitée par</dt><dd class="col-8">${esc(r.handled_by ?? '—')}</dd>
                 <dt class="col-4">Message</dt><dd class="col-8">${esc(r.message ?? '—')}</dd>
+                ${(r.extra_fields ?? []).map((f) => `<dt class="col-4">${esc(f.label)}</dt><dd class="col-8">${esc(f.value ?? '—')}</dd>`).join('')}
             </dl>
 
             <h6>Statut</h6>

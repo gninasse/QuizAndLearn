@@ -55,6 +55,16 @@ class Group extends Model
     }
 
     /**
+     * Groupes proposés dans la demande d'accès : ouverts aux demandes, actifs, non terminés.
+     */
+    public function scopeOpenForRequests(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query->where('open_for_requests', true)
+            ->where('is_active', true)
+            ->where(fn ($q) => $q->whereNull('end_date')->orWhereDate('end_date', '>=', now()));
+    }
+
+    /**
      * Groupes « en cours » : actifs ET dans leur fenêtre de dates.
      * C'est LE filtre du volet apprenant — un groupe suspendu, fermé
      * (end_date dépassée) ou pas encore ouvert ne délivre plus de contenu.

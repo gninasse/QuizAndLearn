@@ -577,6 +577,14 @@ dans le back-office : `404 {"success":false,"message":"Le mode découverte est d
   `privacy_url` peut être **relatif** (par défaut `/confidentialite`) : le préfixer par
   `{{BASE_URL}}` avant de l'ouvrir ; une URL absolue `https://…` s'ouvre telle quelle.
   Réponse cachable 5 min (`Cache-Control: public, max-age=300`).
+  **Bloc `access_request`** (réglable par l'admin ; s'il est absent, se comporter comme les défauts : formulaire seul) :
+  `{enabled, button_label, title, intro|null, confirmation, channels[], fields{}, custom_fields[]}`.
+  - `enabled=false` : ne rendre ni bouton ni lien « Demander un accès » (connexion, bandeau, cartes verrouillées, fins de quiz/révision, profil) ; le bandeau « Mode découverte » reste affiché, sans lien.
+  - `button_label` : libellé de tous les boutons d'accès ; `title` / `intro` : en-tête de l'écran (textes toujours affichés comme texte brut, jamais interprétés comme du HTML).
+  - `channels[]` (ordre conservé) : `{type:"form"}` | `{type:"whatsapp", number, message}` (ouvrir `https://wa.me/{chiffres sans +}?text={message encodé URL}`) | `{type:"phone", number}` (`tel:`) | `{type:"email", address, subject}` (`mailto:…?subject=`) | `{type:"link", url, label}` (https ; ignorer un lien qui ne commence pas par `https://`). `message`, `subject` peuvent être vides : ne pas ajouter `?text=` / `?subject=` dans ce cas ; libellé de lien vide → « Ouvrir le lien ». Un seul canal : le bouton l'ouvre directement ; plusieurs : écran de choix (formulaire en premier) ; `form` seul : l'écran formulaire.
+  - `fields` : mode de `whatsapp`, `email`, `organization`, `group`, `message` = `hidden` (ne pas afficher ni envoyer) | `optional` | `required` (marquer `*`). `first_name`, `last_name`, `phone`, `consent` restent toujours obligatoires. `group` reste aussi conditionné à la présence de groupes dans `groups[]` : sans groupe proposé, le champ n'est ni affiché ni obligatoire (le serveur applique la même règle) ; s'il est obligatoire, ne pas proposer « Je ne sais pas encore ».
+  - `custom_fields[]` (max 5) : `{key, label, type:"text"|"textarea"|"select", options[] (select), required}` ; envoyer les réponses sous `extra[key]` ; les erreurs `422` d'un champ personnalisé reviennent sous la clé `errors["extra.<key>"]` (ex. `errors["extra.cf_ab12cd"]`), à afficher sous ce champ.
+  - `confirmation` : titre de l'écran de succès (la réponse du POST renvoie aussi `confirmation`) ; conserver la ligne « Nous vous contacterons au {phone} ».
 - `POST /access-requests` (limité à 5 par heure et par IP) : `first_name`,
   `last_name`, `phone` (obligatoires), `whatsapp_same` (booléen) ou `whatsapp`,
   `email`, `organization`, `group_id`, `message`, `consent` (obligatoire, doit être
@@ -587,7 +595,10 @@ dans le back-office : `404 {"success":false,"message":"Le mode découverte est d
   Renvoyer une demande depuis le même téléphone alors qu'une demande est déjà en cours
   ne crée pas de doublon et ne modifie pas les coordonnées déjà enregistrées.
   → `201 {success, message:"Demande envoyée.", phone, registration}` ; `422` avec
-  `errors.{champ}[]` (« Numéro de téléphone invalide. ») ; `429` au-delà de la limite.
+  `errors.{champ}[]` (« Numéro de téléphone invalide. ») ; `429` au-delà de la limite ;
+  `403 {success:false, code:"access_requests_closed", message}` si les demandes sont
+  fermées (réglages en cache périmés, hors ligne) : afficher le message de fermeture,
+  pas une erreur générique, et rafraîchir les réglages.
   Afficher ensuite les consignes de paiement (`registration`).
 - **Médias** : l'invité charge `/storage/...` avec l'en-tête **`X-Guest-Token: <guest_token>`**
   (intercepteur OkHttp/Coil/ExoPlayer, à la place du Bearer). Seuls les médias des

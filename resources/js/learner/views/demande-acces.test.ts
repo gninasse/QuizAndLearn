@@ -1,10 +1,11 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { submit, settingsFn, guest } = vi.hoisted(() => ({
+const { submit, settingsFn, guest, refreshSettings } = vi.hoisted(() => ({
   submit: vi.fn(),
   settingsFn: vi.fn(),
   guest: vi.fn(),
+  refreshSettings: vi.fn(),
 }));
 
 vi.mock('../api/client', () => ({
@@ -16,7 +17,7 @@ vi.mock('../api/client', () => ({
   },
   NetworkError: class extends Error {},
 }));
-vi.mock('../guest/guest-session', () => ({ guestSettings: guest }));
+vi.mock('../guest/guest-session', () => ({ guestSettings: guest, refreshGuestSettings: refreshSettings }));
 vi.mock('../ui/app-toast', () => ({ toast: vi.fn() }));
 
 import { ApiError } from '../api/client';
@@ -56,9 +57,22 @@ function setOnline(value: boolean): void {
   Object.defineProperty(navigator, 'onLine', { value, configurable: true });
 }
 
+const ACCESS = {
+  enabled: true,
+  button_label: 'Demander un accès',
+  title: 'Demander un accès',
+  intro: null,
+  confirmation: 'Demande envoyée.',
+  channels: [{ type: 'form' }],
+  fields: { whatsapp: 'optional', email: 'optional', organization: 'optional', group: 'optional', message: 'optional' },
+  custom_fields: [],
+};
+
 describe('demande d\'accès', () => {
   beforeEach(() => {
+    window.history.replaceState(null, '', '/demande-acces');
     submit.mockReset();
+    refreshSettings.mockReset().mockResolvedValue(null);
     guest.mockReturnValue(SETTINGS);
     setOnline(true);
     sessionStorage.clear();
@@ -151,5 +165,98 @@ describe('demande d\'accès', () => {
       expect(err.textContent).toBe('Numéro invalide.');
       expect(err.classList.contains('hidden')).toBe(false);
     });
+  });
+
+  it('hidden field is absent, required field is starred', async () => {
+    guest.mockReturnValue({
+      ...SETTINGS,
+      access_request: { ...ACCESS, fields: { ...ACCESS.fields, organization: 'hidden', email: 'required' } },
+    });
+    const { el } = await setup();
+    expect(el.querySelector('[name="organization"]')).toBeNull();
+    expect(el.querySelector('[name="email"]')!.closest('label')!.textContent).toContain('*');
+  });
+
+  it('configured texts are escaped', async () => {
+    guest.mockReturnValue({ ...SETTINGS, access_request: { ...ACCESS, title: '<i>Hop</i>', intro: 'Intro <b>x</b>' } });
+    const { el } = await setup();
+    expect(el.querySelector('h1')!.textContent).toBe('<i>Hop</i>');
+    expect(el.querySelector('h1 i')).toBeNull();
+    expect(el.textContent).toContain('Intro <b>x</b>');
+  });
+
+  it('custom select field is sent under extra', async () => {
+    guest.mockReturnValue({
+      ...SETTINGS,
+      access_request: {
+        ...ACCESS,
+        custom_fields: [{ key: 'cf_a1', label: 'Ville', type: 'select', options: ['Abidjan', 'Bouaké'], required: true }],
+      },
+    });
+    submit.mockResolvedValue({ success: true, message: 'ok', confirmation: 'Merci !', phone: '+2250700000000', registration: SETTINGS.registration });
+    const { el, set } = await setup();
+    expect(el.textContent).toContain('Ville');
+    fillValid(el, set);
+    set('cf_a1', 'Bouaké');
+    el.querySelector('form')!.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+    await vi.waitFor(() => expect(submit).toHaveBeenCalledOnce());
+    expect((submit.mock.calls[0]![0] as { extra: unknown }).extra).toEqual({ cf_a1: 'Bouaké' });
+    await vi.waitFor(() => expect(el.textContent).toContain('Merci !'));
+  });
+
+  it('several channels show choice cards, form first; canal=form opens the form', async () => {
+    guest.mockReturnValue({
+      ...SETTINGS,
+      access_request: {
+        ...ACCESS,
+        channels: [{ type: 'phone', number: '+2250700000000' }, { type: 'form' }],
+      },
+    });
+    const { el } = await setup();
+    expect(el.querySelector('form')).toBeNull();
+    const links = [...el.querySelectorAll('a')].map((a) => a.getAttribute('href'));
+    expect(links.slice(0, 2)).toEqual(['/demande-acces?canal=form', 'tel:+2250700000000']);
+
+    window.history.replaceState(null, '', '/demande-acces?canal=form');
+    const second = await setup();
+    expect(second.el.querySelector('form')).not.toBeNull();
+  });
+
+  it('closed settings show the closing message', async () => {
+    guest.mockReturnValue({ ...SETTINGS, access_request: { ...ACCESS, enabled: false } });
+    const { el } = await setup();
+    expect(el.querySelector('form')).toBeNull();
+    expect(el.textContent).toContain('fermées');
+  });
+
+  it('403 access_requests_closed shows the closing message, not a generic error', async () => {
+    submit.mockRejectedValue(new ApiError(403, 'x', { success: false, code: 'access_requests_closed' }));
+    const { el, set } = await setup();
+    fillValid(el, set);
+    el.querySelector('form')!.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+    await vi.waitFor(() => expect(el.textContent).toContain('fermées pour le moment'));
+    expect(el.querySelector('form')).toBeNull();
+    expect(refreshSettings).toHaveBeenCalledOnce();
+  });
+
+  it('required group: no « Je ne sais pas encore » choice', async () => {
+    guest.mockReturnValue({ ...SETTINGS, access_request: { ...ACCESS, fields: { ...ACCESS.fields, group: 'required' } } });
+    const { el } = await setup();
+    const select = el.querySelector<HTMLSelectElement>('[name="group_id"]')!;
+    expect(select.textContent).not.toContain('Je ne sais pas encore');
+    expect(select.options[0]!.value).toBe('');
+    expect(select.options[0]!.textContent).toBe('Choisissez…');
+  });
+
+  it('required group without any open group: field absent, form submittable', async () => {
+    guest.mockReturnValue({
+      ...SETTINGS,
+      groups: [],
+      access_request: { ...ACCESS, fields: { ...ACCESS.fields, group: 'required' } },
+    });
+    const { el, btn, set } = await setup();
+    expect(el.querySelector('[name="group_id"]')).toBeNull();
+    fillValid(el, set);
+    expect(btn.disabled).toBe(false);
   });
 });

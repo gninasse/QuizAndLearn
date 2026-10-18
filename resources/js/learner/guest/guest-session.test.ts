@@ -19,7 +19,7 @@ import { db } from '../db/schema';
 import { enqueue } from '../db/outbox';
 import { articlesStore, sessionStore } from '../stores';
 import { clearLocalData, dispatch, sync } from '../sync/engine';
-import { enterGuestMode, guestSettings, isGuest, leaveGuestMode, PendingOutboxError } from './guest-session';
+import { enterGuestMode, guestSettings, isGuest, leaveGuestMode, PendingOutboxError, refreshGuestSettings } from './guest-session';
 
 function article(id: number, title: string): ArticleItem {
   return {
@@ -123,6 +123,18 @@ describe('session invité (mode découverte)', () => {
     expect(articlesStore.get().map((a) => a.title)).toEqual(['Vitrine A']);
     expect(isGuest()).toBe(true);
     expect(guestSettings()?.registration.currency).toBe('XOF');
+  });
+
+  it('refreshGuestSettings replaces cached settings (memory and IndexedDB)', async () => {
+    await enterGuestMode();
+    const closed = { ...settings, access_request: { enabled: false } };
+    mocked.showcaseSettings.mockResolvedValue({ success: true, ...closed });
+
+    await refreshGuestSettings();
+
+    expect(guestSettings()?.access_request?.enabled).toBe(false);
+    expect((await db.meta.get('showcase-settings'))?.value).toMatchObject({ access_request: { enabled: false } });
+    expect((await db.meta.get('showcase-settings'))?.value).not.toHaveProperty('success');
   });
 
   it('refuses to enter guest mode while a learner outbox is pending (no purge)', async () => {
