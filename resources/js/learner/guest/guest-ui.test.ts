@@ -6,7 +6,7 @@ vi.mock('./guest-session', () => ({ guestSettings: guest }));
 import { sessionStore } from '../stores';
 import type { UserProfile } from '../domain/types';
 import '../components/app-shell';
-import { accessCtaHtml, guestBannerHtml, lockedCardHtml } from './guest-ui';
+import { accessCtaHtml, guestBannerHtml, lockedCardHtml, patchGuestBanner } from './guest-ui';
 
 const xp = { total_xp: 0, current_level: 0, current_streak: 0, longest_streak: 0, last_activity_date: null };
 const profile = (guest: boolean): UserProfile => ({
@@ -43,12 +43,26 @@ describe('guest ui', () => {
     });
   };
 
-  it('renders nothing when requests are closed', () => {
+  it('closed requests: banner text without link, no CTA', () => {
     withAccess({ enabled: false });
-    expect(guestBannerHtml()).toBe('');
+    const banner = guestBannerHtml();
+    expect(banner).toContain('data-role="guest-banner"');
+    expect(banner).toContain('Mode découverte');
+    expect(banner).not.toContain('—');
+    expect(banner).not.toContain('<a');
     expect(lockedCardHtml('exams')).toContain('Disponible avec un compte');
     expect(lockedCardHtml('exams')).not.toContain('<a');
     expect(accessCtaHtml('quiz')).toBe('');
+  });
+
+  it('patchGuestBanner re-renders the displayed banner from current settings', () => {
+    document.body.innerHTML = guestBannerHtml();
+    expect(document.querySelector('[data-role="guest-banner"] a')).not.toBeNull();
+    withAccess({ enabled: false });
+    patchGuestBanner();
+    const banner = document.querySelector('[data-role="guest-banner"]')!;
+    expect(banner.textContent?.trim()).toBe('Mode découverte');
+    expect(banner.querySelector('a')).toBeNull();
   });
 
   it('uses the custom label escaped', () => {

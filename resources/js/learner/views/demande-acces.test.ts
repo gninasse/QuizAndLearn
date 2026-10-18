@@ -1,10 +1,11 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { submit, settingsFn, guest } = vi.hoisted(() => ({
+const { submit, settingsFn, guest, refreshSettings } = vi.hoisted(() => ({
   submit: vi.fn(),
   settingsFn: vi.fn(),
   guest: vi.fn(),
+  refreshSettings: vi.fn(),
 }));
 
 vi.mock('../api/client', () => ({
@@ -16,7 +17,7 @@ vi.mock('../api/client', () => ({
   },
   NetworkError: class extends Error {},
 }));
-vi.mock('../guest/guest-session', () => ({ guestSettings: guest }));
+vi.mock('../guest/guest-session', () => ({ guestSettings: guest, refreshGuestSettings: refreshSettings }));
 vi.mock('../ui/app-toast', () => ({ toast: vi.fn() }));
 
 import { ApiError } from '../api/client';
@@ -71,6 +72,7 @@ describe('demande d\'accès', () => {
   beforeEach(() => {
     window.history.replaceState(null, '', '/demande-acces');
     submit.mockReset();
+    refreshSettings.mockReset().mockResolvedValue(null);
     guest.mockReturnValue(SETTINGS);
     setOnline(true);
     sessionStorage.clear();
@@ -234,5 +236,27 @@ describe('demande d\'accès', () => {
     el.querySelector('form')!.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
     await vi.waitFor(() => expect(el.textContent).toContain('fermées pour le moment'));
     expect(el.querySelector('form')).toBeNull();
+    expect(refreshSettings).toHaveBeenCalledOnce();
+  });
+
+  it('required group: no « Je ne sais pas encore » choice', async () => {
+    guest.mockReturnValue({ ...SETTINGS, access_request: { ...ACCESS, fields: { ...ACCESS.fields, group: 'required' } } });
+    const { el } = await setup();
+    const select = el.querySelector<HTMLSelectElement>('[name="group_id"]')!;
+    expect(select.textContent).not.toContain('Je ne sais pas encore');
+    expect(select.options[0]!.value).toBe('');
+    expect(select.options[0]!.textContent).toBe('Choisissez…');
+  });
+
+  it('required group without any open group: field absent, form submittable', async () => {
+    guest.mockReturnValue({
+      ...SETTINGS,
+      groups: [],
+      access_request: { ...ACCESS, fields: { ...ACCESS.fields, group: 'required' } },
+    });
+    const { el, btn, set } = await setup();
+    expect(el.querySelector('[name="group_id"]')).toBeNull();
+    fillValid(el, set);
+    expect(btn.disabled).toBe(false);
   });
 });

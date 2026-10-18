@@ -216,10 +216,10 @@ export interface ShowcaseGroup {
 
 export type AccessChannel =
   | { type: 'form' }
-  | { type: 'whatsapp'; number: string; message: string }
+  | { type: 'whatsapp'; number: string; message?: string | null }
   | { type: 'phone'; number: string }
-  | { type: 'email'; address: string; subject: string }
-  | { type: 'link'; url: string; label: string };
+  | { type: 'email'; address: string; subject?: string | null }
+  | { type: 'link'; url: string; label?: string | null };
 
 export type AccessFieldMode = 'hidden' | 'optional' | 'required';
 export type AccessFieldName = 'whatsapp' | 'email' | 'organization' | 'group' | 'message';

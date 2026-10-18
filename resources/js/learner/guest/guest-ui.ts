@@ -38,17 +38,28 @@ function accessLink(classes: string): string | null {
   return html`<a href="${href}" class="${classes}">${cfg.button_label}</a>`;
 }
 
-/** Bandeau fin sous le header, visible uniquement en mode découverte. */
+/**
+ * Bandeau fin sous le header, visible uniquement en mode découverte ;
+ * demandes fermées : le texte reste, sans tiret ni lien.
+ */
 export function guestBannerHtml(): string {
   const link = accessLink('underline font-bold');
-  if (link === null) return '';
   return html`
     <div data-role="guest-banner"
          class="bg-sky-50 dark:bg-sky-500/10 border-b border-sky-200/70 dark:border-sky-500/25 text-sky-800 dark:text-sky-200 text-center text-xs font-semibold py-1.5 px-4">
-      Mode découverte —
-      ${raw(link)}
+      ${link === null ? 'Mode découverte' : raw(html`Mode découverte — ${raw(link)}`)}
     </div>
   `;
+}
+
+/** Remplace le bandeau déjà affiché (après un rafraîchissement des réglages). */
+export function patchGuestBanner(): void {
+  const current = document.querySelector('[data-role="guest-banner"]');
+  if (!current) return;
+  const tpl = document.createElement('template');
+  tpl.innerHTML = guestBannerHtml().trim();
+  const next = tpl.content.firstElementChild;
+  if (next) current.replaceWith(next);
 }
 
 /** Carte « Disponible avec un compte » pour une fonctionnalité réservée. */

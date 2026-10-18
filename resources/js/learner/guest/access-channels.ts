@@ -18,16 +18,30 @@ export const DEFAULT_ACCESS_CONFIG: AccessRequestConfig = {
 export function resolveAccessConfig(settings: Pick<ShowcaseSettings, 'access_request'> | null | undefined): AccessRequestConfig {
   const c = settings?.access_request;
   if (!c) return DEFAULT_ACCESS_CONFIG;
+  // Défense en profondeur : un lien non https n'est jamais proposé.
+  const usable = (c.channels ?? []).filter((ch) => ch.type !== 'link' || isSafeLink(ch.url));
   return {
     enabled: c.enabled !== false,
     button_label: c.button_label || DEFAULT_ACCESS_CONFIG.button_label,
     title: c.title || DEFAULT_ACCESS_CONFIG.title,
     intro: c.intro || DEFAULT_ACCESS_CONFIG.intro,
     confirmation: c.confirmation || DEFAULT_ACCESS_CONFIG.confirmation,
-    channels: c.channels?.length ? c.channels : DEFAULT_ACCESS_CONFIG.channels,
+    channels: usable.length ? usable : DEFAULT_ACCESS_CONFIG.channels,
     fields: { ...DEFAULT_ACCESS_CONFIG.fields, ...c.fields },
     custom_fields: c.custom_fields ?? [],
   };
+}
+
+export const DEFAULT_LINK_LABEL = 'Ouvrir le lien';
+
+function isSafeLink(url: unknown): boolean {
+  return typeof url === 'string' && url.startsWith('https://');
+}
+
+/** Ajoute `?key=valeur` seulement si la valeur n'est pas vide (les vides arrivent parfois à null). */
+function withParam(base: string, key: string, value: string | null | undefined): string {
+  const v = value?.trim() ?? '';
+  return v === '' ? base : `${base}?${key}=${encodeURIComponent(v)}`;
 }
 
 export function channelHref(c: AccessChannel): string {
@@ -35,11 +49,11 @@ export function channelHref(c: AccessChannel): string {
     case 'form':
       return `${ACCESS_PAGE}?canal=form`;
     case 'whatsapp':
-      return `https://wa.me/${c.number.replace(/\D/g, '')}?text=${encodeURIComponent(c.message)}`;
+      return withParam(`https://wa.me/${c.number.replace(/\D/g, '')}`, 'text', c.message);
     case 'phone':
       return `tel:${c.number}`;
     case 'email':
-      return `mailto:${c.address}?subject=${encodeURIComponent(c.subject)}`;
+      return withParam(`mailto:${c.address}`, 'subject', c.subject);
     case 'link':
       return c.url;
   }
@@ -56,7 +70,7 @@ export function channelLabel(c: AccessChannel): string {
     case 'email':
       return 'Envoyer un e-mail';
     case 'link':
-      return c.label;
+      return c.label?.trim() || DEFAULT_LINK_LABEL;
   }
 }
 
@@ -68,11 +82,12 @@ export function accessEntryHref(cfg: AccessRequestConfig): string | null {
   return only.type === 'form' ? ACCESS_PAGE : channelHref(only);
 }
 
-/** Attributs HTML (déjà échappés par l'appelant via html``) d'un lien selon sa nature. */
+/** Lien interne à la PWA (routeur, attribut `data-link`). */
 export function isInternalHref(href: string): boolean {
   return href.startsWith('/');
 }
 
+/** Lien externe https : ouvert dans un nouvel onglet. */
 export function opensNewTab(href: string): boolean {
   return href.startsWith('https://');
 }

@@ -2,7 +2,8 @@ import { api, ApiError, NetworkError } from '../api/client';
 import { html, raw } from '../core/html';
 import type { AccessFieldName, AccessRequestConfig, AccessRequestResponse, ShowcaseSettings } from '../domain/types';
 import { channelHref, channelLabel, isInternalHref, opensNewTab, resolveAccessConfig } from '../guest/access-channels';
-import { guestSettings } from '../guest/guest-session';
+import { guestSettings, refreshGuestSettings } from '../guest/guest-session';
+import { patchGuestBanner } from '../guest/guest-ui';
 import { toast } from '../ui/app-toast';
 
 const DRAFT_KEY = 'learner:access-draft';
@@ -208,7 +209,7 @@ export async function mount(el: HTMLElement, _params?: Record<string, string>): 
             ? raw(html`<label class="flex flex-col gap-1.5">
                 <span class="text-xs font-bold text-zinc-500 uppercase tracking-wide">Formation souhaitée${star('group') ? ' *' : ''}</span>
                 <select name="group_id" class="${INPUT}">
-                  <option value="">Je ne sais pas encore</option>
+                  <option value="">${star('group') ? 'Choisissez…' : 'Je ne sais pas encore'}</option>
                   ${raw(
                     groups
                       .map((g) => html`<option value="${g.id}" ${dv('group_id') === String(g.id) ? 'selected' : ''}>${g.name}</option>`)
@@ -373,6 +374,10 @@ export async function mount(el: HTMLElement, _params?: Record<string, string>): 
       } catch (e) {
         if (e instanceof ApiError && e.status === 403 && (e.payload as { code?: string } | null)?.code === 'access_requests_closed') {
           el.innerHTML = closedView();
+          // Réglages en cache périmés : on les rafraîchit pour que bandeau et boutons suivent.
+          void refreshGuestSettings()
+            .then(() => patchGuestBanner())
+            .catch(() => undefined);
           return;
         }
         sending = false;

@@ -20,6 +20,29 @@ describe('access channels', () => {
     expect(channelHref({ type: 'link', url: 'https://forms.gle/x', label: 'L' })).toBe('https://forms.gle/x');
   });
 
+  it('empty or null optional texts add no query string', () => {
+    expect(channelHref({ type: 'whatsapp', number: '+2250700000000', message: null })).toBe('https://wa.me/2250700000000');
+    expect(channelHref({ type: 'whatsapp', number: '+2250700000000', message: '' })).toBe('https://wa.me/2250700000000');
+    expect(channelHref({ type: 'email', address: 'a@b.ci', subject: null })).toBe('mailto:a@b.ci');
+    expect(channelHref({ type: 'email', address: 'a@b.ci', subject: ' ' })).toBe('mailto:a@b.ci');
+    expect(channelLabel({ type: 'link', url: 'https://x.ci', label: null })).toBe('Ouvrir le lien');
+    expect(channelLabel({ type: 'link', url: 'https://x.ci', label: '' })).toBe('Ouvrir le lien');
+  });
+
+  it('non-https link channels are skipped', () => {
+    const resolved = resolveAccessConfig({
+      access_request: {
+        ...cfg(),
+        channels: [
+          { type: 'link', url: 'javascript:alert(1)', label: 'X' },
+          { type: 'link', url: 'http://x.ci', label: 'Y' },
+          { type: 'phone', number: '+2250700000000' },
+        ],
+      },
+    });
+    expect(resolved.channels).toEqual([{ type: 'phone', number: '+2250700000000' }]);
+  });
+
   it('labels channels', () => {
     expect(channelLabel({ type: 'form' })).toBe('Remplir le formulaire');
     expect(channelLabel({ type: 'whatsapp', number: '+1', message: '' })).toBe('Écrire sur WhatsApp');
