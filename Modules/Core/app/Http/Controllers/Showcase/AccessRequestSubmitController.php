@@ -17,7 +17,10 @@ use Modules\Core\Support\PhoneNumber;
  */
 class AccessRequestSubmitController extends Controller
 {
-    private const MIN_FILL_SECONDS = 3;
+    private const MIN_FILL_MS = 3000;
+
+    /** Champs de contact complétés (jamais écrasés) lors d'un renvoi. */
+    private const CONTACT_FIELDS = ['first_name', 'last_name', 'whatsapp', 'email', 'organization', 'group_id'];
 
     public const CONSENT_TEXT = 'J\'accepte que mes informations soient utilisées pour traiter ma demande d\'accès, conformément à la politique de confidentialité.';
 
@@ -39,11 +42,11 @@ class AccessRequestSubmitController extends Controller
             'whatsapp' => ['nullable', 'string', 'max:30'],
             'email' => ['nullable', 'email', 'max:255'],
             'organization' => ['nullable', 'string', 'max:255'],
-            'group_id' => ['nullable', 'integer', Rule::exists('groups', 'id')->where('open_for_requests', true)],
+            'group_id' => ['nullable', 'integer', Rule::exists('groups', 'id')->where('open_for_requests', true)->where('is_active', true)],
             'message' => ['nullable', 'string', 'max:2000'],
             'consent' => ['accepted'],
             'website' => ['nullable', 'string'],
-            'started_at' => ['nullable', 'numeric'],
+            'elapsed_ms' => ['nullable', 'integer', 'min:0'],
         ], [
             'consent.accepted' => 'Vous devez accepter le traitement de vos informations.',
             'group_id.exists' => 'Ce groupe n\'accepte pas de demandes.',
@@ -95,7 +98,7 @@ class AccessRequestSubmitController extends Controller
             ->first();
 
         if ($existing) {
-            $existing->update($attributes);
+            $this->resubmit($existing, $attributes);
 
             return $response;
         }
@@ -109,10 +112,60 @@ class AccessRequestSubmitController extends Controller
 
         $recipients = $this->settings->notificationEmails();
         if ($recipients !== []) {
-            Mail::to($recipients)->send(new NewAccessRequestMail($accessRequest));
+            try {
+                Mail::to($recipients)->send(new NewAccessRequestMail($accessRequest));
+            } catch (\Throwable $e) {
+                // La demande est enregistrée : un échec d'envoi ne doit pas la faire échouer.
+                report($e);
+            }
         }
 
         return $response;
+    }
+
+    /**
+     * Renvoi d'une demande depuis un numéro ayant déjà une demande ouverte.
+     * Les coordonnées déjà renseignées ne sont jamais écrasées (un tiers
+     * connaissant le numéro ne doit pas pouvoir détourner le contact) ;
+     * seuls les champs vides sont complétés, et uniquement au statut `new`.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    private function resubmit(AccessRequest $existing, array $attributes): void
+    {
+        if ($existing->status !== 'new') {
+            $existing->events()->create([
+                'from_status' => $existing->status,
+                'to_status' => $existing->status,
+                'comment' => 'Demande renvoyée (aucune modification)',
+            ]);
+
+            return;
+        }
+
+        $changed = [];
+        foreach (self::CONTACT_FIELDS as $field) {
+            $current = $existing->{$field};
+            $incoming = $attributes[$field] ?? null;
+            if (($current === null || $current === '') && $incoming !== null && $incoming !== '') {
+                $existing->{$field} = $incoming;
+                $changed[] = $field;
+            }
+        }
+
+        $message = $attributes['message'] ?? null;
+        if ($message !== null && trim($message) !== '' && ! str_contains((string) $existing->message, trim($message))) {
+            $existing->message = $existing->message ? $existing->message."\n\n".trim($message) : trim($message);
+            $changed[] = 'message';
+        }
+
+        $existing->save();
+
+        $existing->events()->create([
+            'from_status' => 'new',
+            'to_status' => 'new',
+            'comment' => 'Demande renvoyée'.($changed !== [] ? ' — champs complétés : '.implode(', ', $changed) : ' (aucune modification)'),
+        ]);
     }
 
     /**
@@ -126,7 +179,8 @@ class AccessRequestSubmitController extends Controller
             return true;
         }
 
-        if (isset($data['started_at']) && (now()->getTimestampMs() - (float) $data['started_at']) < self::MIN_FILL_SECONDS * 1000) {
+        // Durée de remplissage mesurée côté client (pas d'horloge à comparer).
+        if (isset($data['elapsed_ms']) && (int) $data['elapsed_ms'] < self::MIN_FILL_MS) {
             return true;
         }
 

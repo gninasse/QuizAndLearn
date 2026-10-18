@@ -271,8 +271,12 @@ class ShowcaseApiTest extends TestCase
         $openNoEnd = Group::create(['name' => 'Ouverte sans fin', 'is_active' => true, 'open_for_requests' => true]);
         Group::create(['name' => 'Fermée', 'is_active' => true, 'open_for_requests' => false]);
         Group::create(['name' => 'Terminée', 'is_active' => true, 'open_for_requests' => true, 'end_date' => now()->subDay()->toDateString()]);
+        Group::create(['name' => 'Inactive', 'is_active' => false, 'open_for_requests' => true]);
 
         $response = $this->getJson(route('showcase.v1.settings'));
+
+        $this->assertStringContainsString('public', (string) $response->headers->get('Cache-Control'));
+        $this->assertStringContainsString('max-age=300', (string) $response->headers->get('Cache-Control'));
 
         $response->assertStatus(200)
             ->assertJsonPath('success', true)

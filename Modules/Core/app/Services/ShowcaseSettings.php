@@ -42,7 +42,9 @@ class ShowcaseSettings
 
     public function currency(): string
     {
-        return $this->text('currency') ?? 'XOF';
+        $currency = $this->text('currency');
+
+        return $currency !== null ? strtoupper($currency) : 'XOF';
     }
 
     public function fee(): ?int
@@ -137,7 +139,7 @@ class ShowcaseSettings
             'enabled' => (bool) ($validated['enabled'] ?? false),
             'tagline' => $validated['tagline'] ?? null,
             'default_country_code' => $validated['default_country_code'] ?? null,
-            'currency' => $validated['currency'] ?? null,
+            'currency' => isset($validated['currency']) ? strtoupper(trim((string) $validated['currency'])) : null,
             'fee' => isset($validated['fee']) ? (int) $validated['fee'] : null,
             'payment_accounts' => array_values(array_map(fn ($a) => [
                 'operator' => $a['operator'],

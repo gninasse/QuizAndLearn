@@ -31,7 +31,7 @@ class AccessRequestSubmitTest extends TestCase
             'phone' => '07 01 02 03 04',
             'whatsapp_same' => true,
             'consent' => true,
-            'started_at' => now()->getTimestampMs() - 10000,
+            'elapsed_ms' => 10000,
         ], $override);
     }
 
@@ -72,19 +72,92 @@ class AccessRequestSubmitTest extends TestCase
     {
         $this->postJson(self::URL, $this->payload(['website' => 'http://spam']))
             ->assertCreated()->assertJsonPath('message', 'Demande envoyée.');
-        $this->postJson(self::URL, $this->payload(['started_at' => now()->getTimestampMs() - 500]))
+        $this->postJson(self::URL, $this->payload(['elapsed_ms' => 500]))
             ->assertCreated()->assertJsonPath('message', 'Demande envoyée.');
 
         $this->assertSame(0, AccessRequest::count());
     }
 
-    public function test_second_request_from_same_phone_updates_open_one(): void
+    public function test_elapsed_ms_must_be_a_non_negative_integer(): void
     {
-        $this->postJson(self::URL, $this->payload())->assertCreated();
-        $this->postJson(self::URL, $this->payload(['first_name' => 'Aïcha']))->assertCreated();
+        $this->postJson(self::URL, $this->payload(['elapsed_ms' => -1]))->assertStatus(422);
+        $this->postJson(self::URL, $this->payload(['elapsed_ms' => 'abc']))->assertStatus(422);
+        $this->postJson(self::URL, $this->payload(['elapsed_ms' => 3000]))->assertCreated();
+        $this->assertSame(1, AccessRequest::count());
+    }
+
+    public function test_resubmission_on_new_request_never_overwrites_contact_fields(): void
+    {
+        $this->postJson(self::URL, $this->payload(['email' => 'awa@example.com', 'message' => 'Bonjour']))->assertCreated();
+
+        $this->postJson(self::URL, $this->payload([
+            'first_name' => 'Pirate',
+            'whatsapp_same' => false,
+            'whatsapp' => '0509090909',
+            'email' => 'attacker@example.com',
+            'message' => 'Autre message',
+        ]))->assertCreated()->assertJsonPath('message', 'Demande envoyée.');
 
         $this->assertSame(1, AccessRequest::count());
-        $this->assertSame('Aïcha', AccessRequest::first()->first_name);
+        $request = AccessRequest::first();
+        $this->assertSame('Awa', $request->first_name);
+        $this->assertSame('+2250701020304', $request->whatsapp);
+        $this->assertSame('awa@example.com', $request->email);
+        $this->assertStringContainsString('Bonjour', $request->message);
+        $this->assertStringContainsString('Autre message', $request->message);
+
+        $event = $request->events()->where('comment', 'like', 'Demande renvoyée%')->first();
+        $this->assertNotNull($event);
+        $this->assertSame('new', $event->from_status);
+        $this->assertSame('new', $event->to_status);
+    }
+
+    public function test_resubmission_fills_empty_fields_only(): void
+    {
+        $group = Group::create(['name' => 'Ouvert', 'is_active' => true, 'open_for_requests' => true]);
+        $this->postJson(self::URL, $this->payload(['whatsapp_same' => false]))->assertCreated();
+
+        $this->postJson(self::URL, $this->payload([
+            'whatsapp_same' => false,
+            'whatsapp' => '0509090909',
+            'email' => 'awa@example.com',
+            'organization' => 'ACME',
+            'group_id' => $group->id,
+        ]))->assertCreated();
+
+        $request = AccessRequest::first();
+        $this->assertSame('+2250509090909', $request->whatsapp);
+        $this->assertSame('awa@example.com', $request->email);
+        $this->assertSame('ACME', $request->organization);
+        $this->assertSame($group->id, $request->group_id);
+        $event = $request->events()->where('comment', 'like', 'Demande renvoyée%')->firstOrFail();
+        $this->assertStringContainsString('email', $event->comment);
+        $this->assertStringContainsString('whatsapp', $event->comment);
+    }
+
+    public function test_resubmission_on_paid_request_changes_nothing_but_logs_event(): void
+    {
+        $this->postJson(self::URL, $this->payload(['whatsapp_same' => false]))->assertCreated();
+        $request = AccessRequest::first();
+        $request->transitionTo('paid', null);
+
+        $this->postJson(self::URL, $this->payload([
+            'first_name' => 'Pirate',
+            'whatsapp_same' => false,
+            'whatsapp' => '0509090909',
+            'email' => 'attacker@example.com',
+        ]))->assertCreated();
+
+        $request->refresh();
+        $this->assertSame(1, AccessRequest::count());
+        $this->assertSame('Awa', $request->first_name);
+        $this->assertNull($request->whatsapp);
+        $this->assertNull($request->email);
+        $this->assertSame('paid', $request->status);
+        $event = $request->events()->latest('id')->first();
+        $this->assertSame('Demande renvoyée (aucune modification)', $event->comment);
+        $this->assertSame('paid', $event->from_status);
+        $this->assertSame('paid', $event->to_status);
     }
 
     public function test_closed_request_allows_a_new_one(): void
@@ -101,7 +174,10 @@ class AccessRequestSubmitTest extends TestCase
         $closed = Group::create(['name' => 'Fermé', 'is_active' => true, 'open_for_requests' => false]);
         $open = Group::create(['name' => 'Ouvert', 'is_active' => true, 'open_for_requests' => true]);
 
+        $inactive = Group::create(['name' => 'Inactif', 'is_active' => false, 'open_for_requests' => true]);
+
         $this->postJson(self::URL, $this->payload(['group_id' => $closed->id]))->assertStatus(422);
+        $this->postJson(self::URL, $this->payload(['group_id' => $inactive->id]))->assertStatus(422);
         $this->postJson(self::URL, $this->payload(['group_id' => $open->id]))->assertCreated();
         $this->assertSame($open->id, AccessRequest::first()->group_id);
     }
@@ -114,6 +190,32 @@ class AccessRequestSubmitTest extends TestCase
         $this->postJson(self::URL, $this->payload())->assertCreated();
 
         Mail::assertSent(NewAccessRequestMail::class, fn ($m) => $m->hasTo('admin@example.com'));
+    }
+
+    public function test_mail_failure_does_not_fail_the_request(): void
+    {
+        AppSetting::put('showcase.notification_emails', ['admin@example.com']);
+        Mail::shouldReceive('to')->andThrow(new \RuntimeException('SMTP indisponible'));
+
+        $this->postJson(self::URL, $this->payload())
+            ->assertCreated()
+            ->assertJsonPath('success', true);
+
+        $this->assertSame(1, AccessRequest::count());
+    }
+
+    public function test_mail_escapes_markdown_in_user_fields(): void
+    {
+        $this->postJson(self::URL, $this->payload([
+            'first_name' => '[Cliquez](http://evil)',
+            'message' => '**gras** [lien](http://evil2)',
+        ]))->assertCreated();
+
+        $html = (new NewAccessRequestMail(AccessRequest::firstOrFail()))->render();
+
+        $this->assertStringNotContainsString('href="http://evil', $html);
+        $this->assertStringNotContainsString('<strong>gras</strong>', $html);
+        $this->assertStringContainsString('Cliquez', $html);
     }
 
     public function test_rate_limited_after_five_per_hour(): void

@@ -103,6 +103,33 @@ class ShowcaseSettingsTest extends TestCase
         ]))->assertStatus(422);
     }
 
+    public function test_currency_is_an_uppercased_iso_code(): void
+    {
+        $admin = $this->makeUser('boss', 'admin');
+
+        $this->actingAs($admin)->putJson(route('cores.showcase.settings.save'), $this->payload(['currency' => 'xof']))
+            ->assertOk();
+        $this->assertSame('XOF', app(ShowcaseSettings::class)->currency());
+
+        $this->actingAs($admin)->putJson(route('cores.showcase.settings.save'), $this->payload(['currency' => 'FCFA']))
+            ->assertStatus(422);
+        $this->actingAs($admin)->putJson(route('cores.showcase.settings.save'), $this->payload(['currency' => 'X1F']))
+            ->assertStatus(422);
+        $this->assertSame('XOF', app(ShowcaseSettings::class)->currency());
+    }
+
+    public function test_privacy_url_must_be_http(): void
+    {
+        $admin = $this->makeUser('boss', 'admin');
+
+        $this->actingAs($admin)->putJson(route('cores.showcase.settings.save'), $this->payload(['privacy_url' => 'javascript://x']))
+            ->assertStatus(422);
+        $this->actingAs($admin)->putJson(route('cores.showcase.settings.save'), $this->payload(['privacy_url' => 'ftp://example.com/x']))
+            ->assertStatus(422);
+        $this->actingAs($admin)->putJson(route('cores.showcase.settings.save'), $this->payload(['privacy_url' => 'https://example.com/privacy']))
+            ->assertOk();
+    }
+
     public function test_trainer_cannot_open_settings(): void
     {
         $trainer = $this->makeUser('prof', 'trainer');

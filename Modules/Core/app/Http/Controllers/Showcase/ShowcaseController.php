@@ -76,6 +76,7 @@ class ShowcaseController extends Controller
     public function settings(): JsonResponse
     {
         $groups = Group::where('open_for_requests', true)
+            ->where('is_active', true)
             ->where(fn ($q) => $q->whereNull('end_date')->orWhereDate('end_date', '>=', now()))
             ->orderByRaw('start_date IS NULL, start_date')
             ->orderBy('name')
@@ -92,7 +93,7 @@ class ShowcaseController extends Controller
             'success' => true,
             ...$this->settings->publicPayload(),
             'groups' => $groups,
-        ]);
+        ])->header('Cache-Control', 'public, max-age=300');
     }
 
     /**

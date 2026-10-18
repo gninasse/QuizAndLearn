@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Modules\Core\Services\GuestToken;
 use Modules\Core\Services\ShowcaseMedia;
+use Modules\Core\Services\ShowcaseSettings;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /**
@@ -38,7 +39,7 @@ class MediaController extends Controller
             // Invité du mode découverte : uniquement les médias du contenu vitrine actif.
             $token = $request->cookie(GuestToken::COOKIE) ?? $request->header('X-Guest-Token');
             abort_unless(
-                GuestToken::valid($token) && ShowcaseMedia::allows($path),
+                app(ShowcaseSettings::class)->enabled() && GuestToken::valid($token) && ShowcaseMedia::allows($path),
                 403,
                 'Accès aux médias réservé aux utilisateurs connectés.'
             );

@@ -127,6 +127,35 @@ class AccessRequestAdminTest extends TestCase
         ]);
     }
 
+    public function test_payment_without_payer_phone_is_recorded(): void
+    {
+        $admin = $this->makeUser('boss', 'admin');
+        $r = $this->makeRequest(['status' => 'payment_pending']);
+
+        $payload = $this->payment();
+        unset($payload['payer_phone']);
+        $this->actingAs($admin)->postJson(route('cores.access-requests.payments', $r->id), $payload)
+            ->assertCreated()->assertJsonPath('success', true);
+
+        $this->assertDatabaseHas('access_request_payments', [
+            'access_request_id' => $r->id, 'payer_phone' => null,
+        ]);
+    }
+
+    public function test_deleting_an_admin_who_recorded_a_payment_keeps_the_payment(): void
+    {
+        $admin = $this->makeUser('boss', 'admin');
+        $r = $this->makeRequest(['status' => 'payment_pending']);
+        $this->actingAs($admin)->postJson(route('cores.access-requests.payments', $r->id), $this->payment())->assertCreated();
+        $this->assertSame($admin->id, $r->fresh()->handled_by);
+
+        $admin->delete();
+
+        $this->assertNull($r->fresh()->handled_by);
+        $payment = $r->payments()->firstOrFail();
+        $this->assertNull($payment->recorded_by);
+    }
+
     public function test_multiple_payments_are_allowed(): void
     {
         $admin = $this->makeUser('boss', 'admin');

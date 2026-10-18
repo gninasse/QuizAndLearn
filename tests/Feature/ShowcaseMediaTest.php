@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
+use Modules\Core\Models\AppSetting;
 use Modules\Core\Models\Article;
 use Modules\Core\Services\GuestToken;
 use Tests\TestCase;
@@ -22,6 +23,7 @@ class ShowcaseMediaTest extends TestCase
     {
         parent::setUp();
 
+        AppSetting::put('showcase.enabled', true);
         Storage::fake('public');
         Storage::disk('public')->put('uploads/media/vitrine.png', 'PNG1');
         Storage::disk('public')->put('uploads/media/prive.png', 'PNG2');
@@ -46,6 +48,15 @@ class ShowcaseMediaTest extends TestCase
     {
         $this->call('GET', '/storage/uploads/media/vitrine.png', [], [GuestToken::COOKIE => GuestToken::issue()])
             ->assertOk();
+    }
+
+    public function test_valid_token_is_refused_when_mode_disabled(): void
+    {
+        $token = GuestToken::issue();
+        AppSetting::put('showcase.enabled', false);
+
+        $this->call('GET', '/storage/uploads/media/vitrine.png', [], [GuestToken::COOKIE => $token])
+            ->assertForbidden();
     }
 
     public function test_guest_without_token_is_refused(): void

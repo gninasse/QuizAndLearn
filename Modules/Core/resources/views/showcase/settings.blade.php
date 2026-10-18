@@ -45,7 +45,8 @@
         </div>
         <div class="col-md-4 mb-3">
           <label class="form-label" for="currency">Devise</label>
-          <input type="text" class="form-control" id="currency" name="currency" maxlength="8" value="{{ $settings->currency() }}">
+          <input type="text" class="form-control text-uppercase" id="currency" name="currency" maxlength="3" value="{{ $settings->currency() }}">
+          <div class="form-text">Code ISO à 3 lettres, ex. XOF</div>
         </div>
       </div>
 
