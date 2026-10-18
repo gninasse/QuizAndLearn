@@ -50,6 +50,18 @@ export function mount(el: HTMLElement): void {
   const errorEl = el.querySelector<HTMLParagraphElement>('#login-error')!;
   const submitBtn = el.querySelector<HTMLButtonElement>('#login-submit')!;
 
+  // Motif d'une déconnexion forcée (ex. compte suspendu), posé par main.ts.
+  try {
+    const notice = sessionStorage.getItem('learner:notice');
+    if (notice) {
+      sessionStorage.removeItem('learner:notice');
+      errorEl.textContent = notice;
+      errorEl.classList.remove('hidden');
+    }
+  } catch {
+    /* stockage indisponible : pas de message */
+  }
+
   form.addEventListener('submit', (event) => {
     event.preventDefault();
     void (async () => {

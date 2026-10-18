@@ -14,7 +14,76 @@ class Learner extends Model
     protected $fillable = [
         'user_id',
         'matricule',
+        'suspended_at',
+        'suspended_until',
+        'suspension_reason',
+        'suspended_by',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'suspended_at' => 'datetime',
+            'suspended_until' => 'datetime',
+        ];
+    }
+
+    /**
+     * Suspension en vigueur : posée et pas encore échue. Une suspension
+     * dont la date de fin est passée se lève d'elle-même (aucun job requis).
+     */
+    public function isSuspended(): bool
+    {
+        if (! $this->suspended_at) {
+            return false;
+        }
+
+        return $this->suspended_until === null || $this->suspended_until->isFuture();
+    }
+
+    /**
+     * Suspend l'accès au volet apprenant sans toucher aux groupes.
+     */
+    public function suspend(?\DateTimeInterface $until, ?string $reason, ?int $byUserId): void
+    {
+        $this->forceFill([
+            'suspended_at' => now(),
+            'suspended_until' => $until,
+            'suspension_reason' => $reason,
+            'suspended_by' => $byUserId,
+        ])->save();
+    }
+
+    public function liftSuspension(): void
+    {
+        $this->forceFill([
+            'suspended_at' => null,
+            'suspended_until' => null,
+            'suspension_reason' => null,
+            'suspended_by' => null,
+        ])->save();
+    }
+
+    /**
+     * Message affiché à l'apprenant suspendu (login, API).
+     */
+    public function suspensionMessage(): string
+    {
+        $message = $this->suspended_until
+            ? 'Votre accès est suspendu jusqu\'au '.$this->suspended_until->format('d/m/Y à H:i').'.'
+            : 'Votre accès est suspendu jusqu\'à nouvel ordre.';
+
+        if ($this->suspension_reason) {
+            $message .= ' Motif : '.$this->suspension_reason;
+        }
+
+        return $message.' Contactez votre formateur pour plus d\'informations.';
+    }
+
+    public function suspendedBy(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(User::class, 'suspended_by');
+    }
 
     /**
      * Obtenir l'utilisateur associé à l'apprenant.

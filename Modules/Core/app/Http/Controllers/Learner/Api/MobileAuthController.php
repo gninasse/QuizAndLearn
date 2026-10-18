@@ -5,7 +5,6 @@ namespace Modules\Core\Http\Controllers\Learner\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Modules\Core\Models\User;
@@ -71,6 +70,14 @@ class MobileAuthController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Ce compte n\'est pas configuré comme un compte apprenant.',
+            ], 403);
+        }
+
+        if ($user->learner->isSuspended()) {
+            return response()->json([
+                'success' => false,
+                'code' => 'account_suspended',
+                'message' => $user->learner->suspensionMessage(),
             ], 403);
         }
 

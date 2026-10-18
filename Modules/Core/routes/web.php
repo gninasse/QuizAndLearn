@@ -11,7 +11,9 @@ use Modules\Core\Http\Controllers\DashboardController;
 use Modules\Core\Http\Controllers\ExamController;
 use Modules\Core\Http\Controllers\FlashcardDeckController;
 use Modules\Core\Http\Controllers\GroupController;
+use Modules\Core\Http\Controllers\GroupMemberController;
 use Modules\Core\Http\Controllers\LearnerController;
+use Modules\Core\Http\Controllers\MediaController;
 use Modules\Core\Http\Controllers\ModuleController;
 use Modules\Core\Http\Controllers\PermissionController;
 use Modules\Core\Http\Controllers\ProfileController;
@@ -20,6 +22,10 @@ use Modules\Core\Http\Controllers\QuizEditorController;
 use Modules\Core\Http\Controllers\RoleController;
 use Modules\Core\Http\Controllers\TrainerController;
 use Modules\Core\Http\Controllers\UserController;
+
+// Médias uploadés : servis derrière authentification (plus de lien
+// symbolique public/storage — voir MediaController).
+Route::get('/storage/{path}', MediaController::class)->where('path', '.*')->name('media.show');
 
 Route::get('login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('login', [AuthController::class, 'login'])->name('login.post');
@@ -99,6 +105,17 @@ Route::middleware(['auth', 'staff'])->group(function () {
             Route::post('/{id}/toggle-status', [GroupController::class, 'toggleStatus'])->name('toggle-status');
             Route::get('/{id}/members', [GroupController::class, 'getMembers'])->name('members');
             Route::post('/{id}/members', [GroupController::class, 'assignMembers'])->name('members.assign');
+
+            // Page dédiée « Membres du groupe »
+            Route::get('/{id}/membres', [GroupMemberController::class, 'page'])->name('members.page');
+            Route::get('/{id}/membres/data', [GroupMemberController::class, 'data'])->name('members.data');
+            Route::get('/{id}/membres/candidates', [GroupMemberController::class, 'candidates'])->name('members.candidates');
+            Route::post('/{id}/membres/learners', [GroupMemberController::class, 'addLearners'])->name('members.learners.add');
+            Route::delete('/{id}/membres/learners/{learnerId}', [GroupMemberController::class, 'removeLearner'])->name('members.learners.remove');
+            Route::post('/{id}/membres/learners/{learnerId}/suspend', [GroupMemberController::class, 'suspend'])->name('members.learners.suspend');
+            Route::delete('/{id}/membres/learners/{learnerId}/suspend', [GroupMemberController::class, 'unsuspend'])->name('members.learners.unsuspend');
+            Route::post('/{id}/membres/trainers', [GroupMemberController::class, 'addTrainers'])->name('members.trainers.add');
+            Route::delete('/{id}/membres/trainers/{trainerId}', [GroupMemberController::class, 'removeTrainer'])->name('members.trainers.remove');
         });
 
         // Routes pour la gestion des quiz

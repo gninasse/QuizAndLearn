@@ -91,7 +91,7 @@
     }
 
     function learnersCountFormatter(value, row, index) {
-        return `<span class="badge bg-black text-white"><i class="fas fa-user-graduate"></i> ${value}</span>`;
+        return `<a href="/cores/groups/${row.id}/membres" class="badge bg-black text-white text-decoration-none" title="Voir les membres"><i class="fas fa-user-graduate"></i> ${value}</a>`;
     }
 </script>
 <script type="module" src="{{ asset('js/modules/core/groups/index.js') }}"></script>

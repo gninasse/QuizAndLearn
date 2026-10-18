@@ -53,6 +53,17 @@ class SessionController extends Controller
             ], 403);
         }
 
+        if ($user->learner->isSuspended()) {
+            $message = $user->learner->suspensionMessage();
+            Auth::logout();
+
+            return response()->json([
+                'success' => false,
+                'code' => 'account_suspended',
+                'message' => $message,
+            ], 403);
+        }
+
         $request->session()->regenerate();
         $user->logLogin();
 
@@ -130,6 +141,7 @@ class SessionController extends Controller
             'full_name' => $user->full_name,
             'email' => $user->email,
             'avatar_url' => $user->avatar_url,
+            'matricule' => $user->learner?->matricule,
             'xp' => $this->gamification->snapshot($user->learner),
         ];
     }

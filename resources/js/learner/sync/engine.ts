@@ -26,6 +26,8 @@ export type SyncEvent =
   | { kind: 'badges-unlocked'; names: string[] }
   | { kind: 'action-rejected'; type: ActionType; message: string }
   | { kind: 'session-expired' }
+  /** Compte suspendu par un formateur : accès coupé, données locales à purger. */
+  | { kind: 'account-suspended'; message: string }
   /** Les stores viennent d'être réhydratés après une sync (stale-while-revalidate). */
   | { kind: 'data-refreshed' };
 
@@ -193,7 +195,10 @@ async function warmMediaCache(): Promise<void> {
     ...decksStore.get().flatMap((d) => d.cards.flatMap((c) => [c.recto, c.verso])),
   ];
 
-  const pending = extractMediaUrls(fragments).filter((u) => !warmedUrls.has(u));
+  // Les vidéos ne sont jamais préchargées (streaming en ligne uniquement).
+  const pending = extractMediaUrls(fragments).filter(
+    (u) => !warmedUrls.has(u) && !/\.(mp4|m4v|webm|ogv|mov)$/i.test(u),
+  );
   if (!pending.length) return;
 
   // Fetch séquentiel par petits lots : le SW met en cache au passage.
@@ -309,6 +314,8 @@ async function doSync(): Promise<void> {
   } catch (e) {
     if (e instanceof ApiError && (e.status === 401 || e.status === 419)) {
       emit({ kind: 'session-expired' });
+    } else if (e instanceof ApiError && isSuspension(e)) {
+      emit({ kind: 'account-suspended', message: e.message });
     } else if (!(e instanceof NetworkError)) {
       console.error('[sync]', e);
     }
@@ -317,6 +324,12 @@ async function doSync(): Promise<void> {
     syncStore.update((s) => ({ ...s, syncing: false }));
     await refreshPendingCount();
   }
+}
+
+/** Refus serveur « compte suspendu » (middleware learner, code dédié). */
+export function isSuspension(error: ApiError): boolean {
+  const payload = error.payload as { code?: unknown } | null;
+  return error.status === 403 && payload?.code === 'account_suspended';
 }
 
 /** Premier chargement en ligne : bootstrap complet. */
@@ -388,6 +401,9 @@ export async function clearLocalData(): Promise<void> {
     db.outbox.clear(),
     db.meta.clear(),
   ]);
+  // Les médias en cache hors-ligne partent avec la session.
+  warmedUrls.clear();
+  await globalThis.caches?.delete('learner-static-v1').catch(() => false);
   sessionStore.set(null);
   await updateAppBadge(0);
 }
