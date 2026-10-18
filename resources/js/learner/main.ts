@@ -6,17 +6,19 @@ import './components/app-shell';
 import type { AppShell } from './components/app-shell';
 import { Router, type RouteDefinition } from './router';
 import { preferencesStore, sessionStore, syncStore } from './stores';
-import { hydrateFromDb, installSyncTriggers, onSyncEvent, sync } from './sync/engine';
+import { clearLocalData, hydrateFromDb, installSyncTriggers, onSyncEvent, sync } from './sync/engine';
 import { applyPreferences, applyTheme, initialTheme, toggleTheme } from './theme';
 import { celebrateDialog } from './ui/app-dialog';
 import { toast } from './ui/app-toast';
 import { captureInstallPrompt, maybeShowInstallBanner } from './ui/install';
+import { dismissLightbox, installMediaGuard, setWatermark } from './ui/media-guard';
 import { playBadge } from './ui/sound';
 
 // ------------------------------------------------------------------ Thème
 
 applyTheme(initialTheme());
 captureInstallPrompt();
+installMediaGuard();
 
 // ---------------------------------------------------------------- Routage
 
@@ -55,8 +57,20 @@ async function boot(): Promise<void> {
     isAuthenticated: () => sessionStore.get() !== null,
     loginPath: '/connexion',
     defaultPath: '/',
-    onNavigate: (route) => shell.setTitle(route.title),
+    onNavigate: (route) => {
+      dismissLightbox();
+      shell.setTitle(route.title);
+    },
   });
+
+  // Filigrane nominatif des médias : suit la session courante.
+  const updateWatermark = (): void => {
+    const user = sessionStore.get();
+    const today = new Date().toLocaleDateString('fr-FR');
+    setWatermark(user ? [user.full_name, user.matricule, today].filter(Boolean).join(' · ') : null);
+  };
+  updateWatermark();
+  sessionStore.subscribe(updateWatermark);
 
   // Le shell se reconstruit uniquement sur bascule connecté/déconnecté ;
   // on re-résout alors la route pour remonter la vue dans le nouvel outlet.
@@ -108,6 +122,13 @@ async function boot(): Promise<void> {
       );
     } else if (event.kind === 'action-rejected') {
       toast(`Une action n'a pas pu être synchronisée : ${event.message}`, 'warning', 5000);
+    } else if (event.kind === 'account-suspended') {
+      try {
+        sessionStorage.setItem('learner:notice', event.message);
+      } catch {
+        /* stockage indisponible */
+      }
+      void clearLocalData().then(() => router.go('/connexion', true));
     } else if (event.kind === 'session-expired') {
       toast('Session expirée — reconnectez-vous.', 'warning');
       sessionStore.set(null);

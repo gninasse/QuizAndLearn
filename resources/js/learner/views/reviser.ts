@@ -123,7 +123,11 @@ function startSession(el: HTMLElement, deck: DeckItem): void {
         ratingZone.classList.remove('opacity-0', 'pointer-events-none');
       }
     };
-    flip.addEventListener('click', doFlip);
+    flip.addEventListener('click', (event) => {
+      // Utiliser un lecteur audio/vidéo ou un lien ne retourne pas la carte.
+      if ((event.target as HTMLElement).closest('audio, video, a, button')) return;
+      doFlip();
+    });
     flip.addEventListener('keydown', (e) => {
       if (e.key === ' ' || e.key === 'Enter') {
         e.preventDefault();

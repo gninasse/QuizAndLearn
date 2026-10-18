@@ -368,3 +368,203 @@ html[data-font-size='large'] {
     width: 100%;
     margin: 0.8em 0;
 }
+
+/* ------------------------------------------------------------------
+   Protection des médias pédagogiques (ui/media-guard.ts)
+   ------------------------------------------------------------------ */
+
+/* Pas de menu « Enregistrer l'image », pas de glisser-déposer. */
+.rich-content img,
+.rich-content video,
+.media-frame,
+.media-lightbox img {
+    -webkit-touch-callout: none;
+    -webkit-user-drag: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* Cadre porteur du filigrane nominatif (--wm-tile, posé par setWatermark). */
+.media-frame {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+    line-height: 0;
+    vertical-align: middle;
+}
+.media-frame--block {
+    display: block;
+    width: 100%;
+}
+.media-frame::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: var(--wm-tile, none);
+    background-repeat: repeat;
+    border-radius: 0.75rem;
+}
+/* Sur une vidéo, le filigrane laisse libre la barre de contrôles. */
+.media-frame--block::after {
+    bottom: 3rem;
+}
+.rich-content .media-frame--block video {
+    margin: 0.8em 0 0;
+}
+.flip-face .rich-content .media-frame {
+    margin: 0.35rem auto;
+}
+.flip-face .rich-content .media-frame img {
+    margin: 0;
+}
+
+/* Bouton « agrandir » : toujours visible au toucher, au survol sinon. */
+.media-zoom {
+    position: absolute;
+    top: 0.45rem;
+    right: 0.45rem;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 9999px;
+    background: rgb(9 9 11 / 0.55);
+    color: #fff;
+    font-size: 0.8rem;
+    line-height: 1;
+    backdrop-filter: blur(6px);
+    transition: opacity 150ms ease;
+}
+@media (hover: hover) and (pointer: fine) {
+    .media-zoom {
+        opacity: 0;
+    }
+    .media-frame:hover .media-zoom,
+    .media-zoom:focus-visible {
+        opacity: 1;
+    }
+}
+.rich-content img {
+    cursor: zoom-in;
+}
+.flip-face .rich-content img {
+    cursor: inherit;
+}
+
+/* Visionneuse plein écran. */
+html.lightbox-open,
+html.lightbox-open body {
+    overflow: hidden;
+}
+.media-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    background: rgb(9 9 11 / 0.94);
+    color: #fff;
+    opacity: 0;
+    transition: opacity 180ms ease;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+.media-lightbox.is-open {
+    opacity: 1;
+}
+.media-lightbox__bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0.75rem;
+    min-height: 3.25rem;
+}
+.media-lightbox__count {
+    font-size: 0.85rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: rgb(255 255 255 / 0.75);
+}
+.media-lightbox__btn,
+.media-lightbox__nav {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 9999px;
+    color: #fff;
+    font-size: 1.15rem;
+    background: rgb(255 255 255 / 0.08);
+}
+.media-lightbox__btn:hover,
+.media-lightbox__nav:hover {
+    background: rgb(255 255 255 / 0.18);
+}
+.media-lightbox__stage {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: auto;
+    padding: 0.5rem;
+    touch-action: pan-x pan-y;
+}
+.media-lightbox__stage img {
+    max-width: 100%;
+    max-height: calc(100dvh - 8.5rem);
+    object-fit: contain;
+    border-radius: 0.5rem;
+    cursor: zoom-in;
+}
+.media-lightbox__stage .media-frame::after {
+    border-radius: 0.5rem;
+}
+.media-lightbox.is-zoomed .media-lightbox__stage {
+    align-items: flex-start;
+    justify-content: flex-start;
+}
+.media-lightbox.is-zoomed .media-lightbox__stage .media-frame {
+    max-width: none;
+}
+.media-lightbox.is-zoomed .media-lightbox__stage img {
+    max-width: none;
+    max-height: none;
+    width: 200vw;
+    height: auto;
+    cursor: zoom-out;
+}
+@media (min-width: 1024px) {
+    .media-lightbox.is-zoomed .media-lightbox__stage img {
+        width: 160vw;
+    }
+}
+.media-lightbox__nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgb(9 9 11 / 0.5);
+}
+.media-lightbox__nav--prev {
+    left: max(0.5rem, env(safe-area-inset-left));
+}
+.media-lightbox__nav--next {
+    right: max(0.5rem, env(safe-area-inset-right));
+}
+.media-lightbox.is-zoomed .media-lightbox__nav {
+    display: none;
+}
+.media-lightbox__caption {
+    min-height: 2.5rem;
+    padding: 0.5rem 1rem 0.75rem;
+    text-align: center;
+    font-size: 0.85rem;
+    color: rgb(255 255 255 / 0.8);
+}
+@media (prefers-reduced-motion: reduce) {
+    .media-lightbox {
+        transition: none;
+    }
+}

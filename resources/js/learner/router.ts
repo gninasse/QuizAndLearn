@@ -52,13 +52,29 @@ export interface RouterOptions {
   onNavigate?: (route: RouteDefinition, params: Record<string, string>) => void;
 }
 
+/** Comment la résolution a été déclenchée — pilote le défilement. */
+type NavigationKind = 'push' | 'pop' | 'refresh';
+
 export class Router {
   private compiled: CompiledRoute[];
+  /** Chemin de la dernière vue montée (la query — ex. ?tab= — est un état interne de la vue). */
+  private lastKey: string | null = null;
+  /** Position de défilement mémorisée par écran, pour le bouton Retour. */
+  private scrollPositions = new Map<string, number>();
 
   constructor(private options: RouterOptions) {
     this.compiled = options.routes.map(compile);
 
-    window.addEventListener('popstate', () => void this.resolve());
+    // Le routeur gère lui-même le défilement (retour → position d'origine).
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+
+    window.addEventListener('popstate', () => {
+      // Même écran : simple entrée d'historique d'un overlay (visionneuse
+      // d'image…) — on ne remonte surtout pas la vue (quiz en cours !).
+      if (this.key() === this.lastKey) return;
+      this.rememberScroll();
+      void this.resolve('pop');
+    });
 
     // Interception des liens internes : <a data-link href="/...">
     document.addEventListener('click', (event) => {
@@ -76,15 +92,44 @@ export class Router {
   }
 
   async go(path: string, replace = false): Promise<void> {
+    this.rememberScroll();
     if (replace) {
       history.replaceState(null, '', path);
     } else if (path !== this.current()) {
       history.pushState(null, '', path);
     }
-    await this.resolve();
+    await this.resolve('push');
   }
 
-  async resolve(): Promise<void> {
+  private key(): string {
+    return window.location.pathname;
+  }
+
+  private rememberScroll(): void {
+    if (this.lastKey !== null) this.scrollPositions.set(this.lastKey, window.scrollY);
+  }
+
+  /**
+   * Restaure la position après montage. Les vues remplissent parfois leur
+   * contenu en asynchrone (IndexedDB) : on réessaie quelques frames tant
+   * que la page n'est pas assez haute pour atteindre la position voulue.
+   */
+  private restoreScroll(target: number): void {
+    let tries = 0;
+    const attempt = (): void => {
+      window.scrollTo(0, target);
+      if (Math.abs(window.scrollY - target) > 2 && tries++ < 30) {
+        requestAnimationFrame(attempt);
+      }
+    };
+    requestAnimationFrame(attempt);
+  }
+
+  /**
+   * Monte la vue correspondant à l'URL courante.
+   * `refresh` (données resynchronisées) conserve la position de défilement.
+   */
+  async resolve(kind: NavigationKind = 'refresh'): Promise<void> {
     const path = this.current();
 
     let matched: { route: CompiledRoute; params: Record<string, string> } | null = null;
@@ -116,11 +161,23 @@ export class Router {
     const { route, params } = matched;
     const module = await route.view();
 
+    const key = this.key();
+    const keepScroll = kind === 'refresh' && key === this.lastKey ? window.scrollY : null;
+
     const apply = (): void => {
       const outlet = this.options.outlet();
       outlet.innerHTML = '';
       module.mount(outlet, params);
+      this.lastKey = key;
       this.options.onNavigate?.(route, params);
+
+      if (kind === 'pop') {
+        this.restoreScroll(this.scrollPositions.get(key) ?? 0);
+      } else if (keepScroll !== null) {
+        this.restoreScroll(keepScroll);
+      } else {
+        window.scrollTo(0, 0);
+      }
     };
 
     // View Transitions API avec repli prefers-reduced-motion / non-support.
