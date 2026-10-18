@@ -11,7 +11,8 @@
 <div id="access-requests-app"
      data-url-data="{{ route('cores.access-requests.data') }}"
      data-url-base="{{ url('cores/demandes-acces') }}"
-     data-currency="{{ $currency }}">
+     data-currency="{{ $currency }}"
+     data-groups='@json($groups)'>
 
     <div class="card ar-hero mb-3">
         <div class="card-body">

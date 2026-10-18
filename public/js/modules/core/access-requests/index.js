@@ -7,6 +7,7 @@
 const root = document.getElementById('access-requests-app');
 const urls = { data: root.dataset.urlData, base: root.dataset.urlBase };
 const currency = root.dataset.currency || 'XOF';
+const groups = JSON.parse(root.dataset.groups || '[]');
 const csrf = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 
 const STATUS_LABELS = {
@@ -169,9 +170,11 @@ function renderDetails() {
             </div>
             <div class="mt-2">
                 <span data-hook="create-account">
-                    <button type="button" class="btn btn-sm btn-success" id="btn-create-account" disabled title="Disponible prochainement">
+                    ${r.learner_id
+                        ? '<span class="badge text-bg-primary"><i class="bi bi-person-check me-1"></i>Compte déjà créé</span>'
+                        : `<button type="button" class="btn btn-sm btn-success" id="btn-create-account">
                         <i class="bi bi-person-plus me-1"></i> Créer le compte
-                    </button>
+                    </button>`}
                 </span>
             </div>
 
@@ -262,6 +265,88 @@ async function setStatus(status) {
     }
 }
 
+async function createAccount() {
+    const r = current;
+    const options = ['<option value="">Aucun groupe</option>']
+        .concat(groups.map((g) => `<option value="${g.id}">${esc(g.name)}</option>`)).join('');
+    const { value: form, isConfirmed } = await Swal.fire({
+        title: 'Créer le compte apprenant',
+        html: `
+            <div class="text-start">
+                <label class="form-label small mb-1" for="acc-name">Prénom</label>
+                <input class="form-control form-control-sm mb-2" id="acc-name" value="${esc(r.first_name)}">
+                <label class="form-label small mb-1" for="acc-last">Nom</label>
+                <input class="form-control form-control-sm mb-2" id="acc-last" value="${esc(r.last_name)}">
+                <label class="form-label small mb-1" for="acc-phone">Téléphone</label>
+                <input class="form-control form-control-sm mb-2" id="acc-phone" value="${esc(r.phone)}">
+                <label class="form-label small mb-1" for="acc-email">E-mail (facultatif)</label>
+                <input class="form-control form-control-sm mb-2" id="acc-email" type="email" value="${esc(r.email ?? '')}">
+                <label class="form-label small mb-1" for="acc-group">Groupe</label>
+                <select class="form-select form-select-sm mb-2" id="acc-group">${options}</select>
+                <label class="form-label small mb-1" for="acc-matricule">Matricule (facultatif)</label>
+                <input class="form-control form-control-sm" id="acc-matricule">
+            </div>`,
+        didOpen: () => {
+            const group = groups.find((g) => g.name === r.group);
+            if (group) document.getElementById('acc-group').value = group.id;
+        },
+        showCancelButton: true,
+        confirmButtonText: 'Créer le compte',
+        cancelButtonText: 'Annuler',
+        preConfirm: () => ({
+            name: document.getElementById('acc-name').value.trim(),
+            last_name: document.getElementById('acc-last').value.trim(),
+            phone: document.getElementById('acc-phone').value.trim() || null,
+            email: document.getElementById('acc-email').value.trim() || null,
+            group_id: document.getElementById('acc-group').value || null,
+            matricule: document.getElementById('acc-matricule').value.trim() || null,
+        }),
+    });
+    if (!isConfirmed) return;
+
+    try {
+        const data = await request('POST', `${urls.base}/${r.id}/account`, form);
+        await applyDetail(data);
+        showCredentials(data);
+    } catch (error) {
+        fail(error);
+    }
+}
+
+function showCredentials(data) {
+    Swal.fire({
+        title: 'Identifiants à transmettre',
+        icon: 'success',
+        html: `
+            <div class="text-start small">
+                <p class="text-muted">Le mot de passe n'est affiché qu'une seule fois. L'apprenant le changera à sa première connexion.</p>
+                <div><strong>Identifiant :</strong> <code>${esc(data.login)}</code></div>
+                <div class="mb-2"><strong>Mot de passe provisoire :</strong> <code>${esc(data.temporary_password)}</code></div>
+                <textarea class="form-control form-control-sm" rows="6" readonly>${esc(data.whatsapp_text)}</textarea>
+            </div>`,
+        showDenyButton: true,
+        showCancelButton: true,
+        confirmButtonText: '<i class="bi bi-clipboard"></i> Copier',
+        denyButtonText: '<i class="bi bi-whatsapp"></i> Ouvrir WhatsApp',
+        cancelButtonText: 'Fermer',
+        denyButtonColor: '#25d366',
+        allowOutsideClick: false,
+        preConfirm: async () => {
+            try {
+                await navigator.clipboard.writeText(data.whatsapp_text);
+                notify('Message copié.');
+            } catch {
+                notify('Copie impossible : sélectionnez le texte.', 'warning');
+            }
+            return false; // garde la modale ouverte
+        },
+        preDeny: () => {
+            window.open(data.whatsapp_url, '_blank', 'noopener');
+            return false;
+        },
+    });
+}
+
 async function saveNotes() {
     try {
         const data = await request('PUT', `${urls.base}/${current.id}/notes`, { notes: document.getElementById('request-notes').value });
@@ -337,6 +422,7 @@ document.getElementById('request-details-body').addEventListener('click', (event
     const statusBtn = event.target.closest('[data-set-status]');
     if (statusBtn) return setStatus(statusBtn.dataset.setStatus);
     if (event.target.closest('#btn-save-notes')) return saveNotes();
+    if (event.target.closest('#btn-create-account')) return createAccount();
     const del = event.target.closest('[data-delete-payment]');
     if (del) return deletePayment(del.dataset.deletePayment);
 });

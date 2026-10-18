@@ -8,6 +8,8 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Modules\Core\Models\AccessRequest;
 use Modules\Core\Models\AccessRequestPayment;
+use Modules\Core\Models\User;
+use Modules\Core\Services\LearnerAccountService;
 use Modules\Core\Services\ShowcaseSettings;
 use Modules\Core\Support\PhoneNumber;
 
@@ -17,6 +19,8 @@ use Modules\Core\Support\PhoneNumber;
  */
 class AccessRequestController extends Controller
 {
+    public function __construct(private readonly LearnerAccountService $accounts) {}
+
     public function index(): \Illuminate\Contracts\View\View
     {
         $this->authorizeAdmin();
@@ -25,6 +29,7 @@ class AccessRequestController extends Controller
             'statuses' => AccessRequest::STATUSES,
             'operators' => AccessRequestPayment::OPERATORS,
             'currency' => app(ShowcaseSettings::class)->currency(),
+            'groups' => \Modules\Core\Models\Group::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -86,6 +91,14 @@ class AccessRequestController extends Controller
             'comment' => ['nullable', 'string', 'max:500'],
         ]);
 
+        // Seule la création de compte (createAccount) peut poser ce statut.
+        if ($data['status'] === 'account_created') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ce statut est posé automatiquement à la création du compte.',
+            ], 422);
+        }
+
         if ($accessRequest->status !== $data['status']) {
             $accessRequest->transitionTo($data['status'], auth()->user(), $data['comment'] ?? null);
             $this->log('access_request.status', $accessRequest, ['to' => $data['status']]);
@@ -96,6 +109,91 @@ class AccessRequestController extends Controller
             'message' => 'Statut mis à jour.',
             'request' => $this->detail($accessRequest->fresh()),
         ]);
+    }
+
+    /**
+     * POST {id}/account — crée l'apprenant (mot de passe provisoire) depuis la demande.
+     */
+    public function createAccount(Request $request, int $id): JsonResponse
+    {
+        $this->authorizeAdmin();
+        $accessRequest = AccessRequest::findOrFail($id);
+
+        if ($accessRequest->learner_id) {
+            return response()->json(['success' => false, 'message' => 'Un compte a déjà été créé pour cette demande.'], 422);
+        }
+
+        $raw = trim((string) $request->input('phone', ''));
+        $request->merge([
+            'phone' => $raw === '' ? null : (PhoneNumber::normalize($raw) ?? $raw),
+            'email' => $request->filled('email') ? trim((string) $request->input('email')) : null,
+        ]);
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
+            'email' => ['nullable', 'required_without:phone', 'email', 'unique:users,email'],
+            'phone' => ['nullable', 'required_without:email', 'regex:/^\+\d{8,15}$/'],
+            'group_id' => ['nullable', 'integer', 'exists:groups,id'],
+            'matricule' => ['nullable', 'string', 'max:255', 'unique:learners,matricule'],
+        ], [
+            'name.required' => 'Le prénom est obligatoire',
+            'last_name.required' => 'Le nom est obligatoire',
+            'email.email' => "L'email doit être valide",
+            'email.unique' => 'Cet email existe déjà',
+            'email.required_without' => "L'email ou le téléphone est obligatoire",
+            'phone.required_without' => "Le téléphone ou l'email est obligatoire",
+            'phone.regex' => 'Le numéro de téléphone est invalide.',
+            'matricule.unique' => 'Ce matricule existe déjà',
+        ]);
+
+        if (filled($data['phone'] ?? null)) {
+            $existing = User::where('phone', $data['phone'])->first();
+            if ($existing) {
+                $message = 'Ce numéro de téléphone est déjà utilisé par '.trim($existing->name.' '.$existing->last_name).'.';
+
+                return response()->json([
+                    'success' => false,
+                    'message' => $message,
+                    'errors' => ['phone' => [$message]],
+                ], 422);
+            }
+        }
+
+        $result = $this->accounts->create(
+            [
+                'name' => $data['name'],
+                'last_name' => $data['last_name'],
+                'email' => $data['email'] ?? null,
+                'phone' => $data['phone'] ?? null,
+                'matricule' => $data['matricule'] ?? null,
+            ],
+            ! empty($data['group_id']) ? [(int) $data['group_id']] : [],
+            true,
+        );
+
+        $accessRequest->learner_id = $result['learner']->id;
+        $accessRequest->transitionTo('account_created', auth()->user(), 'Compte apprenant créé');
+        $this->log('access_request.account_created', $accessRequest, ['learner_id' => $result['learner']->id]);
+
+        $login = $result['user']->phone ?: $result['user']->email;
+        $text = "Bonjour {$result['user']->name}, votre accès ".config('branding.name')." est prêt.\n"
+            .'Application : '.config('app.url')."\n"
+            ."Identifiant : {$login}\n"
+            ."Mot de passe provisoire : {$result['password']}\n"
+            .'Vous choisirez votre propre mot de passe à la première connexion.';
+        $digits = preg_replace('/\D+/', '', (string) ($accessRequest->whatsapp ?: $accessRequest->phone ?: $result['user']->phone));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Compte créé.',
+            'learner_id' => $result['learner']->id,
+            'login' => $login,
+            'temporary_password' => $result['password'],
+            'whatsapp_text' => $text,
+            'whatsapp_url' => 'https://wa.me/'.$digits.'?text='.urlencode($text),
+            'request' => $this->detail($accessRequest->fresh()),
+        ], 201);
     }
 
     public function notes(Request $request, int $id): JsonResponse

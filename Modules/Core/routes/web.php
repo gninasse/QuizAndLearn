@@ -114,6 +114,7 @@ Route::middleware(['auth', 'staff'])->group(function () {
             Route::get('/data', [AccessRequestController::class, 'data'])->name('data');
             Route::get('/{id}', [AccessRequestController::class, 'show'])->whereNumber('id')->name('show');
             Route::post('/{id}/status', [AccessRequestController::class, 'status'])->whereNumber('id')->name('status');
+            Route::post('/{id}/account', [AccessRequestController::class, 'createAccount'])->whereNumber('id')->name('account');
             Route::put('/{id}/notes', [AccessRequestController::class, 'notes'])->whereNumber('id')->name('notes');
             Route::post('/{id}/payments', [AccessRequestController::class, 'storePayment'])->whereNumber('id')->name('payments');
             Route::delete('/{id}/payments/{paymentId}', [AccessRequestController::class, 'destroyPayment'])->whereNumber(['id', 'paymentId'])->name('payments.destroy');

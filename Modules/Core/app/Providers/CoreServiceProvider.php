@@ -40,6 +40,7 @@ class CoreServiceProvider extends ServiceProvider
             \Modules\Core\Console\Commands\SyncCommand::class,
             \Modules\Core\Console\Commands\UserPermissionsCommand::class,
             \Modules\Core\Console\Commands\CleanupExpiredActivitiesCommand::class,
+            \Modules\Core\Console\Commands\PurgeAccessRequestsCommand::class,
             \Modules\Core\Console\Commands\ResetUserPassword::class,
             \Modules\Core\Console\Commands\CreateUserCommand::class,
             \Modules\Core\Console\Commands\InitRolesCommand::class,
