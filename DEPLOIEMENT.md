@@ -231,6 +231,30 @@ php artisan activities:cleanup-expired
 Si des files d'attente sont utilisées (`QUEUE_CONNECTION=database`), lancer un
 worker supervisé (systemd ou supervisor) : `php artisan queue:work --tries=3`.
 
+Le planificateur lance aussi chaque jour `php artisan showcase:purge-requests`
+(suppression des demandes d'accès `rejected` / `abandoned` plus anciennes que
+`showcase.retention_months`, 12 mois par défaut) : aucune entrée cron
+supplémentaire n'est nécessaire, la ligne `schedule:run` ci-dessus suffit.
+
+## 7 bis. Mode découverte
+
+Désactivé par défaut. Pour l'activer, en tant que `super-admin` ou `admin` :
+
+1. Back-office, page des réglages du mode découverte : activer le mode, renseigner
+   la marque, le code pays par défaut (`225`), les frais d'inscription, les comptes
+   Mobile Money, la référence et les instructions de paiement, le texte de
+   confidentialité et les **e-mails de notification**.
+2. Cocher « Visible en mode découverte » sur les quiz, articles et decks à montrer, et
+   « Proposé dans le formulaire de demande d'accès » sur les groupes concernés.
+3. Configuration mail : les notifications de nouvelle demande utilisent le mailer du
+   `.env` (voir §4, `MAIL_*`) ; sans e-mail de notification renseigné, rien n'est
+   envoyé. Les demandes restent visibles dans « Demandes d'accès ».
+4. Vérifier : `https://…/api/showcase/v1/content` répond `200` (ou `404` si désactivé),
+   `https://…/confidentialite` est publique, et un média vitrine se charge avec le cookie `lq_guest`
+   alors qu'un média non coché répond `403`.
+
+Aucun lien symbolique `public/storage` ne doit exister : les médias passent par la route `/storage/{path}`.
+
 ## 8. Mise à jour d'une version
 
 ```bash
@@ -276,3 +300,7 @@ L'application Android/iOS consomme `/api/mobile/v1` (jetons Bearer). Les
 médias (`/storage/...`) exigent désormais une authentification : l'application
 doit envoyer l'en-tête `Authorization: Bearer <jeton>` aussi lors du
 téléchargement des images, audios et vidéos.
+
+Pour le mode découverte, l'application native appelle `/api/showcase/v1` sans
+jeton Bearer et charge les médias vitrine avec l'en-tête `X-Guest-Token`.
+La connexion accepte e-mail, téléphone ou identifiant (voir `PROMPT_APP_MOBILE_KOTLIN.md`).

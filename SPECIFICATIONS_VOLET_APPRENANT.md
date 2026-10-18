@@ -73,16 +73,41 @@
 
 Un formateur peut suspendre temporairement un apprenant (date de fin optionnelle, motif). L'apprenant reste membre de ses groupes. À la sync suivante (ou à la connexion), réponse `403 {code: "account_suspended"}` → données locales purgées, retour à `/connexion` avec le message (date de fin et motif). La suspension se lève seule à son échéance.
 
+### 0.7 Mode découverte (sans compte)
+
+Un visiteur peut parcourir un échantillon du contenu sans compte, depuis `/connexion` (« Découvrir sans compte »), si le mode est activé dans les réglages du back-office.
+
+- **Contenu** : uniquement les quiz, articles et decks cochés « Visible en mode découverte » (et actifs) ; jamais d'examens ni de données d'apprenant. Récupéré via `GET /api/showcase/v1/content`.
+- **Session invité** : jeton `guest_token` de 24 h (cookie `lq_guest`), renouvelé à chaque appel de `/content`. Les médias `/storage/...` sont servis aux invités par ce cookie (ou l'en-tête `X-Guest-Token`), pour les seuls médias du contenu vitrine.
+- **Interface** : bandeau « Mode découverte » permanent ; cartes verrouillées pour les fonctions réservées (examens, progression, classement…) qui mènent à « Demander un accès » ; profil réduit ; aucune action synchronisée.
+- **Isolation** : données locales invité séparées de celles d'un apprenant, purgées à la sortie du mode et à toute connexion réelle.
+- **Demande d'accès** : `POST /api/showcase/v1/access-requests` (5 par heure, champ piège `website`, délai minimal de remplissage 3 s). Côté back-office, l'écran « Demandes d'accès » (statuts `new`, `contacted`, `payment_pending`, `paid`, `account_created`, `rejected`, `abandoned`) permet de saisir le paiement Mobile Money à la main puis « Créer le compte » (mot de passe temporaire + message WhatsApp prêt à envoyer). Les demandes `rejected` / `abandoned` sont purgées après 12 mois (`showcase:purge-requests`, quotidienne). Politique publique : `/confidentialite`.
+- **Connexion par téléphone** : l'e-mail d'un apprenant est facultatif ; la connexion accepte e-mail, téléphone (E.164, unique) ou identifiant. Un mot de passe temporaire force l'écran `/mot-de-passe` (« Nouveau mot de passe ») : tant qu'il n'est pas changé, l'API répond `403 {code: "password_change_required"}` hors profil, changement de mot de passe et déconnexion.
+
 ## 1. Connexion — `/connexion`
 
 **Objectif** : authentifier l'apprenant ; point d'entrée public unique.
 
-**Composition** : fond dégradé nuit (bleu profond), logo 🎓, « Learn&Quiz », sous-titre « Espace apprenant » ; carte formulaire translucide : champ « Email ou identifiant » (autodétection email vs `user_name`), champ mot de passe, bouton « Se connecter » (état chargement : « Connexion… », désactivé). Mention : « Application installable — fonctionne aussi hors-ligne après la première connexion. »
+**Composition** : fond dégradé nuit (bleu profond), logo 🎓, « Learn&Quiz », sous-titre « Espace apprenant » ; carte formulaire translucide : champ « E-mail, téléphone ou identifiant » (autodétection e-mail, téléphone local ou international, `user_name`), champ mot de passe, bouton « Se connecter » (état chargement : « Connexion… », désactivé). Sous le bouton, si le mode découverte est activé : « Découvrir sans compte » et « Demander un accès ». Mention : « Application installable — fonctionne aussi hors-ligne après la première connexion. »
 
 **Comportements**
 - Succès → `storage.persist()` demandé, bootstrap complet, toast « Bonjour {prénom} ! », redirection Accueil.
 - Erreurs inline : 401 « Identifiants invalides. » · 403 « Ce compte n'est pas configuré comme un compte apprenant. » · réseau « Impossible de joindre le serveur. Vérifiez votre connexion. » · (API mobile : 429 avec compte à rebours).
+- Compte à mot de passe temporaire → redirection vers `/mot-de-passe` (« Nouveau mot de passe ») avant toute autre page.
 - Session locale existante (IndexedDB) → l'app s'ouvre directement, même hors-ligne ; ce n'est qu'à l'expiration serveur (401 sur une sync) que l'utilisateur est ramené ici (toast « Session expirée — reconnectez-vous. »).
+
+---
+
+### 1-bis. Demander un accès — `/demande-acces`
+
+**Objectif** : permettre à un visiteur (mode découverte ou page de connexion) de demander un compte.
+
+**Composition** : formulaire prénom, nom, téléphone (indicatif par défaut du réglage, 225), case « Même numéro sur WhatsApp » (sinon champ WhatsApp), e-mail facultatif, organisation, groupe souhaité (liste des groupes cochés « Proposé dans le formulaire de demande d'accès », si présents), message, case de consentement obligatoire avec lien vers `/confidentialite`. Champ piège `website` invisible.
+
+**Comportements**
+- Succès → écran de confirmation avec frais d'inscription, comptes Mobile Money (opérateur, numéro, titulaire), référence à indiquer et instructions. Une demande déjà ouverte pour le même téléphone est mise à jour au lieu d'être dupliquée.
+- Erreurs inline par champ (422, ex. « Numéro de téléphone invalide. »), 429 si plus de 5 envois par heure, réseau « Impossible de joindre le serveur. Vérifiez votre connexion. ».
+- Mode découverte désactivé → l'écran et les boutons d'accès ne sont pas proposés.
 
 ---
 
@@ -276,6 +301,7 @@ Quiz synthétique local à partir des questions ratées (mélangées). Bannière
 | Écran | Chargement | Vide | Hors-ligne | Erreur |
 |---|---|---|---|---|
 | Connexion | Bouton « Connexion… » | — | Message réseau inline | 401/403/429 inline |
+| Demander un accès | Bouton d'envoi désactivé | — | Message réseau inline | 422 par champ, 429 |
 | Accueil | Squelette global | Badges : message d'encouragement | Complet (données locales) | — |
 | Articles / liste | instantané (local) | 2 messages (aucun / filtre) | Complet | — |
 | Article | instantané | « Article introuvable. » | Complet (médias cachés) | — |
