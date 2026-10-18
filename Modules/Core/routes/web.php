@@ -115,6 +115,7 @@ Route::middleware(['auth', 'staff'])->group(function () {
         Route::get('/parametres', [GeneralSettingsController::class, 'edit'])->name('settings.general');
         Route::put('/parametres', [GeneralSettingsController::class, 'save'])->name('settings.general.save');
         Route::post('/parametres/notifications/test', [GeneralSettingsController::class, 'sendPushTest'])->name('settings.push.test');
+        Route::post('/parametres/videos/test', [GeneralSettingsController::class, 'testVideo'])->name('settings.video.test');
 
         Route::get('/showcase/settings', [ShowcaseAdminController::class, 'settings'])->name('showcase.settings');
         Route::put('/showcase/settings', [ShowcaseAdminController::class, 'saveSettings'])->name('showcase.settings.save');

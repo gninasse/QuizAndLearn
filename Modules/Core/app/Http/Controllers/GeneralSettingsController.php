@@ -10,13 +10,15 @@ use Illuminate\Validation\Rule;
 use Modules\Core\Services\Push\PushNotifier;
 use Modules\Core\Services\Push\PushSettings;
 use Modules\Core\Services\Terminology;
+use Modules\Core\Services\Video\VideoManager;
+use Modules\Core\Services\Video\VideoSettings;
 
 /**
  * Paramètres généraux (terminologie) : réservé aux administrateurs.
  */
 class GeneralSettingsController extends Controller
 {
-    public function edit(Terminology $terminology, PushSettings $push): View
+    public function edit(Terminology $terminology, PushSettings $push, VideoSettings $video): View
     {
         $this->authorizeAdmin();
 
@@ -27,11 +29,14 @@ class GeneralSettingsController extends Controller
             'presets' => Terminology::PRESETS,
             'push' => $push->toArray(),
             'vapidConfigured' => PushSettings::vapidConfigured(),
+            'videoDriver' => (string) config('media.video.driver', 'local'),
+            'videoRequirements' => $video->requirementStatus(),
+            'video' => ['enabled' => $video->embedsEnabled(), 'providers' => $video->providers()],
             'canTestPush' => $learner !== null && $learner->pushSubscriptions()->exists(),
         ]);
     }
 
-    public function save(Request $request, Terminology $terminology, PushSettings $push): JsonResponse
+    public function save(Request $request, Terminology $terminology, PushSettings $push, VideoSettings $video): JsonResponse
     {
         $this->authorizeAdmin();
 
@@ -46,6 +51,11 @@ class GeneralSettingsController extends Controller
             'push.types.*' => ['boolean'],
             'push.daily_hour' => ['required_with:push', 'integer', 'between:'.PushSettings::DAILY_HOUR_MIN.','.PushSettings::DAILY_HOUR_MAX],
             'push.daily_cap' => ['required_with:push', 'integer', 'between:1,5'],
+            'video' => ['sometimes', 'array'],
+            'video.embeds' => ['required_with:video', 'array'],
+            'video.embeds.enabled' => ['required_with:video.embeds', 'boolean'],
+            'video.embeds.providers' => ['present_with:video.embeds', 'array'],
+            'video.embeds.providers.*' => ['string', Rule::in(VideoSettings::PROVIDERS)],
         ], [
             'singular.not_regex' => 'Saisissez le mot seul, sans article (ex. « équipe », pas « l\'équipe »).',
             'plural.not_regex' => 'Saisissez le mot seul, sans article (ex. « équipes », pas « les équipes »).',
@@ -59,6 +69,9 @@ class GeneralSettingsController extends Controller
         $terminology->save($validated);
         if (isset($validated['push'])) {
             $push->save($validated['push']);
+        }
+        if (isset($validated['video'])) {
+            $video->save($validated['video']);
         }
 
         return response()->json(['success' => true, 'message' => 'Paramètres enregistrés.']);
@@ -80,6 +93,19 @@ class GeneralSettingsController extends Controller
         $count = $notifier->sendTest($learner);
 
         return response()->json(['success' => true, 'message' => "Notification envoyée à {$count} appareil(s)."]);
+    }
+
+    public function testVideo(VideoManager $videos): JsonResponse
+    {
+        $this->authorizeAdmin();
+
+        try {
+            $result = $videos->driver()->healthCheck();
+        } catch (\Throwable $e) {
+            $result = ['ok' => false, 'message' => 'Test impossible : '.class_basename($e).'.'];
+        }
+
+        return response()->json(['ok' => (bool) $result['ok'], 'message' => (string) $result['message']]);
     }
 
     private function authorizeAdmin(): void

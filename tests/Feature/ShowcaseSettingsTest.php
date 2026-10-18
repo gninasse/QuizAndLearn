@@ -83,7 +83,7 @@ class ShowcaseSettingsTest extends TestCase
 
         $payload = $s->publicPayload();
         $this->assertEqualsCanonicalizing(
-            ['enabled', 'brand', 'registration', 'default_country_code', 'access_request', 'privacy_url'],
+            ['enabled', 'brand', 'registration', 'default_country_code', 'access_request', 'privacy_url', 'video'],
             array_keys($payload)
         );
         $this->assertSame(['name', 'tagline', 'logo'], array_keys($payload['brand']));
