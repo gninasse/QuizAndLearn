@@ -11,6 +11,14 @@ import { db, getMeta, setMeta, META_CURSOR, META_TERMS } from '../db/schema';
 import { resetTerms, setTerms } from '../core/terms';
 import * as outbox from '../db/outbox';
 import { isGuest, leaveGuestMode, refreshGuestContent } from '../guest/guest-session';
+import {
+  blockedInConsultation,
+  endConsultation,
+  isConsultation,
+  isConsultationEnded,
+  isImpersonationEnded,
+  isReadOnlyRefusal,
+} from '../consultation/consultation';
 import type { ActionType, BootstrapPayload, ChangesPayload, CollectionDelta } from '../domain/types';
 import {
   articlesStore,
@@ -259,6 +267,8 @@ export function sync(): Promise<void> {
 
 async function doSync(): Promise<void> {
   if (!navigator.onLine || !sessionStore.get()) return;
+  // Consultation terminée : l'onglet est inerte, plus aucun appel serveur.
+  if (isConsultationEnded()) return;
 
   syncStore.update((s) => ({ ...s, syncing: true }));
 
@@ -329,7 +339,12 @@ async function doSync(): Promise<void> {
     emit({ kind: 'data-refreshed' });
     void warmMediaCache();
   } catch (e) {
-    if (isGuest() && e instanceof ApiError && e.status === 404) {
+    if (isConsultation() && isImpersonationEnded(e)) {
+      // Jeton échu, consultation terminée ou session du super admin perdue.
+      await endConsultation('ended');
+    } else if (isConsultation() && isReadOnlyRefusal(e)) {
+      blockedInConsultation();
+    } else if (isGuest() && e instanceof ApiError && e.status === 404) {
       // Mode découverte désactivé côté serveur : la session invité prend fin.
       await leaveGuestMode();
     } else if (e instanceof ApiError && (e.status === 401 || e.status === 419)) {
@@ -375,8 +390,8 @@ export async function fullBootstrap(): Promise<void> {
  * Enregistre aussi une Background Sync pour rejouer app fermée.
  */
 export async function dispatch(type: ActionType, data: Record<string, unknown>): Promise<void> {
-  // Invité : la progression reste locale, rien n'est envoyé au serveur.
-  if (isGuest()) return;
+  // Invité et consultation : la progression reste locale, rien n'est envoyé.
+  if (isGuest() || isConsultation()) return;
 
   await outbox.enqueue(type, data);
   await refreshPendingCount();

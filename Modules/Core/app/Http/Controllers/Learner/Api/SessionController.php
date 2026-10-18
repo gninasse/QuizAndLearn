@@ -73,13 +73,19 @@ class SessionController extends Controller
     /**
      * GET /api/learner/v1/me — profil courant.
      */
-    public function show(): JsonResponse
+    public function show(Request $request): JsonResponse
     {
         $user = Auth::user();
+        $profile = $this->serializeUser($user);
+
+        // Consultation « Voir en tant que » : état du compte pour le bandeau.
+        if ($request->attributes->get('impersonation') !== null) {
+            $profile['suspended'] = (bool) $user->learner?->isSuspended();
+        }
 
         return response()->json([
             'success' => true,
-            'user' => $this->serializeUser($user),
+            'user' => $profile,
         ]);
     }
 

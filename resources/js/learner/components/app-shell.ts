@@ -4,6 +4,8 @@ import { isDue } from '../domain/sm2';
 import { avatarHtml } from '../ui/avatar';
 import { logoMark, logoWordmark } from '../ui/logo';
 import { guestBannerHtml } from '../guest/guest-ui';
+import { endConsultation, isConsultation } from '../consultation/consultation';
+import type { UserProfile } from '../domain/types';
 import { articlesStore, decksStore, quizzesStore, sessionStore, syncStore } from '../stores';
 
 /**
@@ -35,6 +37,31 @@ const NAV: NavItem[] = [
   },
   { path: '/profil', label: 'Profil', icon: 'bi-person-circle', match: (p) => p.startsWith('/profil') },
 ];
+
+/** Bandeau permanent du mode consultation « Voir en tant que » (lecture seule). */
+function consultationBannerHtml(user: UserProfile): string {
+  const notices = [
+    user.suspended === true ? 'Compte suspendu' : null,
+    user.must_change_password === true ? 'Mot de passe provisoire non encore changé' : null,
+  ].filter((n): n is string => n !== null);
+
+  return html`
+    <div data-role="consultation-banner"
+         class="sticky top-0 z-[60] bg-violet-700 text-white text-xs font-semibold py-1.5 px-4 flex items-center justify-center gap-3">
+      <span><i class="bi bi-eye mr-1"></i>Consultation de l'espace de ${user.full_name} — lecture seule</span>
+      <button type="button" data-role="consultation-quit"
+              class="rounded-lg bg-white/15 hover:bg-white/25 px-2.5 py-0.5 font-bold">Quitter</button>
+    </div>
+    ${notices.length
+      ? raw(html`
+          <div data-role="consultation-notice"
+               class="bg-amber-100 dark:bg-amber-500/15 text-amber-900 dark:text-amber-200 text-center text-xs font-semibold py-1 px-4">
+            <i class="bi bi-exclamation-triangle mr-1"></i>${notices.join(' · ')}
+          </div>
+        `)
+      : ''}
+  `;
+}
 
 export class AppShell extends BaseComponent {
   private currentTitle = '';
@@ -178,8 +205,11 @@ export class AppShell extends BaseComponent {
       `,
     );
 
+    const consultation = isConsultation();
+
     return html`
       <div class="min-h-dvh text-zinc-900 dark:text-zinc-100">
+        ${consultation ? raw(consultationBannerHtml(user)) : ''}
         <!-- Bannière hors-ligne -->
         <div data-role="conn-banner"
              class="${sync.online ? 'hidden' : ''} bg-amber-500 text-amber-950 text-center text-xs font-bold py-1.5 px-4 sticky top-0 z-50">
@@ -228,7 +258,7 @@ export class AppShell extends BaseComponent {
                 </a>
               </div>
             </header>
-            ${user.is_guest === true ? raw(guestBannerHtml()) : ''}
+            ${user.is_guest === true && !consultation ? raw(guestBannerHtml()) : ''}
 
             <main id="outlet" class="flex-1 w-full max-w-5xl mx-auto px-4 py-5 pb-24 lg:pb-8"></main>
           </div>
@@ -245,6 +275,9 @@ export class AppShell extends BaseComponent {
   protected override bind(): void {
     this.querySelector('[data-role="theme-toggle"]')?.addEventListener('click', () => {
       this.dispatchEvent(new CustomEvent('theme-toggle', { bubbles: true }));
+    });
+    this.querySelector('[data-role="consultation-quit"]')?.addEventListener('click', () => {
+      void endConsultation('quit');
     });
     this.refreshNav();
   }

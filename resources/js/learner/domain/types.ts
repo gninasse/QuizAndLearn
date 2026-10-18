@@ -21,6 +21,8 @@ export interface UserProfile {
   matricule?: string | null;
   /** Mot de passe provisoire : le changement est imposé avant tout accès. */
   must_change_password?: boolean;
+  /** Compte suspendu (renvoyé en consultation « Voir en tant que » seulement). */
+  suspended?: boolean;
   /** Session invité du mode découverte (aucun compte, rien n'est synchronisé). */
   is_guest?: boolean;
   xp: XpSnapshot;

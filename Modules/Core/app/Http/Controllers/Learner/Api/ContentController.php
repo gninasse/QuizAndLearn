@@ -21,13 +21,23 @@ class ContentController extends Controller
     /**
      * GET /api/learner/v1/bootstrap — payload complet initial + cursor.
      */
-    public function bootstrap(): JsonResponse
+    public function bootstrap(Request $request): JsonResponse
     {
         $learner = Auth::user()->learner;
+        $payload = $this->content->bootstrap($learner);
+
+        // Consultation « Voir en tant que » : le bandeau signale l'état du
+        // compte (suspendu, mot de passe provisoire), contourné en lecture.
+        if ($request->attributes->get('impersonation') !== null) {
+            $payload['user'] += [
+                'suspended' => $learner->isSuspended(),
+                'must_change_password' => (bool) $learner->user->must_change_password,
+            ];
+        }
 
         return response()->json([
             'success' => true,
-            ...$this->content->bootstrap($learner),
+            ...$payload,
         ]);
     }
 

@@ -1,3 +1,4 @@
+import { blockedInConsultation, isConsultation } from '../consultation/consultation';
 import { html, raw } from '../core/html';
 import { db } from '../db/schema';
 import { GAMIFICATION } from '../domain/gamification';
@@ -155,6 +156,10 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
   // --------------------------------------------------------------- Favori
 
   el.querySelector('#btn-favorite')?.addEventListener('click', (event) => {
+    if (isConsultation()) {
+      blockedInConsultation();
+      return;
+    }
     const icon = (event.currentTarget as HTMLElement).querySelector('i')!;
     const nowFav = icon.classList.contains('bi-heart');
     icon.className = `bi ${nowFav ? 'bi-heart-fill text-rose-500' : 'bi-heart'}`;
@@ -167,6 +172,10 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
   el.querySelector('#rating-stars')?.addEventListener('click', (event) => {
     const button = (event.target as HTMLElement).closest<HTMLElement>('[data-star]');
     if (!button) return;
+    if (isConsultation()) {
+      blockedInConsultation();
+      return;
+    }
     const rating = Number(button.dataset.star);
 
     el.querySelectorAll<HTMLElement>('[data-star]').forEach((star) => {
@@ -182,6 +191,10 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
   // ----------------------------------------------------------- Signalement
 
   el.querySelector('#btn-report')?.addEventListener('click', () => {
+    if (isConsultation()) {
+      blockedInConsultation();
+      return;
+    }
     void (async () => {
       const ok = await confirmDialog(
         'Signaler une erreur',

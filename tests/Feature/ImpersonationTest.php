@@ -241,6 +241,36 @@ class ImpersonationTest extends TestCase
         $this->asAdmin($token)->getJson('/api/learner/v1/leaderboard')->assertOk();
     }
 
+    public function test_profile_exposes_account_state_in_consultation_only(): void
+    {
+        $this->learner->suspend(null, 'Test', $this->superAdmin->id);
+        $this->learner->user->forceFill(['must_change_password' => true])->save();
+
+        $token = $this->start();
+
+        $this->asAdmin($token)->getJson('/api/learner/v1/bootstrap')
+            ->assertOk()
+            ->assertJsonPath('user.suspended', true)
+            ->assertJsonPath('user.must_change_password', true);
+
+        $this->asAdmin($token)->getJson('/api/learner/v1/me')
+            ->assertOk()
+            ->assertJsonPath('user.suspended', true)
+            ->assertJsonPath('user.must_change_password', true);
+
+        // Hors consultation, le profil apprenant ne change pas.
+        $this->learner->liftSuspension();
+        $this->learner->user->refresh()->forceFill(['must_change_password' => false])->save();
+        $this->flushHeaders();
+        $this->app['auth']->forgetGuards();
+        $this->actingAs($this->learner->user)->getJson('/api/learner/v1/bootstrap')
+            ->assertOk()
+            ->assertJsonMissingPath('user.suspended');
+        $this->actingAs($this->learner->user)->getJson('/api/learner/v1/me')
+            ->assertOk()
+            ->assertJsonMissingPath('user.suspended');
+    }
+
     public function test_inactive_learner_cannot_be_started(): void
     {
         $this->learner->user->update(['is_active' => false]);

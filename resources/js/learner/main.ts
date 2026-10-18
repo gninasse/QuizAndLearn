@@ -4,10 +4,19 @@
 
 import './components/app-shell';
 import type { AppShell } from './components/app-shell';
+import { endConsultation, isConsultation, isImpersonationEnded } from './consultation/consultation';
+import { db } from './db/schema';
 import { loadGuestSettings } from './guest/guest-session';
 import { Router, type RouteDefinition } from './router';
 import { preferencesStore, sessionStore, syncStore } from './stores';
-import { clearLocalData, hydrateFromDb, installSyncTriggers, onSyncEvent, sync } from './sync/engine';
+import {
+  clearLocalData,
+  fullBootstrap,
+  hydrateFromDb,
+  installSyncTriggers,
+  onSyncEvent,
+  sync,
+} from './sync/engine';
 import { applyPreferences, applyTheme, initialTheme, toggleTheme } from './theme';
 import { celebrateDialog } from './ui/app-dialog';
 import { toast } from './ui/app-toast';
@@ -22,6 +31,8 @@ captureInstallPrompt();
 installMediaGuard();
 
 // ---------------------------------------------------------------- Routage
+
+const CONSULTATION_POLL_MS = 60_000;
 
 const routes: RouteDefinition[] = [
   { path: '/connexion', title: 'Connexion', public: true, view: () => import('./views/login') },
@@ -45,17 +56,30 @@ async function boot(): Promise<void> {
   const root = document.getElementById('app');
   if (!root) return;
 
+  // Consultation « Voir en tant que » : jamais d'écran de connexion. La base
+  // dédiée est vidée puis remplie par un bootstrap avec le jeton.
+  const consultation = isConsultation();
+  if (consultation) {
+    const started = await startConsultation(root);
+    if (!started) return;
+  }
+
   const shell = document.createElement('app-shell') as AppShell;
   root.replaceChildren(shell);
 
   // Session locale (fonctionne hors-ligne) puis préférences.
   const hasLocalSession = await hydrateFromDb();
-  if (hasLocalSession) {
+  if (hasLocalSession && !consultation) {
     applyPreferences(preferencesStore.get());
     if (sessionStore.get()?.is_guest) await loadGuestSettings();
   }
 
   const redirectIfPasswordChangeRequired = (): void => {
+    // Consultation : le mot de passe provisoire est seulement signalé (bandeau).
+    if (consultation) {
+      if (window.location.pathname === '/mot-de-passe') void router.go('/', true);
+      return;
+    }
     if (sessionStore.get()?.must_change_password && window.location.pathname !== '/mot-de-passe') {
       void router.go('/mot-de-passe', true);
     }
@@ -77,6 +101,10 @@ async function boot(): Promise<void> {
   // Filigrane nominatif des médias : suit la session courante.
   const updateWatermark = (): void => {
     const user = sessionStore.get();
+    if (consultation) {
+      setWatermark(user ? `Consultation · ${user.full_name}` : 'Consultation');
+      return;
+    }
     if (user?.is_guest) {
       setWatermark('Mode découverte');
       return;
@@ -152,6 +180,8 @@ async function boot(): Promise<void> {
       const user = sessionStore.get();
       if (user && !user.must_change_password) sessionStore.set({ ...user, must_change_password: true });
       redirectIfPasswordChangeRequired();
+    } else if (event.kind === 'session-expired' && consultation) {
+      void endConsultation('ended');
     } else if (event.kind === 'session-expired') {
       toast('Session expirée — reconnectez-vous.', 'warning');
       sessionStore.set(null);
@@ -163,6 +193,12 @@ async function boot(): Promise<void> {
 
   // Démarrage : route initiale puis sync en arrière-plan.
   await router.resolve();
+  if (consultation) {
+    // Bootstrap déjà fait. Delta périodique : détecte aussi la fin serveur
+    // (expiration à 30 min, admin déconnecté) pour afficher l'écran de fin.
+    window.setInterval(() => void sync(), CONSULTATION_POLL_MS);
+    return;
+  }
   if (hasLocalSession && navigator.onLine) {
     void sync();
     maybeShowInstallBanner();
@@ -172,6 +208,35 @@ async function boot(): Promise<void> {
   syncStore.subscribe(() => {
     /* le shell observe déjà syncStore ; hook conservé pour extensions */
   });
+}
+
+/**
+ * Démarre la consultation : purge de la base dédiée puis bootstrap avec le
+ * jeton. Renvoie false si l'onglet ne peut pas afficher l'espace (fin ou erreur).
+ */
+async function startConsultation(root: HTMLElement): Promise<boolean> {
+  root.innerHTML =
+    '<main class="min-h-dvh flex items-center justify-center text-sm text-zinc-500">Ouverture de la consultation…</main>';
+
+  try {
+    await Promise.all(db.tables.map((table) => table.clear()));
+    await fullBootstrap();
+    return true;
+  } catch (e) {
+    if (isImpersonationEnded(e)) {
+      await endConsultation('ended');
+      return false;
+    }
+    root.innerHTML = `
+      <main class="min-h-dvh flex flex-col items-center justify-center gap-3 p-6 text-center">
+        <p class="font-bold">Impossible d'ouvrir la consultation.</p>
+        <p class="text-sm text-zinc-500">Vérifiez la connexion puis réessayez.</p>
+        <button type="button" data-role="consultation-retry"
+                class="rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-sm px-5 py-2.5">Réessayer</button>
+      </main>`;
+    root.querySelector('[data-role="consultation-retry"]')?.addEventListener('click', () => window.location.reload());
+    return false;
+  }
 }
 
 // --------------------------------------------------------- Service worker
