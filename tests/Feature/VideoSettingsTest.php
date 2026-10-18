@@ -127,6 +127,12 @@ class VideoSettingsTest extends TestCase
             ->assertJsonPath('user.video.embeds.enabled', true)
             ->assertJsonPath('user.video.embeds.providers', ['youtube']);
 
+        // La PWA lit son profil depuis le bootstrap (jamais /me) : même réglage.
+        $this->actingAs($user)->getJson(route('learn.v1.bootstrap'))
+            ->assertOk()
+            ->assertJsonPath('user.video.embeds.enabled', true)
+            ->assertJsonPath('user.video.embeds.providers', ['youtube']);
+
         AppSetting::put('showcase.enabled', true);
         $this->getJson(route('showcase.v1.settings'))
             ->assertJsonPath('video.embeds.providers', ['youtube']);

@@ -18,10 +18,18 @@
  */
 
 import { escapeHtml } from '../core/html';
+import { mountBrandVideos } from './brand-video';
+import { resolveVideoRefs } from './video-ref';
 
 const MEDIA_SELECTOR = '.rich-content img, .rich-content video';
 const PLAYER_SELECTOR = '.rich-content video, .rich-content audio';
-const PROTECTED_SELECTOR = '.rich-content img, .rich-content video, .rich-content audio, .media-frame, .media-lightbox';
+/** Vidéos référencées, embeds de marque et anciennes iframes d'embed. */
+const VIDEO_SELECTOR = '.rich-content iframe, .rich-content [data-embed]';
+const PROTECTED_SELECTOR =
+  '.rich-content img, .rich-content video, .rich-content audio, .media-frame, .media-lightbox, .brand-video';
+
+/** Texte du filigrane courant (repris par le lecteur de marque). */
+let currentWatermark: string | null = null;
 
 // ------------------------------------------------------------- Filigrane
 
@@ -34,6 +42,7 @@ function escapeXml(value: string): string {
  * légèrement cerné, lisible sur une image claire comme sombre.
  */
 export function setWatermark(text: string | null): void {
+  currentWatermark = text;
   const rootStyle = document.documentElement.style;
   if (!text) {
     rootStyle.removeProperty('--wm-tile');
@@ -83,9 +92,21 @@ function frameMedia(media: HTMLElement): void {
   }
 }
 
+/** Contenus pédagogiques concernés par un sous-arbre (ancêtre ou descendants). */
+function richScopes(root: ParentNode): ParentNode[] {
+  const host = root instanceof Element ? root.closest('.rich-content') : null;
+  return host ? [host] : [...root.querySelectorAll('.rich-content')];
+}
+
 function processTree(root: ParentNode): void {
   root.querySelectorAll<HTMLElement>(MEDIA_SELECTOR).forEach(frameMedia);
   root.querySelectorAll<HTMLMediaElement>(PLAYER_SELECTOR).forEach(hardenPlayer);
+  // Vidéos : lecteur de marque YouTube / Vimeo (et conversion des anciennes
+  // iframes) puis sources des vidéos référencées — idempotents.
+  for (const scope of richScopes(root)) {
+    mountBrandVideos(scope, currentWatermark);
+    resolveVideoRefs(scope);
+  }
 }
 
 // ------------------------------------------------------------ Visionneuse
@@ -298,9 +319,9 @@ export function installMediaGuard(): void {
     for (const mutation of mutations) {
       mutation.addedNodes.forEach((node) => {
         if (node instanceof HTMLElement) {
-          if (node.matches(MEDIA_SELECTOR) || node.matches(PLAYER_SELECTOR)) {
+          if (node.matches(MEDIA_SELECTOR) || node.matches(PLAYER_SELECTOR) || node.matches(VIDEO_SELECTOR)) {
             processTree(node.parentElement ?? document);
-          } else if (node.querySelector('img, video, audio')) {
+          } else if (node.querySelector('img, video, audio, iframe, [data-embed]')) {
             processTree(node);
           }
         }

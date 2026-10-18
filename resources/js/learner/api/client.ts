@@ -18,6 +18,7 @@ import type {
   ShowcaseContent,
   ShowcaseSettings,
   UserProfile,
+  VideoPlaybackResponse,
 } from '../domain/types';
 import { readConsultationToken } from '../consultation/consultation';
 
@@ -178,6 +179,18 @@ export const api = {
 
   unsubscribePush(endpoint: string) {
     return request<unknown>('DELETE', '/push-subscriptions', { endpoint });
+  },
+
+  // ------------------------------------------------ Vidéos par référence
+
+  /**
+   * Source de lecture d'une vidéo (`data-video-ref`) : 200 source, 202 en
+   * conversion ; 404 / 410 → ApiError. En mode découverte, la route vitrine
+   * (cookie invité httpOnly `lq_guest`, envoyé automatiquement).
+   */
+  videoPlayback(ref: string, guest = false) {
+    const path = `/videos/${encodeURIComponent(ref)}/playback`;
+    return guest ? showcaseRequest<VideoPlaybackResponse>('GET', path) : request<VideoPlaybackResponse>('GET', path);
   },
 
   // ------------------------------------------------ Vitrine (mode découverte)

@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+// Import brut (Vite `?raw`) : pas de dépendance aux types Node pour tsc.
+import source from '../../../../public/js/admin/video-embed.js?raw';
 
 // Le fichier public est un script classique (UMD minuscule) : on l'évalue avec un `module` factice.
-const source = readFileSync(resolve(process.cwd(), 'public/js/admin/video-embed.js'), 'utf8');
 const mod: { exports: any } = { exports: {} };
 new Function('module', source)(mod);
 const { parseVideoEmbed, buildVideoEmbedHtml } = mod.exports;
