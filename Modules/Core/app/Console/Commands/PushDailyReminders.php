@@ -23,6 +23,9 @@ class PushDailyReminders extends Command
         $now = now();
         $local = $this->pushLocalNow();
         $today = $local->format('Y-m-d');
+        // last_activity_date est écrit en heure applicative (GamificationService) ;
+        // comparé ici au jour d'hier dans le fuseau push.
+        $yesterday = $local->copy()->subDay()->format('Y-m-d');
 
         if ($local->minute >= 15) {
             return self::SUCCESS;
@@ -47,7 +50,7 @@ class PushDailyReminders extends Command
             $this->pushableLearners($now)
                 ->join('learner_xp', 'learner_xp.learner_id', '=', 'learners.id')
                 ->where('learner_xp.current_streak', '>=', 2)
-                ->where(fn ($q) => $q->whereNull('learner_xp.last_activity_date')->orWhereDate('learner_xp.last_activity_date', '!=', $today))
+                ->whereDate('learner_xp.last_activity_date', $yesterday)
                 ->select('learners.*', 'learner_xp.current_streak as streak_days')
                 ->each(function (Learner $learner) use ($notifier, $now, $today, &$sent) {
                     $sent += (int) $notifier->notify($learner, new PushMessage(

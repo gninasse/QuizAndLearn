@@ -5,6 +5,7 @@ namespace Modules\Core\Console\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Modules\Core\Console\Commands\Concerns\TargetsPushLearners;
+use Modules\Core\Models\AppSetting;
 use Modules\Core\Models\Article;
 use Modules\Core\Models\FlashcardDeck;
 use Modules\Core\Models\Quiz;
@@ -32,8 +33,9 @@ class PushNewContent extends Command
             ->mapWithKeys(fn ($r) => [$this->key($r->group_id, $r->content_type, $r->content_id) => true]);
 
         // Premier passage : on mémorise l'existant sans rien envoyer.
-        if ($snapshot->isEmpty()) {
+        if (AppSetting::get('push.snapshot_initialized_at') === null) {
             $this->insertPairs($current);
+            AppSetting::put('push.snapshot_initialized_at', now()->toIso8601String());
             $this->info(count($current).' affectation(s) mémorisée(s), aucune notification envoyée.');
 
             return self::SUCCESS;
@@ -55,11 +57,18 @@ class PushNewContent extends Command
 
         /** @var array<int, array<string, array{type: string, id: int, title: string}>> $byLearner */
         $byLearner = [];
+        $groupContents = [];
         foreach ($handled as $p) {
-            $learnerIds = DB::table('group_learner')->where('group_id', $p['group_id'])->pluck('learner_id');
-            foreach ($this->pushableLearners($now)->whereIn('id', $learnerIds)->pluck('id') as $learnerId) {
-                $ref = $p['type'].':'.$p['id'];
-                $byLearner[$learnerId][$ref] = $contents[$ref];
+            $groupContents[$p['group_id']][] = $contents[$p['type'].':'.$p['id']];
+        }
+        $membership = DB::table('group_learner')->whereIn('group_id', array_keys($groupContents))->get(['group_id', 'learner_id']);
+        $pushable = $this->pushableLearners($now)->whereIn('id', $membership->pluck('learner_id')->unique())->pluck('id')->flip();
+        foreach ($membership as $row) {
+            if (! isset($pushable[$row->learner_id])) {
+                continue;
+            }
+            foreach ($groupContents[$row->group_id] as $c) {
+                $byLearner[$row->learner_id][$c['type'].':'.$c['id']] = $c;
             }
         }
 

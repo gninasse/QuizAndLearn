@@ -205,6 +205,31 @@ class PushCommandsTest extends TestCase
         $this->assertCount(1, $this->sender->sent);
     }
 
+    public function test_empty_base_at_first_run_then_new_assignment_is_notified(): void
+    {
+        $this->run15('push:new-content');
+        $this->assertCount(0, $this->sender->sent);
+
+        $this->quiz('Premier');
+        $this->run15('push:new-content');
+
+        $this->assertCount(1, $this->sender->sent);
+    }
+
+    public function test_all_pairs_removed_then_new_pair_is_notified(): void
+    {
+        $q = $this->quiz('Q0');
+        $this->run15('push:new-content');
+        DB::table('group_quiz')->where('quiz_id', $q->id)->delete();
+        $this->run15('push:new-content');
+        $this->assertSame(0, DB::table('push_assignment_snapshots')->count());
+
+        $this->quiz('Q1');
+        $this->run15('push:new-content');
+
+        $this->assertCount(1, $this->sender->sent);
+    }
+
     public function test_removed_pairs_leave_the_snapshot(): void
     {
         $q = $this->quiz('Q0');
@@ -280,6 +305,9 @@ class PushCommandsTest extends TestCase
 
         $short = $this->makeLearner('cleo');
         LearnerXp::create(['learner_id' => $short->id, 'current_streak' => 1, 'last_activity_date' => '2026-10-19']);
+
+        $stale = $this->makeLearner('dan');
+        LearnerXp::create(['learner_id' => $stale->id, 'current_streak' => 5, 'last_activity_date' => '2026-10-10']);
 
         $this->run15('push:daily-reminders', '19:45');
         $this->assertCount(0, $this->sender->sent);
