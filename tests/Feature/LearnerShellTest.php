@@ -42,12 +42,14 @@ class LearnerShellTest extends TestCase
         }
     }
 
-    public function test_deep_links_redirect_guests_to_login(): void
+    public function test_spa_deep_routes_serve_shell_without_auth(): void
     {
-        $this->get('/articles')->assertRedirect();
+        foreach (['/articles', '/articles/12', '/entrainement', '/examens', '/quizzes/3', '/quizzes/3/play', '/exams/4/play', '/reviser', '/reviser/2', '/profil', '/progression', '/mot-de-passe', '/demande-acces'] as $path) {
+            $this->get($path)->assertStatus(200)->assertSee('id="app"', false);
+        }
     }
 
-    public function test_non_learner_is_logged_out_and_redirected(): void
+    public function test_non_learner_is_refused_by_learner_api(): void
     {
         $staff = User::create([
             'name' => 'Staff',
@@ -58,7 +60,11 @@ class LearnerShellTest extends TestCase
             'is_active' => true,
         ]);
 
-        $this->actingAs($staff)->get('/articles')->assertRedirect(route('learn.login'));
+        // Le shell est public, mais aucune donnée apprenant n'est servie.
+        $this->actingAs($staff)->get('/articles')->assertStatus(200);
+        $this->actingAs($staff)->getJson('/api/learner/v1/bootstrap')
+            ->assertStatus(403)
+            ->assertJsonPath('code', 'not_learner');
     }
 
     public function test_dashboard_redirects_to_root(): void

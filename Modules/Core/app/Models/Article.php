@@ -22,12 +22,14 @@ class Article extends Model
         'available_from',
         'available_until',
         'created_by',
+        'is_showcase',
     ];
 
     protected function casts(): array
     {
         return [
             'is_active' => 'boolean',
+            'is_showcase' => 'boolean',
             'estimated_reading_time' => 'integer',
             'available_from' => 'datetime',
             'available_until' => 'datetime',
@@ -60,6 +62,9 @@ class Article extends Model
 
     protected static function booted(): void
     {
+        static::saved(fn () => \Modules\Core\Services\ShowcaseMedia::flush());
+        static::deleted(fn () => \Modules\Core\Services\ShowcaseMedia::flush());
+
         static::deleting(function (Article $article) {
             foreach ($article->media as $mediaItem) {
                 \Illuminate\Support\Facades\Storage::disk('public')->delete($mediaItem->file_path);

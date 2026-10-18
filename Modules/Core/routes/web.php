@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\Core\Http\Controllers\AccessRequestController;
 use Modules\Core\Http\Controllers\ActivityController;
 use Modules\Core\Http\Controllers\AdminController;
 use Modules\Core\Http\Controllers\ArticleController;
@@ -20,8 +21,18 @@ use Modules\Core\Http\Controllers\ProfileController;
 use Modules\Core\Http\Controllers\QuizController;
 use Modules\Core\Http\Controllers\QuizEditorController;
 use Modules\Core\Http\Controllers\RoleController;
+use Modules\Core\Http\Controllers\ShowcaseAdminController;
 use Modules\Core\Http\Controllers\TrainerController;
 use Modules\Core\Http\Controllers\UserController;
+
+// Politique de confidentialité du mode découverte (publique).
+Route::get('/confidentialite', function (\Modules\Core\Services\ShowcaseSettings $settings) {
+    if ($url = $settings->privacyUrl()) {
+        return redirect()->away($url);
+    }
+
+    return view('core::showcase.privacy', ['text' => $settings->privacyText()]);
+})->name('privacy');
 
 // Médias uploadés : servis derrière authentification (plus de lien
 // symbolique public/storage — voir MediaController).
@@ -94,8 +105,28 @@ Route::middleware(['auth', 'staff'])->group(function () {
             Route::post('/{id}/reset-password', [LearnerController::class, 'resetPassword'])->name('reset-password');
         });
 
+        Route::get('/showcase/settings', [ShowcaseAdminController::class, 'settings'])->name('showcase.settings');
+        Route::put('/showcase/settings', [ShowcaseAdminController::class, 'saveSettings'])->name('showcase.settings.save');
+
+        // Demandes d'accès (mode découverte) — admins uniquement (vérifié dans le contrôleur)
+        Route::prefix('demandes-acces')->name('access-requests.')->group(function () {
+            Route::get('/', [AccessRequestController::class, 'index'])->name('index');
+            Route::get('/data', [AccessRequestController::class, 'data'])->name('data');
+            Route::get('/{id}', [AccessRequestController::class, 'show'])->whereNumber('id')->name('show');
+            Route::post('/{id}/status', [AccessRequestController::class, 'status'])->whereNumber('id')->name('status');
+            Route::post('/{id}/account', [AccessRequestController::class, 'createAccount'])->whereNumber('id')->name('account');
+            Route::put('/{id}/notes', [AccessRequestController::class, 'notes'])->whereNumber('id')->name('notes');
+            Route::post('/{id}/payments', [AccessRequestController::class, 'storePayment'])->whereNumber('id')->name('payments');
+            Route::delete('/{id}/payments/{paymentId}', [AccessRequestController::class, 'destroyPayment'])->whereNumber(['id', 'paymentId'])->name('payments.destroy');
+        });
+
         // Routes pour la gestion des groupes
+        Route::patch('/showcase/{type}/{id}', [ShowcaseAdminController::class, 'toggle'])
+            ->whereIn('type', ['quiz', 'article', 'deck'])
+            ->name('showcase.toggle');
+
         Route::prefix('groups')->name('groups.')->group(function () {
+            Route::patch('/{id}/open-for-requests', [ShowcaseAdminController::class, 'openForRequests'])->name('open-for-requests');
             Route::get('/', [GroupController::class, 'index'])->name('index');
             Route::get('/data', [GroupController::class, 'getData'])->name('data');
             Route::get('/{id}', [GroupController::class, 'show'])->name('show');
@@ -318,22 +349,38 @@ Route::prefix('api/learner/v1')->name('learn.v1.')->group(function () {
     });
 });
 
+// -------------------------------------------------------------------------
+// API publique vitrine v1 (mode découverte) : lecture seule, sans auth.
+// -------------------------------------------------------------------------
+Route::prefix('api/showcase/v1')->name('showcase.v1.')->middleware('throttle:60,1')->group(function () {
+    Route::get('/content', [\Modules\Core\Http\Controllers\Showcase\ShowcaseController::class, 'content'])->name('content');
+    Route::get('/settings', [\Modules\Core\Http\Controllers\Showcase\ShowcaseController::class, 'settings'])->name('settings');
+    Route::post('/access-requests', [\Modules\Core\Http\Controllers\Showcase\AccessRequestSubmitController::class, 'store'])
+        ->middleware('throttle:5,60,access-requests')
+        ->name('access-requests.store');
+});
+
 // Routes profondes du SPA (History API) : le serveur renvoie toujours le shell.
+// Le shell ne contient aucune donnée : il est public (session invité du mode
+// découverte comprise) ; les données restent protégées par l'API.
 Route::middleware(['auth', 'learner'])->name('learn.')->group(function () {
     Route::get('/dashboard', fn () => redirect('/'))->name('spa-shell');
-
-    foreach ([
-        '/articles',
-        '/articles/{id}',
-        '/entrainement',
-        '/examens',
-        '/quizzes/{id}',
-        '/quizzes/{id}/play',
-        '/exams/{id}/play',
-        '/reviser',
-        '/reviser/{deckId}',
-        '/profil',
-    ] as $spaPath) {
-        Route::get($spaPath, [\Modules\Core\Http\Controllers\Learner\ShellController::class, '__invoke']);
-    }
 });
+
+foreach ([
+    '/articles',
+    '/articles/{id}',
+    '/entrainement',
+    '/examens',
+    '/quizzes/{id}',
+    '/quizzes/{id}/play',
+    '/exams/{id}/play',
+    '/reviser',
+    '/reviser/{deckId}',
+    '/profil',
+    '/progression',
+    '/mot-de-passe',
+    '/demande-acces',
+] as $spaPath) {
+    Route::get($spaPath, [\Modules\Core\Http\Controllers\Learner\ShellController::class, '__invoke']);
+}

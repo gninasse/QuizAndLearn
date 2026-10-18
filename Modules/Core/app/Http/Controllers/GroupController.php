@@ -118,6 +118,7 @@ class GroupController extends Controller
                 'start_date' => $request->start_date,
                 'end_date' => $request->end_date,
                 'is_active' => $request->has('is_active') ? $request->is_active : true,
+                'open_for_requests' => $this->isAdmin() && $request->boolean('open_for_requests'),
             ]);
 
             return response()->json([
@@ -146,6 +147,9 @@ class GroupController extends Controller
                 'start_date' => $request->start_date,
                 'end_date' => $request->end_date,
                 'is_active' => $request->has('is_active') ? $request->is_active : $group->is_active,
+                'open_for_requests' => $this->isAdmin() && $request->has('open_for_requests')
+                    ? $request->boolean('open_for_requests')
+                    : $group->open_for_requests,
             ]);
 
             return response()->json([
@@ -308,5 +312,10 @@ class GroupController extends Controller
                 'message' => 'Erreur : '.$e->getMessage(),
             ], 500);
         }
+    }
+
+    private function isAdmin(): bool
+    {
+        return (bool) auth()->user()?->hasAnyRole(['super-admin', 'admin', 'Admin']);
     }
 }

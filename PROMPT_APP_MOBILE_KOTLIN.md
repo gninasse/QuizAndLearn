@@ -534,3 +534,91 @@ README d'installation (BASE_URL, compte de test). Code commenté en français.
 4. **Compte suspendu** : toute réponse `403` avec `{"code":"account_suspended","message":"…"}`
    (login ou API) → purger les données locales, revenir à l'écran de connexion et
    afficher `message` (contient la date de fin et le motif).
+
+---
+
+## Mise à jour — mode découverte et connexion par téléphone (octobre 2026)
+
+### A. Connexion par téléphone et mot de passe temporaire
+
+Base : `{{BASE_URL}}/api/mobile/v1` (les chemins ci-dessous en dépendent :
+`POST /login` = `POST {{BASE_URL}}/api/mobile/v1/login`, etc.).
+
+1. `POST /login` : le champ `login` accepte désormais **e-mail, téléphone ou
+   identifiant (`user_name`)**. Un téléphone se saisit au format local (« 07 12 34 56 78 »)
+   ou international (« +225… ») : le serveur le normalise en E.164 avec l'indicatif
+   par défaut du réglage `default_country_code` (225 par défaut). L'e-mail d'un
+   apprenant peut être vide : ne jamais supposer `user.email` non nul.
+   Libellé du champ : « E-mail, téléphone ou identifiant ».
+2. **Mot de passe temporaire** : un compte créé depuis une demande d'accès a un mot
+   de passe temporaire. Le profil renvoyé (`/login`, `/me`) porte `must_change_password: true`.
+   Tant que ce n'est pas résolu, toute route protégée sauf `GET /me`, `PUT /password`,
+   `POST /logout` et `POST /logout-all` répond
+   `403 {"message":"Vous devez choisir un nouveau mot de passe.","code":"password_change_required"}`.
+   → afficher l'écran **« Nouveau mot de passe »** (mot de passe actuel, nouveau,
+   confirmation, via `PUT /password`), sans le fermer par retour arrière ; après
+   succès, relancer le bootstrap. Ce code `403` n'est pas une suspension : ne pas
+   purger les données locales (la suspension reste `account_suspended`).
+
+### B. Mode découverte (sans compte)
+
+Base : `{{BASE_URL}}/api/showcase/v1` — publique, sans `Authorization`, en lecture
+seule (hors dépôt de demande). Elle ne renvoie jamais d'examen, de donnée d'apprenant
+ni de contenu non coché « Visible en mode découverte ». Si le mode est désactivé
+dans le back-office : `404 {"success":false,"message":"Le mode découverte est désactivé."}`
+(masquer alors le bouton « Découvrir sans compte »).
+
+- `GET /content` → `{success, guest_token, expires_at, articles[], quizzes[], decks[]}`
+  (mêmes structures que le contenu de l'API apprenant, sans progression). Le
+  `guest_token` vit **24 h** et est renouvelé à chaque appel : rappeler `/content`
+  à chaque ouverture du mode découverte et avant expiration.
+- `GET /settings` → `{success, enabled, brand:{name,tagline,logo}, registration:{fee,currency,accounts,reference,instructions}, default_country_code, privacy_url, groups[]}`
+  (`groups` : groupes proposés dans le formulaire, `{id, name, start_date, …}`).
+  `privacy_url` peut être **relatif** (par défaut `/confidentialite`) : le préfixer par
+  `{{BASE_URL}}` avant de l'ouvrir ; une URL absolue `https://…` s'ouvre telle quelle.
+  Réponse cachable 5 min (`Cache-Control: public, max-age=300`).
+- `POST /access-requests` (limité à 5 par heure et par IP) : `first_name`,
+  `last_name`, `phone` (obligatoires), `whatsapp_same` (booléen) ou `whatsapp`,
+  `email`, `organization`, `group_id`, `message`, `consent` (obligatoire, doit être
+  vrai), `website` (**champ piège : toujours vide**), `elapsed_ms` (entier ≥ 0 : durée
+  en ms écoulée depuis l'ouverture du formulaire, mesurée sur l'appareil avec une
+  horloge monotone, ex. `SystemClock.elapsedRealtime()` ; un envoi en moins de 3 000 ms
+  est ignoré en silence — ne jamais envoyer d'horodatage absolu).
+  Renvoyer une demande depuis le même téléphone alors qu'une demande est déjà en cours
+  ne crée pas de doublon et ne modifie pas les coordonnées déjà enregistrées.
+  → `201 {success, message:"Demande envoyée.", phone, registration}` ; `422` avec
+  `errors.{champ}[]` (« Numéro de téléphone invalide. ») ; `429` au-delà de la limite.
+  Afficher ensuite les consignes de paiement (`registration`).
+- **Médias** : l'invité charge `/storage/...` avec l'en-tête **`X-Guest-Token: <guest_token>`**
+  (intercepteur OkHttp/Coil/ExoPlayer, à la place du Bearer). Seuls les médias des
+  contenus vitrine sont servis ; tout autre chemin → 403.
+
+### C. Écrans à reproduire (équivalents de la PWA)
+
+1. **Connexion** : ajouter le bouton secondaire « Découvrir sans compte » (si `enabled`)
+   et le lien « Demander un accès ».
+2. **Session invité** : navigation identique à l'apprenant, alimentée par `/content`,
+   bandeau permanent « Mode découverte » avec boutons « Se connecter » et « Demander un accès ».
+   Fonctions réservées (examens, classement, badges, page « Ma progression »,
+   synchronisation des actions) : cartes **verrouillées** (cadenas) ouvrant une invite
+   vers « Demander un accès ». En revanche l'**XP, les scores de quiz et les révisions
+   sont calculés localement** (même moteur que l'apprenant, §4.0/§5/§6) pour que
+   l'invité ressente la gamification ; ils restent sur l'appareil et sont effacés à la
+   sortie du mode découverte. Aucune action n'est envoyée au serveur (pas d'outbox,
+   pas de `/actions`).
+   Profil réduit : appel « Demander un accès », préférences (thème, taille du texte, sons),
+   « Quitter le mode découverte ».
+3. **Demander un accès** : formulaire (prénom, nom, téléphone, case « Même numéro sur
+   WhatsApp » ou numéro WhatsApp, e-mail facultatif, organisation, groupe souhaité si
+   des groupes sont proposés, message, consentement avec lien vers la politique de
+   confidentialité `privacy_url`), puis écran de confirmation avec frais, comptes
+   Mobile Money, référence à indiquer et instructions de paiement.
+4. **Nouveau mot de passe** : voir A.2.
+
+### D. Stockage local isolé et purge
+
+- Les données invité (contenu vitrine, jeton, préférences) sont stockées **à part**
+  de celles d'un apprenant (base Room et préférences distinctes).
+- Elles sont **purgées** à la sortie du mode découverte, à l'expiration irrécupérable du
+  jeton et **avant toute connexion réelle** (aucune donnée invité ne doit survivre
+  dans une session apprenant). Inversement, la déconnexion d'un apprenant ne crée pas de session invité.

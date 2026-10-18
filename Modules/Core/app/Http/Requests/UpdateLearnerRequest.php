@@ -3,9 +3,12 @@
 namespace Modules\Core\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Modules\Core\Http\Requests\Concerns\NormalizesLearnerPhone;
 
 class UpdateLearnerRequest extends FormRequest
 {
+    use NormalizesLearnerPhone;
+
     public function rules(): array
     {
         $userId = $this->route('id');
@@ -15,9 +18,9 @@ class UpdateLearnerRequest extends FormRequest
         return [
             'name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
-            'user_name' => 'required|string|max:255|unique:users,user_name,'.$userId,
-            'email' => 'required|email|unique:users,email,'.$userId,
-            'phone' => 'nullable|string|max:255',
+            'user_name' => 'nullable|string|max:255|unique:users,user_name,'.$userId,
+            'email' => 'nullable|required_without:phone|email|unique:users,email,'.$userId,
+            'phone' => ['nullable', 'required_without:email', 'regex:/^\+\d{8,15}$/', 'unique:users,phone,'.$userId],
             'password' => ['nullable', 'confirmed', \Illuminate\Validation\Rules\Password::min(8)],
             'avatar' => 'nullable|image|max:2048',
             'matricule' => [
@@ -43,12 +46,10 @@ class UpdateLearnerRequest extends FormRequest
      */
     public function messages(): array
     {
-        return [
+        return $this->identityMessages() + [
             'name.required' => 'Le prénom est obligatoire',
             'last_name.required' => 'Le nom est obligatoire',
-            'user_name.required' => "Le nom d'utilisateur est obligatoire",
             'user_name.unique' => "Ce nom d'utilisateur existe déjà",
-            'email.required' => "L'email est obligatoire",
             'email.email' => "L'email doit être valide",
             'email.unique' => 'Cet email existe déjà',
             'password.min' => 'Le mot de passe doit contenir au moins 8 caractères',

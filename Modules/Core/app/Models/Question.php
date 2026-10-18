@@ -42,6 +42,9 @@ class Question extends Model
 
     protected static function booted(): void
     {
+        static::saved(fn () => \Modules\Core\Services\ShowcaseMedia::flush());
+        static::deleted(fn () => \Modules\Core\Services\ShowcaseMedia::flush());
+
         static::deleting(function (Question $question) {
             if (! empty($question->question_text)) {
                 preg_match_all('/<img[^>]+src=["\']([^"\']+)["\']/i', $question->question_text, $matches);

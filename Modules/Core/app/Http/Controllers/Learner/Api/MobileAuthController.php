@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Modules\Core\Models\User;
 use Modules\Core\Services\GamificationService;
+use Modules\Core\Support\LoginResolver;
 
 /**
  * Authentification de l'application mobile (Sanctum Bearer tokens).
@@ -50,12 +51,9 @@ class MobileAuthController extends Controller
             ], 429, ['Retry-After' => $seconds]);
         }
 
-        $login = $request->input('login');
-        $field = filter_var($login, FILTER_VALIDATE_EMAIL) ? 'email' : 'user_name';
+        $user = LoginResolver::find($request->input('login'));
 
-        $user = User::where($field, $login)->where('is_active', true)->first();
-
-        if (! $user || ! Hash::check($request->input('password'), $user->password)) {
+        if (! $user || ! $user->is_active || ! Hash::check($request->input('password'), $user->password)) {
             RateLimiter::hit($throttleKey, 60);
 
             return response()->json([
@@ -125,7 +123,7 @@ class MobileAuthController extends Controller
         ]);
 
         $user = $request->user();
-        $user->update(['password' => $request->input('password')]);
+        $user->forceFill(['password' => $request->input('password'), 'must_change_password' => false])->save();
 
         // Sécurité : tout autre appareil (token potentiellement compromis)
         // doit se reconnecter avec le nouveau mot de passe.
@@ -169,6 +167,7 @@ class MobileAuthController extends Controller
             'full_name' => $user->full_name,
             'email' => $user->email,
             'matricule' => $user->learner?->matricule,
+            'must_change_password' => (bool) $user->must_change_password,
             'xp' => $this->gamification->snapshot($user->learner),
         ];
     }

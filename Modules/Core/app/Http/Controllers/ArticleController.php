@@ -52,6 +52,11 @@ class ArticleController extends Controller
             $query->where('created_by', $user->id);
         }
 
+        // Filtre vitrine (?showcase=1)
+        if ($request->boolean('showcase')) {
+            $query->where('is_showcase', true);
+        }
+
         // Recherche
         if ($request->has('search') && ! empty($request->search)) {
             $search = $request->search;

@@ -1,4 +1,6 @@
 import { escapeHtml, html, raw } from '../core/html';
+import { guestSettings, isGuest } from '../guest/guest-session';
+import { lockedCardHtml } from '../guest/guest-ui';
 import { isDue } from '../domain/sm2';
 import {
   articlesStore,
@@ -14,6 +16,11 @@ import { formatDate, levelProgress, pluralize } from './helpers';
 export function mount(el: HTMLElement): void {
   const user = sessionStore.get();
   if (!user) return;
+
+  if (isGuest()) {
+    mountGuest(el);
+    return;
+  }
 
   const quizzes = quizzesStore.get();
   const articles = articlesStore.get();
@@ -175,6 +182,47 @@ export function mount(el: HTMLElement): void {
           : raw(
               '<p class="text-sm text-zinc-500">Aucun badge pour l\'instant — complétez un quiz ou lisez un article pour débloquer le premier !</p>',
             )}
+      </section>
+    </div>
+  `;
+}
+
+/** Accueil du mode découverte : accroche, contenus vitrine, fonctions verrouillées. */
+function mountGuest(el: HTMLElement): void {
+  const settings = guestSettings();
+  const quizzes = quizzesStore.get();
+  const articles = articlesStore.get();
+  const decks = decksStore.get();
+
+  const tile = (href: string, icon: string, tint: string, value: number, label: string): string => html`
+    <a data-link href="${href}"
+       class="lift group flex flex-col gap-2 rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-4 shadow-sm hover:shadow-lg">
+      <span class="w-10 h-10 rounded-xl flex items-center justify-center text-lg ${tint}"><i class="bi ${icon}"></i></span>
+      <span class="text-2xl font-extrabold tabular-nums">${value}</span>
+      <span class="text-xs font-medium text-zinc-500 dark:text-zinc-400">${label}</span>
+    </a>
+  `;
+
+  el.innerHTML = html`
+    <div class="flex flex-col gap-5">
+      <section class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-sky-600 via-blue-700 to-indigo-800 text-white p-5 sm:p-6 glow-hero ring-1 ring-white/10">
+        <p class="text-sky-200 text-sm">Bienvenue${settings?.brand.name ? ' sur ' + settings.brand.name : ''}</p>
+        <h2 class="text-xl font-extrabold mt-1">${settings?.brand.tagline || 'Découvrez nos contenus'}</h2>
+        <p class="text-sm text-sky-100 mt-2">Essayez quelques articles, quiz et cartes de révision en libre accès.</p>
+      </section>
+
+      <section class="grid grid-cols-3 gap-3">
+        ${raw(
+          [
+            tile('/entrainement', 'bi-patch-question', 'bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-400', quizzes.length, 'Quiz'),
+            tile('/articles', 'bi-journal-text', 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400', articles.length, 'Articles'),
+            tile('/entrainement?tab=cartes', 'bi-stack', 'bg-violet-100 text-violet-600 dark:bg-violet-500/15 dark:text-violet-400', decks.length, 'Decks'),
+          ].join(''),
+        )}
+      </section>
+
+      <section class="grid sm:grid-cols-2 gap-3">
+        ${raw(lockedCardHtml('badges') + lockedCardHtml('leaderboard'))}
       </section>
     </div>
   `;

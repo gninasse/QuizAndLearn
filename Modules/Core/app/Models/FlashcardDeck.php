@@ -25,12 +25,14 @@ class FlashcardDeck extends Model
         'interval_min',
         'interval_max',
         'active',
+        'is_showcase',
     ];
 
     protected function casts(): array
     {
         return [
             'is_public' => 'boolean',
+            'is_showcase' => 'boolean',
             'active' => 'boolean',
             'easiness_default' => 'float',
             'interval_min' => 'integer',
@@ -60,6 +62,9 @@ class FlashcardDeck extends Model
 
     protected static function booted(): void
     {
+        static::saved(fn () => \Modules\Core\Services\ShowcaseMedia::flush());
+        static::deleted(fn () => \Modules\Core\Services\ShowcaseMedia::flush());
+
         static::deleting(function (FlashcardDeck $deck) {
             foreach ($deck->cards as $card) {
                 $card->delete();

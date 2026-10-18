@@ -12,6 +12,7 @@ export class LearnerForm {
 
     init() {
         this.initValidation();
+        this.initTemporaryPassword();
         this.initSubmission();
         this.initPasswordToggle();
         this.initImagePreview();
@@ -28,6 +29,17 @@ export class LearnerForm {
                 width: '100%'
             });
         }
+    }
+
+    initTemporaryPassword() {
+        $('#temporary_password').on('change', function () {
+            const on = this.checked;
+            $('#password-fields').toggle(!on);
+            $('#password, #password_confirmation').prop('required', !on && $('#learner_id').val() === '');
+            if (on) {
+                $('#password, #password_confirmation').val('');
+            }
+        });
     }
 
     initValidation() {
@@ -95,6 +107,7 @@ export class LearnerForm {
         $('#password').prop('required', true);
         $('#password_confirmation').prop('required', true);
         $('.password-group', this.$form).show();
+        $('#temporary-password-group').show();
         $('#password-label', this.$form).addClass('d-none');
         this.$modal.modal('show');
     }
@@ -106,6 +119,7 @@ export class LearnerForm {
         $('#password').prop('required', false);
         $('#password_confirmation').prop('required', false);
         $('.password-group', this.$form).show();
+        $('#temporary-password-group').hide();
         $('#password-label', this.$form).removeClass('d-none');
 
         // Fetch learner data via AJAX
@@ -174,12 +188,22 @@ export class LearnerForm {
                     if (response.success) {
                         this.$modal.modal('hide');
                         this.table.refresh();
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Succès',
-                            text: response.message,
-                            timer: 2000
-                        });
+                        if (response.temporary_password) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Apprenant créé',
+                                html: 'Mot de passe temporaire (affiché une seule fois) :<br><strong style="font-size:1.4em;user-select:all">'
+                                    + $('<div>').text(response.temporary_password).html()
+                                    + '</strong><br><small>L\'apprenant devra le changer à sa première connexion.</small>'
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Succès',
+                                text: response.message,
+                                timer: 2000
+                            });
+                        }
                     }
                 },
                 error: (xhr) => {
@@ -205,6 +229,8 @@ export class LearnerForm {
         let isValid = true;
         const errors = {};
 
+        const temporary = $('#temporary_password').is(':checked') && $('#learner_id').val() === '';
+
         const checkEmpty = (selector, field, msg) => {
             if ($(selector).val().trim() === '') {
                 errors[field] = [msg];
@@ -215,14 +241,15 @@ export class LearnerForm {
 
         if (!checkEmpty('#name', 'name', 'Le prénom est obligatoire')) isValid = false;
         if (!checkEmpty('#last_name', 'last_name', 'Le nom est obligatoire')) isValid = false;
-        if (!checkEmpty('#user_name', 'user_name', "Le nom d'utilisateur est obligatoire")) isValid = false;
         if (!checkEmpty('#matricule', 'matricule', 'Le matricule est obligatoire')) isValid = false;
 
         const email = $('#email').val().trim();
-        if (email === '') {
-            errors.email = ["L'email est obligatoire"];
+        const phone = $('#phone').val().trim();
+        if (email === '' && phone === '') {
+            errors.email = ["L'e-mail ou le téléphone est obligatoire"];
+            errors.phone = ["Le téléphone ou l'e-mail est obligatoire"];
             isValid = false;
-        } else if (!this.isValidEmail(email)) {
+        } else if (email !== '' && !this.isValidEmail(email)) {
             errors.email = ["L'email doit être valide"];
             isValid = false;
         }
@@ -230,7 +257,9 @@ export class LearnerForm {
         const password = $('#password').val();
         const passwordConfirm = $('#password_confirmation').val();
 
-        if ($('#learner_id').val() === '' && password === '') {
+        if (temporary) {
+            // Mot de passe généré côté serveur
+        } else if ($('#learner_id').val() === '' && password === '') {
             errors.password = ['Le mot de passe est obligatoire'];
             isValid = false;
         } else if (password !== '') {
@@ -273,6 +302,7 @@ export class LearnerForm {
 
     resetForm() {
         this.$form[0].reset();
+        $('#password-fields').show();
         this.clearErrors();
         $('#avatar-preview').attr('src', window.emptyAvatar);
         if ($.fn.select2) {

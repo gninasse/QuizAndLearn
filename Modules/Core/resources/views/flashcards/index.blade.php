@@ -65,6 +65,7 @@
                     <th data-field="groups_list" data-formatter="groupsFormatter">Groupes cibles</th>
                     <th data-field="creator_name" data-sortable="true">Créateur</th>
                     <th data-field="active" data-sortable="true" data-formatter="statusFormatter">Statut</th>
+                    <th data-field="is_showcase" data-sortable="true" data-formatter="showcaseFormatter">Vitrine</th>
                 </tr>
             </thead>
         </table>
@@ -342,6 +343,10 @@
         $btnEnable.click(() => toggleActive(true));
         $btnDisable.click(() => toggleActive(false));
     });
+
+    function showcaseFormatter(value, row, index) {
+        return value ? '<span class="badge bg-info text-dark">Vitrine</span>' : '';
+    }
 
     function statusFormatter(value, row, index) {
         return value 

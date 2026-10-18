@@ -3,6 +3,8 @@ import { db } from '../db/schema';
 import { GAMIFICATION } from '../domain/gamification';
 import { isDue, review, statusFor, type Sm2State } from '../domain/sm2';
 import type { DeckCard, DeckItem } from '../domain/types';
+import { isGuest } from '../guest/guest-session';
+import { accessCtaHtml } from '../guest/guest-ui';
 import { decksStore, sessionStore } from '../stores';
 import { dispatch } from '../sync/engine';
 import { toast } from '../ui/app-toast';
@@ -227,6 +229,7 @@ function startSession(el: HTMLElement, deck: DeckItem): void {
           <div><p class="text-2xl font-extrabold tabular-nums text-emerald-500">${stats.mastered}</p><p class="text-xs text-zinc-500">maîtrisées</p></div>
           <div><p class="text-2xl font-extrabold tabular-nums text-amber-500">+${stats.studied * GAMIFICATION.XP_CARD_REVIEW}</p><p class="text-xs text-zinc-500">XP</p></div>
         </div>
+        ${isGuest() ? raw(accessCtaHtml('review')) : ''}
         <div class="flex gap-3 justify-center">
           <a data-link href="/reviser/${deck.id}" class="rounded-xl border border-zinc-300 dark:border-zinc-700 px-5 py-2.5 text-sm font-bold">Recommencer</a>
           <a data-link href="/entrainement?tab=cartes" class="rounded-xl glow-violet bg-violet-600 hover:bg-violet-500 text-white px-5 py-2.5 text-sm font-bold">Mes decks</a>

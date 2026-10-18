@@ -22,6 +22,7 @@
       <i class="bi {{ $article->is_active ? 'bi-cloud-arrow-down-fill' : 'bi-cloud-arrow-up-fill' }}"></i>
       <span id="btnPublishText">{{ $article->is_active ? 'Passer en Brouillon' : 'Publier l\'Article' }}</span>
     </button>
+    @include('core::admin._showcase_switch', ['showcaseType' => 'article', 'showcaseItem' => $article])
   </div>
   
   <li class="menu-item">

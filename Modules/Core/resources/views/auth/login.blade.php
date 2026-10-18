@@ -22,7 +22,7 @@
             <form action="{{ route('login.post') }}" method="post">
                 @csrf
                 <div class="input-group mb-3">
-                    <input type="text" name="login" class="form-control" placeholder="Email ou Nom d'utilisateur" value="{{ old('login') }}" required autofocus>
+                    <input type="text" name="login" class="form-control" placeholder="E-mail, téléphone ou identifiant" value="{{ old('login') }}" required autofocus>
                     <div class="input-group-text">
                         <span class="fas fa-envelope"></span>
                     </div>

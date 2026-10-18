@@ -5,6 +5,9 @@ namespace Modules\Core\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Modules\Core\Services\GuestToken;
+use Modules\Core\Services\ShowcaseMedia;
+use Modules\Core\Services\ShowcaseSettings;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /**
@@ -18,6 +21,7 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
  * - Staff connecté (session) : accès.
  * - Apprenant : session (PWA) ou token Bearer (app mobile), compte actif
  *   et non suspendu.
+ * - Invité (jeton vitrine) : uniquement les médias du contenu vitrine actif.
  * - Les requêtes Range (lecture vidéo/audio) sont gérées nativement.
  */
 class MediaController extends Controller
@@ -26,10 +30,20 @@ class MediaController extends Controller
     {
         $user = $request->user() ?? auth('sanctum')->user();
 
-        abort_unless($user && $user->is_active, 403, 'Accès aux médias réservé aux utilisateurs connectés.');
+        if ($user) {
+            abort_unless($user->is_active, 403, 'Accès aux médias réservé aux utilisateurs connectés.');
 
-        $learner = $user->learner;
-        abort_if($learner && $learner->isSuspended(), 403, 'Compte suspendu.');
+            $learner = $user->learner;
+            abort_if($learner && $learner->isSuspended(), 403, 'Compte suspendu.');
+        } else {
+            // Invité du mode découverte : uniquement les médias du contenu vitrine actif.
+            $token = $request->cookie(GuestToken::COOKIE) ?? $request->header('X-Guest-Token');
+            abort_unless(
+                app(ShowcaseSettings::class)->enabled() && GuestToken::valid($token) && ShowcaseMedia::allows($path),
+                403,
+                'Accès aux médias réservé aux utilisateurs connectés.'
+            );
+        }
 
         // Jamais de remontée d'arborescence.
         abort_if(str_contains($path, '..') || str_contains($path, "\0"), 404);

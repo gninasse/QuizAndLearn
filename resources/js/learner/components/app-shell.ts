@@ -3,6 +3,7 @@ import { html, raw } from '../core/html';
 import { isDue } from '../domain/sm2';
 import { avatarHtml } from '../ui/avatar';
 import { logoMark, logoWordmark } from '../ui/logo';
+import { guestBannerHtml } from '../guest/guest-ui';
 import { articlesStore, decksStore, quizzesStore, sessionStore, syncStore } from '../stores';
 
 /**
@@ -123,7 +124,7 @@ export class AppShell extends BaseComponent {
   private patchUser(user: NonNullable<ReturnType<typeof sessionStore.get>>): void {
     const label = this.querySelector('[data-role="user-meta"]');
     if (label) {
-      label.textContent = `Niveau ${user.xp.current_level} · ${user.xp.total_xp} XP`;
+      label.textContent = user.is_guest === true ? 'Mode découverte' : `Niveau ${user.xp.current_level} · ${user.xp.total_xp} XP`;
     }
   }
 
@@ -194,7 +195,7 @@ export class AppShell extends BaseComponent {
               ${raw(avatarHtml(user, 'w-9 h-9 text-xs'))}
               <div class="min-w-0">
                 <p class="text-sm font-semibold truncate">${user.full_name}</p>
-                <p data-role="user-meta" class="text-xs text-zinc-500 truncate">Niveau ${user.xp.current_level} · ${user.xp.total_xp} XP</p>
+                <p data-role="user-meta" class="text-xs text-zinc-500 truncate">${user.is_guest === true ? 'Mode découverte' : 'Niveau ' + user.xp.current_level + ' · ' + user.xp.total_xp + ' XP'}</p>
               </div>
             </div>
           </aside>
@@ -227,6 +228,7 @@ export class AppShell extends BaseComponent {
                 </a>
               </div>
             </header>
+            ${user.is_guest === true ? raw(guestBannerHtml()) : ''}
 
             <main id="outlet" class="flex-1 w-full max-w-5xl mx-auto px-4 py-5 pb-24 lg:pb-8"></main>
           </div>
