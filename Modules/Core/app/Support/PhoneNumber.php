@@ -2,6 +2,8 @@
 
 namespace Modules\Core\Support;
 
+use Modules\Core\Services\ShowcaseSettings;
+
 /**
  * Normalisation des numéros de téléphone au format E.164.
  */
@@ -26,7 +28,7 @@ class PhoneNumber
         }
 
         if (! $international) {
-            $code = preg_replace('/\D+/', '', (string) ($defaultCountryCode ?? config('showcase.default_country_code', '225')));
+            $code = preg_replace('/\D+/', '', (string) ($defaultCountryCode ?? app(ShowcaseSettings::class)->defaultCountryCode()));
 
             // Déjà préfixé par l'indicatif par défaut (ex. 2250700000000).
             if ($code !== '' && str_starts_with($digits, $code) && strlen($digits) >= strlen($code) + 8) {

@@ -24,6 +24,15 @@ use Modules\Core\Http\Controllers\ShowcaseAdminController;
 use Modules\Core\Http\Controllers\TrainerController;
 use Modules\Core\Http\Controllers\UserController;
 
+// Politique de confidentialité du mode découverte (publique).
+Route::get('/confidentialite', function (\Modules\Core\Services\ShowcaseSettings $settings) {
+    if ($url = $settings->privacyUrl()) {
+        return redirect()->away($url);
+    }
+
+    return view('core::showcase.privacy', ['text' => $settings->privacyText()]);
+})->name('privacy');
+
 // Médias uploadés : servis derrière authentification (plus de lien
 // symbolique public/storage — voir MediaController).
 Route::get('/storage/{path}', MediaController::class)->where('path', '.*')->name('media.show');
@@ -94,6 +103,9 @@ Route::middleware(['auth', 'staff'])->group(function () {
             Route::post('/{id}/toggle-status', [LearnerController::class, 'toggleStatus'])->name('toggle-status');
             Route::post('/{id}/reset-password', [LearnerController::class, 'resetPassword'])->name('reset-password');
         });
+
+        Route::get('/showcase/settings', [ShowcaseAdminController::class, 'settings'])->name('showcase.settings');
+        Route::put('/showcase/settings', [ShowcaseAdminController::class, 'saveSettings'])->name('showcase.settings.save');
 
         // Routes pour la gestion des groupes
         Route::patch('/showcase/{type}/{id}', [ShowcaseAdminController::class, 'toggle'])

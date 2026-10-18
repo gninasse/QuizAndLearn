@@ -53,6 +53,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->register(RouteServiceProvider::class);
 
         // Enregistrer les services
+        $this->app->singleton(\Modules\Core\Services\ShowcaseSettings::class);
         $this->app->singleton(\Modules\Core\Services\ModuleService::class);
         $this->app->singleton(\Modules\Core\Services\PermissionService::class);
     }

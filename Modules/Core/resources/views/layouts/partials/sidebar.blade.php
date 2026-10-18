@@ -63,6 +63,14 @@
                     </a>
                   </li>
                   @endcan
+                  @if (auth()->user()?->hasAnyRole(['super-admin', 'admin', 'Admin']))
+                  <li class="nav-item">
+                    <a href="{{ route('cores.showcase.settings') }}" class="nav-link {{ request()->routeIs('cores.showcase.settings*') ? 'active' : '' }}">
+                      <i class="nav-icon bi bi-binoculars"></i>
+                      <p>Mode découverte</p>
+                    </a>
+                  </li>
+                  @endif
                   @can('cores.trainers.index')
                   <li class="nav-item">
                     <a href="{{ route('cores.trainers.index') }}" class="nav-link {{ request()->routeIs('cores.trainers.*') ? 'active' : '' }}">
