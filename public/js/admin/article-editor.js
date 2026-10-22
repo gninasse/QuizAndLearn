@@ -83,7 +83,7 @@
         });
 
         $.ajax({
-          url: '/admin/articles/upload-media',
+          url: $('#assignedGroupsList').data('url-upload'),
           method: 'POST',
           data: formData,
           processData: false,
@@ -138,7 +138,7 @@
         });
 
         $.ajax({
-          url: '/admin/articles/upload-media',
+          url: $('#assignedGroupsList').data('url-upload'),
           method: 'POST',
           data: formData,
           processData: false,
@@ -312,7 +312,7 @@
         cancelButtonText: 'Annuler',
         preConfirm: function(query) {
           return $.ajax({
-            url: '/admin/articles/quizzes/search',
+            url: $('#assignedGroupsList').data('url-quiz-search'),
             method: 'GET',
             data: { q: query }
           }).then(function(response) {
@@ -425,7 +425,7 @@
       $autosaveStatus.html('<i class="bi bi-arrow-repeat spin me-1 text-primary"></i> Enregistrement...');
 
       $.ajax({
-        url: '/admin/articles/' + articleId + '/autosave',
+        url: $('#assignedGroupsList').data('url-autosave'),
         method: 'POST',
         data: {
           title: title,
@@ -498,7 +498,7 @@
 
     function toggleArticleStatus() {
       $.ajax({
-        url: '/admin/articles/' + articleId + '/toggle-active',
+        url: $('#assignedGroupsList').data('url-toggle'),
         method: 'PATCH',
         success: function(response) {
           if (response.success) {

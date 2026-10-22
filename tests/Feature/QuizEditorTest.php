@@ -71,6 +71,21 @@ class QuizEditorTest extends TestCase
     }
 
     /**
+     * Les scripts de l'éditeur lisent leurs URL dans la page (routes /cores/editor/...).
+     */
+    public function test_quiz_editor_exposes_route_urls(): void
+    {
+        $id = $this->quiz->id;
+        $response = $this->actingAs($this->user)->get(route('cores.editor.quizzes.edit', $id));
+
+        $response->assertSee('data-url-reorder="'.route('cores.editor.quizzes.reorder', $id).'"', false);
+        $response->assertSee('data-url-toggle="'.route('cores.editor.quizzes.toggle-active', $id).'"', false);
+        $response->assertSee('data-url-autosave="'.route('cores.editor.quizzes.autosave', $id).'"', false);
+        $response->assertSee('data-url-questions="'.route('cores.editor.quizzes.questions.store', $id).'"', false);
+        $response->assertSee('data-url-question="'.route('cores.editor.quizzes.questions.show', [$id, '__QUESTION__']).'"', false);
+    }
+
+    /**
      * Test accessing the quiz preview page.
      */
     public function test_can_access_quiz_preview(): void

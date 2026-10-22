@@ -101,7 +101,7 @@
         $previewNumBadge.text('QUESTION ' + (index || 1));
 
         $.ajax({
-          url: '/admin/quizzes/' + quizId + '/questions/' + data.id,
+          url: String($('#questionsList').data('url-question')).replace('__QUESTION__', data.id),
           method: 'GET',
           success: function(response) {
             if (response.success && response.data) {
@@ -151,11 +151,11 @@
         return;
       }
 
-      var url = '/admin/quizzes/' + quizId + '/questions';
+      var url = $('#questionsList').data('url-questions');
       var method = 'POST';
       
       if (qId) {
-        url = url + '/' + qId;
+        url = String($('#questionsList').data('url-question')).replace('__QUESTION__', qId);
         method = 'PUT';
       }
 

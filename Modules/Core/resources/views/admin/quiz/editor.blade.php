@@ -101,7 +101,12 @@
           </div>
         </div>
 
-        <div class="questions-list-wrapper" id="questionsList" data-quiz-id="{{ $quiz->id }}">
+        <div class="questions-list-wrapper" id="questionsList" data-quiz-id="{{ $quiz->id }}"
+             data-url-reorder="{{ route('cores.editor.quizzes.reorder', $quiz->id) }}"
+             data-url-toggle="{{ route('cores.editor.quizzes.toggle-active', $quiz->id) }}"
+             data-url-autosave="{{ route('cores.editor.quizzes.autosave', $quiz->id) }}"
+             data-url-questions="{{ route('cores.editor.quizzes.questions.store', $quiz->id) }}"
+             data-url-question="{{ route('cores.editor.quizzes.questions.show', [$quiz->id, '__QUESTION__']) }}">
           @forelse($quiz->questions as $index => $question)
             <div class="question-item" data-id="{{ $question->id }}">
               <div class="question-handle">

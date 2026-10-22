@@ -296,7 +296,11 @@
               <div class="groups-list mt-3" id="assignedGroupsList" data-article-id="{{ $article->id }}"
                    data-url-search="{{ route('cores.editor.groups.search') }}"
                    data-url-assign="{{ route('cores.editor.articles.groups.assign', $article->id) }}"
-                   data-url-unassign="{{ route('cores.editor.articles.groups.unassign', [$article->id, '__GROUP__']) }}">
+                   data-url-unassign="{{ route('cores.editor.articles.groups.unassign', [$article->id, '__GROUP__']) }}"
+                   data-url-upload="{{ route('cores.editor.articles.upload-media') }}"
+                   data-url-quiz-search="{{ route('cores.editor.articles.quizzes.search') }}"
+                   data-url-autosave="{{ route('cores.editor.articles.autosave', $article->id) }}"
+                   data-url-toggle="{{ route('cores.editor.articles.toggle-active', $article->id) }}">
                 @forelse($article->groups as $group)
                   <div class="group-badge-card" data-id="{{ $group->id }}">
                     <div class="group-badge-info">

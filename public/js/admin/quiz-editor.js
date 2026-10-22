@@ -38,7 +38,7 @@
           
           // Send reorder request to backend
           $.ajax({
-            url: '/admin/quizzes/' + quizId + '/reorder',
+            url: $questionsList.data('url-reorder'),
             method: 'POST',
             data: { question_ids: questionIds },
             success: function(response) {
@@ -220,7 +220,7 @@
 
     function toggleActiveState() {
       $.ajax({
-        url: '/admin/quizzes/' + quizId + '/toggle-active',
+        url: $questionsList.data('url-toggle'),
         method: 'PATCH',
         success: function(response) {
           if (response.success) {
@@ -260,7 +260,7 @@
       $autosaveStatus.html('<i class="bi bi-arrow-repeat spin me-1"></i> Enregistrement...');
       
       $.ajax({
-        url: '/admin/quizzes/' + quizId + '/autosave',
+        url: $questionsList.data('url-autosave'),
         method: 'POST',
         data: $quizParamsForm.serialize(),
         success: function(response) {
@@ -325,7 +325,7 @@
       }).then((result) => {
         if (result.isConfirmed) {
           $.ajax({
-            url: '/admin/quizzes/' + quizId + '/questions/' + qId,
+            url: String($questionsList.data('url-question')).replace('__QUESTION__', qId),
             method: 'DELETE',
             success: function(response) {
               if (response.success) {

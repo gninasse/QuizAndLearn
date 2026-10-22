@@ -69,6 +69,20 @@ class ArticleEditorTest extends TestCase
     }
 
     /**
+     * Les scripts de l'éditeur lisent leurs URL dans la page (routes /cores/editor/...).
+     */
+    public function test_article_editor_exposes_route_urls(): void
+    {
+        $id = $this->article->id;
+        $response = $this->actingAs($this->user)->get(route('cores.editor.articles.edit', $id));
+
+        $response->assertSee('data-url-upload="'.route('cores.editor.articles.upload-media').'"', false);
+        $response->assertSee('data-url-quiz-search="'.route('cores.editor.articles.quizzes.search').'"', false);
+        $response->assertSee('data-url-autosave="'.route('cores.editor.articles.autosave', $id).'"', false);
+        $response->assertSee('data-url-toggle="'.route('cores.editor.articles.toggle-active', $id).'"', false);
+    }
+
+    /**
      * Test article settings & content autosaving via AJAX.
      */
     public function test_can_autosave_article(): void
