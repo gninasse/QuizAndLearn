@@ -1,6 +1,6 @@
 # Dossiers de contenus par groupe (lycées, universités, centres de formation) — Conception
 
-> Date : 2026-10-22 · Statut : à valider · Projet : QuizAndLearn (Learn&Quiz)
+> Date : 2026-10-22 · Statut : validé le 2026-10-22 · Projet : QuizAndLearn (Learn&Quiz)
 
 ## 1. Intention
 
@@ -160,8 +160,15 @@ Le fonctionnement actuel, où un contenu est partagé entre plusieurs groupes, r
 
 ## 14. App mobile Kotlin
 
-- `api/mobile/v1` expose les mêmes `folders`, `resources` et `placements`.
-- Mettre à jour `PROMPT_APP_MOBILE_KOTLIN.md` (ou ajouter un prompt dédié, comme pour les mises à jour précédentes) : onglet Cours, lecteur de ressources (PDF natif ou WebView, avec `FLAG_SECURE` et filigrane), puce de chemin sur les cartes, hors ligne à la demande.
+- `api/mobile/v1` (Sanctum) expose exactement les mêmes `folders`, `resources` et `placements` que la PWA, dans `bootstrap` et `changes`, ainsi que les routes `resources/{id}/view` et `/download`. Ces routes sont couvertes par des tests de fonctionnalité côté mobile.
+- **Livrable dédié (décidé) :** un prompt `PROMPT_DOSSIERS_MOBILE_AI_STUDIO.md` à la racine, sur le modèle de `PROMPT_MAJ_GROUPES_AI_STUDIO.md`, pour mettre à jour l'app Kotlin existante. Il contient :
+  - les nouveaux champs JSON exacts (exemples de réponses réelles), les endpoints et les codes d'erreur ;
+  - le modèle de données local (Room) : tables `folders`, `resources`, `placements`, avec la règle de remplacement complet de `folders` et `placements` à chaque `changes` ;
+  - l'onglet « Cours » (sélecteur de groupe, fil d'Ariane, dossiers puis éléments, progression) et la puce de chemin sur les cartes existantes ;
+  - le lecteur de ressources : PDF natif (`PdfRenderer`) ou WebView pdf.js, audio, image, vidéo via la lecture existante, liens (YouTube et Vimeo via le lecteur de marque) ; `FLAG_SECURE` et filigrane nominatif ; téléchargement seulement si `allow_download` ;
+  - le hors ligne à la demande (fichiers chiffrés dans le stockage privé de l'app) ;
+  - la terminologie configurable du groupe et une checklist de QA.
+- `PROMPT_APP_MOBILE_KOTLIN.md` reçoit un court renvoi vers ce prompt.
 
 ## 15. Laissé au constructeur
 
