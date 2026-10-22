@@ -7,6 +7,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
@@ -35,6 +36,22 @@ class ConvertDocumentToPdf implements ShouldQueue
     public function __construct(public int $resourceId)
     {
         $this->onQueue((string) config('media.documents.queue', 'documents'));
+    }
+
+    /**
+     * Une seule conversion à la fois par ressource (bouton « Réessayer » pendant
+     * qu'un essai tourne encore) : elles partagent le même répertoire temporaire.
+     * Un doublon est abandonné, l'essai en cours fixe le statut final.
+     *
+     * @return array<int, object>
+     */
+    public function middleware(): array
+    {
+        return [
+            (new WithoutOverlapping((string) $this->resourceId))
+                ->dontRelease()
+                ->expireAfter($this->timeout + 60),
+        ];
     }
 
     public function handle(): void

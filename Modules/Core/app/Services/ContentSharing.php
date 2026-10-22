@@ -2,6 +2,8 @@
 
 namespace Modules\Core\Services;
 
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use Modules\Core\Models\AppSetting;
 use Modules\Core\Models\Article;
@@ -52,5 +54,38 @@ class ContentSharing
         }
 
         AppSetting::put(self::KEY, $mode);
+    }
+
+    public const ALREADY_OWNED = 'Ce contenu appartient déjà à un autre groupe. Utilisez « Copier vers… ».';
+
+    /**
+     * Règle du mode `isolated` : un contenu déjà rattaché à un AUTRE groupe ne
+     * peut pas en rejoindre un second (les decks publics en sont exemptés).
+     * Sans effet en mode `shared`.
+     *
+     * @throws ValidationException (clé `group_id`)
+     */
+    public static function assertCanAttach(string $type, int $id, int $groupId): void
+    {
+        if (! isset(self::TYPES[$type])) {
+            throw new InvalidArgumentException("Type de contenu inconnu : {$type}");
+        }
+        if (! self::isolated()) {
+            return;
+        }
+
+        [$model, $pivot, $foreignKey] = self::TYPES[$type];
+        if ($model === FlashcardDeck::class && FlashcardDeck::whereKey($id)->where('is_public', true)->exists()) {
+            return;
+        }
+
+        $elsewhere = DB::table($pivot)
+            ->where($foreignKey, $id)
+            ->where('group_id', '!=', $groupId)
+            ->exists();
+
+        if ($elsewhere) {
+            throw ValidationException::withMessages(['group_id' => self::ALREADY_OWNED]);
+        }
     }
 }

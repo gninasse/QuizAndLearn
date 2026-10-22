@@ -12,6 +12,7 @@ use Modules\Core\Http\Controllers\DashboardController;
 use Modules\Core\Http\Controllers\ExamController;
 use Modules\Core\Http\Controllers\FlashcardDeckController;
 use Modules\Core\Http\Controllers\GeneralSettingsController;
+use Modules\Core\Http\Controllers\GroupContentController;
 use Modules\Core\Http\Controllers\GroupController;
 use Modules\Core\Http\Controllers\GroupMemberController;
 use Modules\Core\Http\Controllers\ImpersonationController;
@@ -159,6 +160,23 @@ Route::middleware(['auth', 'staff'])->group(function () {
             Route::delete('/{id}/membres/learners/{learnerId}/suspend', [GroupMemberController::class, 'unsuspend'])->name('members.learners.unsuspend');
             Route::post('/{id}/membres/trainers', [GroupMemberController::class, 'addTrainers'])->name('members.trainers.add');
             Route::delete('/{id}/membres/trainers/{trainerId}', [GroupMemberController::class, 'removeTrainer'])->name('members.trainers.remove');
+
+            // Arbre des contenus du groupe (dossiers, ressources, placement)
+            Route::prefix('/{id}/contenus')->name('contents.')->whereNumber(['id', 'folder', 'itemId', 'resource'])->group(function () {
+                Route::get('/', [GroupContentController::class, 'page'])->name('page');
+                Route::get('/data', [GroupContentController::class, 'data'])->name('data');
+                Route::post('/folders', [GroupContentController::class, 'storeFolder'])->name('folders.store');
+                Route::patch('/folders/{folder}', [GroupContentController::class, 'updateFolder'])->name('folders.update');
+                Route::post('/folders/{folder}/move', [GroupContentController::class, 'moveFolder'])->name('folders.move');
+                Route::delete('/folders/{folder}', [GroupContentController::class, 'destroyFolder'])->name('folders.destroy');
+                Route::post('/items/place', [GroupContentController::class, 'placeItem'])->name('items.place');
+                Route::post('/items/reorder', [GroupContentController::class, 'reorder'])->name('items.reorder');
+                Route::post('/items/attach', [GroupContentController::class, 'attachItem'])->name('items.attach');
+                Route::delete('/items/{type}/{itemId}', [GroupContentController::class, 'detachItem'])->name('items.detach');
+                Route::post('/resources', [GroupContentController::class, 'storeResource'])->name('resources.store');
+                Route::post('/links', [GroupContentController::class, 'storeLink'])->name('links.store');
+                Route::post('/resources/{resource}/retry-conversion', [GroupContentController::class, 'retryConversion'])->name('resources.retry-conversion');
+            });
         });
 
         // Routes pour la gestion des quiz
