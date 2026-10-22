@@ -18,10 +18,18 @@ use RuntimeException;
  * Les apprenants qui sont aussi membres du groupe conservé gardent l'original, et
  * donc leur historique. Un apprenant de plusieurs groupes cibles suit la copie du
  * premier (id croissant).
+ *
+ * Examens uniquement : un apprenant qui verra plusieurs exemplaires (groupe conservé +
+ * groupe copie, ou deux groupes copies) reçoit un double de ses tentatives terminées
+ * sur chaque autre exemplaire visible, pour que `max_attempts` y reste atteint (un
+ * examen passé ne se repasse pas). Quiz et decks ne sont pas dupliqués.
  */
 class IsolationMigrator
 {
     private const CHUNK = 500;
+
+    /** Statuts comptés par ExamAttemptController pour `max_attempts`. */
+    private const FINISHED_EXAM_STATUSES = ['termine', 'completed', 'time_up'];
 
     public function __construct(
         private ContentCopier $copier,
@@ -101,10 +109,35 @@ class IsolationMigrator
     }
 
     /**
+     * Nombre d'apprenants distincts qui verront plusieurs exemplaires d'au moins un
+     * contenu après la bascule (membres d'au moins deux groupes d'un même contenu).
+     */
+    public function multiExemplarLearners(): int
+    {
+        $learners = [];
+        $members = [];
+        foreach ($this->conflicts() as $c) {
+            $counts = [];
+            foreach ($c['group_ids'] as $groupId) {
+                foreach ($members[$groupId] ??= $this->learnerIds($groupId) as $learnerId) {
+                    $counts[$learnerId] = ($counts[$learnerId] ?? 0) + 1;
+                }
+            }
+            foreach ($counts as $learnerId => $n) {
+                if ($n > 1) {
+                    $learners[$learnerId] = true;
+                }
+            }
+        }
+
+        return count($learners);
+    }
+
+    /**
      * Exécute le plan : une transaction par contenu. Rejouer après succès ne fait rien.
      *
      * @param  ?User  $by  propriétaire des copies dont l'auteur d'origine n'existe plus (défaut : utilisateur connecté)
-     * @return array{copied: int, moved_rows: int}
+     * @return array{copied: int, moved_rows: int, duplicated_attempts: int}
      */
     public function apply(?User $by = null): array
     {
@@ -115,18 +148,20 @@ class IsolationMigrator
 
         $copied = 0;
         $moved = 0;
+        $duplicated = 0;
         foreach ($this->plan() as $item) {
-            [$c, $m] = DB::transaction(fn () => $this->migrateItem($item, $by));
+            [$c, $m, $d] = DB::transaction(fn () => $this->migrateItem($item, $by));
             $copied += $c;
             $moved += $m;
+            $duplicated += $d;
         }
 
-        return ['copied' => $copied, 'moved_rows' => $moved];
+        return ['copied' => $copied, 'moved_rows' => $moved, 'duplicated_attempts' => $duplicated];
     }
 
     /**
      * @param  array{type: string, id: int, keep_group_id: int, copies: array<int, array{group_id: int, learners: int}>}  $item
-     * @return array{0: int, 1: int}
+     * @return array{0: int, 1: int, 2: int}
      */
     private function migrateItem(array $item, User $by): array
     {
@@ -140,6 +175,11 @@ class IsolationMigrator
         $keptLearners = $this->learnerIds($item['keep_group_id']);
         $copied = 0;
         $moved = 0;
+        $duplicated = 0;
+        // Apprenants dont l'historique a déjà suivi une copie précédente (id de groupe croissant).
+        $alreadyMoved = [];
+        // Examens : copies créées d'abord, doubles faits depuis l'original avant tout déplacement.
+        $created = [];
 
         foreach ($item['copies'] as ['group_id' => $groupId]) {
             $place = DB::table($pivot)->where('group_id', $groupId)->where($fk, $id)->first(['folder_id', 'position']);
@@ -156,15 +196,55 @@ class IsolationMigrator
                 ->update(['position' => (int) $place->position]);
             $copied++;
 
-            // 3. Historique des apprenants de ce groupe qui n'ont plus accès à l'original.
-            $learners = array_values(array_diff($this->learnerIds($groupId), $keptLearners));
-            $moved += $this->moveHistory($type, $id, (int) $copy->getKey(), $map, $learners);
+            $members = $this->learnerIds($groupId);
+            // 3. Historique des apprenants de ce groupe qui n'ont plus accès à l'original
+            //    (et qui ne l'ont pas déjà fait suivre à une copie précédente).
+            $movers = array_values(array_diff($members, $keptLearners, $alreadyMoved));
+            // Apprenants qui verront aussi un autre exemplaire (original ou copie précédente).
+            $others = array_values(array_diff($members, $movers));
+            $created[] = [(int) $copy->getKey(), $map, $movers, $others];
+            $alreadyMoved = array_merge($alreadyMoved, $movers);
+
             $moved += DB::table('push_assignment_snapshots')
                 ->where('group_id', $groupId)->where('content_type', $type)->where('content_id', $id)
                 ->update(['content_id' => $copy->getKey()]);
         }
 
-        return [$copied, $moved];
+        // 4. Examens : doubles des tentatives terminées pour ceux qui voient plusieurs exemplaires,
+        //    faits depuis l'original avant que les déplacements ne le vident.
+        if ($type === 'exam') {
+            foreach ($created as [$copyId, $map, , $others]) {
+                $duplicated += $this->duplicateExamAttempts($id, $copyId, $map['exam_questions'], $others);
+            }
+        }
+        foreach ($created as [$copyId, $map, $movers]) {
+            $moved += $this->moveHistory($type, $id, $copyId, $map, $movers);
+        }
+
+        return [$copied, $moved, $duplicated];
+    }
+
+    /**
+     * @param  array<int,int>  $questions
+     * @param  array<int,int>  $learnerIds
+     */
+    private function duplicateExamAttempts(int $from, int $to, array $questions, array $learnerIds): int
+    {
+        $count = 0;
+        foreach (array_chunk($learnerIds, self::CHUNK) as $learners) {
+            $rows = DB::table('exam_attempts')->where('exam_id', $from)->whereIn('learner_id', $learners)
+                ->whereIn('status', self::FINISHED_EXAM_STATUSES)->orderBy('id')->get();
+            foreach ($rows as $row) {
+                $data = (array) $row;
+                unset($data['id']);
+                $data['exam_id'] = $to;
+                $data['answers'] = $this->remapAnswers($row->answers, $questions);
+                DB::table('exam_attempts')->insert($data);
+                $count++;
+            }
+        }
+
+        return $count;
     }
 
     /**

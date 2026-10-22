@@ -45,9 +45,15 @@ class ContentSharingSettingsController extends Controller
 
         $titles = $this->migrator->conflicts()->mapWithKeys(fn ($c) => [$c['type'].':'.$c['id'] => $c['title']]);
 
+        $multi = $this->migrator->multiExemplarLearners();
+
         return response()->json([
             'success' => true,
             'plan' => $this->migrator->plan(),
+            'multi_exemplar_learners' => $multi,
+            'multi_exemplar_message' => $multi === 1
+                ? '1 apprenant verra plusieurs exemplaires'
+                : "{$multi} apprenants verront plusieurs exemplaires",
             'titles' => $titles,
             'groups' => Group::query()->pluck('name', 'id'),
         ]);
@@ -62,7 +68,8 @@ class ContentSharingSettingsController extends Controller
         return response()->json([
             'success' => true,
             ...$result,
-            'message' => "{$result['copied']} copie(s) créée(s), {$result['moved_rows']} ligne(s) d'historique transférée(s).",
+            'message' => "{$result['copied']} copie(s) créée(s), {$result['moved_rows']} ligne(s) d'historique transférée(s), "
+                ."{$result['duplicated_attempts']} tentative(s) d'examen dupliquée(s).",
         ]);
     }
 

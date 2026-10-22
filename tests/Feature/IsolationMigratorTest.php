@@ -185,7 +185,7 @@ class IsolationMigratorTest extends TestCase
 
         // Rejouer ne trouve plus rien.
         $this->assertCount(0, $this->migrator()->conflicts());
-        $this->assertSame(['copied' => 0, 'moved_rows' => 0], $this->migrator()->apply());
+        $this->assertSame(['copied' => 0, 'moved_rows' => 0, 'duplicated_attempts' => 0], $this->migrator()->apply());
     }
 
     public function test_pending_document_copy_gets_one_conversion_job(): void
@@ -253,6 +253,130 @@ class IsolationMigratorTest extends TestCase
             ->assertStatus(403)
             ->assertJsonPath('message', 'Nombre maximum de tentatives atteint.');
         $this->assertSame(1, DB::table('exam_attempts')->where('learner_id', $learner->id)->count());
+    }
+
+    /** Examen à 2 questions (max 1 tentative) attribué aux groupes donnés. */
+    private function exam(array $groups): Exam
+    {
+        $exam = Exam::create([
+            'title' => 'Examen partagé', 'description' => 'Desc', 'duration' => 30, 'passing_score' => 50,
+            'is_active' => true, 'max_attempts' => 1, 'note_max' => 20, 'created_by' => $this->admin->id,
+        ]);
+        foreach ($groups as $g) {
+            $exam->groups()->attach($g->id, ['folder_id' => null, 'position' => 0]);
+        }
+        foreach ([1, 2] as $i) {
+            ExamQuestion::create([
+                'exam_id' => $exam->id, 'question_text' => "Q{$i}", 'type' => 'true_false', 'points' => 5,
+                'points_negatifs' => 0, 'order' => $i, 'options' => ['correct_answer' => 'true'],
+            ]);
+        }
+
+        return $exam;
+    }
+
+    private function examAttempt(Exam $exam, Learner $learner, string $status = 'termine'): int
+    {
+        [$q1, $q2] = ExamQuestion::where('exam_id', $exam->id)->orderBy('order')->pluck('id')->all();
+
+        return DB::table('exam_attempts')->insertGetId([
+            'exam_id' => $exam->id, 'learner_id' => $learner->id, 'date_debut' => now()->subHour(),
+            'date_fin' => now()->subMinutes(30), 'status' => $status, 'note_sur_vingt' => 12,
+            'answers' => json_encode([$q1 => 'true', $q2 => 'false']),
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+    }
+
+    private function assertExamLocked(Learner $learner, int $examId): void
+    {
+        $this->actingAs($learner->user)
+            ->postJson(route('learn.v1.exams.attempts.store', $examId))
+            ->assertStatus(403)
+            ->assertJsonPath('message', 'Nombre maximum de tentatives atteint.');
+    }
+
+    public function test_exam_learner_in_kept_and_copy_group_cannot_retake_on_copy(): void
+    {
+        $this->learner($this->groupA);
+        $this->learner($this->groupA);
+        $both = $this->learner($this->groupA, $this->groupB); // voit l'original (A) et la copie (B)
+        $exam = $this->exam([$this->groupA, $this->groupB]);
+        $original = $this->examAttempt($exam, $both);
+        $this->examAttempt($exam, $both, 'en_cours'); // non comptée : jamais dupliquée
+
+        $result = $this->migrator()->apply();
+
+        $copyId = (int) DB::table('group_exam')->where('group_id', $this->groupB->id)->value('exam_id');
+        $this->assertNotSame($exam->id, $copyId);
+        $this->assertSame(1, $result['duplicated_attempts']);
+        // L'original garde sa tentative, la copie en reçoit un double aux réponses remappées.
+        $this->assertSame($exam->id, (int) DB::table('exam_attempts')->where('id', $original)->value('exam_id'));
+        $dup = DB::table('exam_attempts')->where('exam_id', $copyId)->where('learner_id', $both->id)->get();
+        $this->assertCount(1, $dup);
+        [$c1, $c2] = ExamQuestion::where('exam_id', $copyId)->orderBy('order')->pluck('id')->all();
+        $this->assertEquals([$c1 => 'true', $c2 => 'false'], json_decode($dup[0]->answers, true));
+        $this->assertSame('termine', $dup[0]->status);
+        $this->assertEquals(12, $dup[0]->note_sur_vingt);
+
+        $this->assertExamLocked($both, $copyId);
+        $this->assertExamLocked($both, $exam->id);
+    }
+
+    public function test_exam_learner_in_two_copy_groups_cannot_retake_on_either_copy(): void
+    {
+        foreach (range(1, 3) as $i) {
+            $this->learner($this->groupA); // A garde l'original
+        }
+        $twice = $this->learner($this->groupB, $this->groupC);
+        $exam = $this->exam([$this->groupA, $this->groupB, $this->groupC]);
+        $attemptId = $this->examAttempt($exam, $twice);
+
+        $result = $this->migrator()->apply();
+
+        $copyB = (int) DB::table('group_exam')->where('group_id', $this->groupB->id)->value('exam_id');
+        $copyC = (int) DB::table('group_exam')->where('group_id', $this->groupC->id)->value('exam_id');
+        $this->assertSame(2, $result['copied']);
+        $this->assertSame(1, $result['duplicated_attempts']);
+        // Déplacée vers la copie du premier groupe, dupliquée sur l'autre.
+        $this->assertSame($copyB, (int) DB::table('exam_attempts')->where('id', $attemptId)->value('exam_id'));
+        $this->assertSame(1, DB::table('exam_attempts')->where('exam_id', $copyC)->where('learner_id', $twice->id)->count());
+        [$c1, $c2] = ExamQuestion::where('exam_id', $copyC)->orderBy('order')->pluck('id')->all();
+        $this->assertEquals([$c1 => 'true', $c2 => 'false'],
+            json_decode(DB::table('exam_attempts')->where('exam_id', $copyC)->value('answers'), true));
+
+        $this->assertExamLocked($twice, $copyB);
+        $this->assertExamLocked($twice, $copyC);
+    }
+
+    public function test_quiz_attempts_are_not_duplicated_for_learners_seeing_several_exemplars(): void
+    {
+        $this->learner($this->groupA);
+        $both = $this->learner($this->groupA, $this->groupB);
+        $quiz = $this->quiz([$this->groupA, $this->groupB]);
+        DB::table('quiz_attempts')->insert([
+            'learner_id' => $both->id, 'quiz_id' => $quiz->id, 'started_at' => now(), 'status' => 'completed',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        $this->assertSame(0, $this->migrator()->apply()['duplicated_attempts']);
+        $this->assertSame(1, DB::table('quiz_attempts')->count());
+    }
+
+    public function test_simulate_counts_learners_seeing_several_exemplars(): void
+    {
+        $this->learner($this->groupA);
+        $this->learner($this->groupA);
+        $this->learner($this->groupB);
+        $this->learner($this->groupA, $this->groupB);
+        $this->learner($this->groupB, $this->groupC);
+        $this->quiz([$this->groupA, $this->groupB]);
+        $this->exam([$this->groupB, $this->groupC]);
+
+        $this->assertSame(2, $this->migrator()->multiExemplarLearners());
+        $this->postJson(route('cores.settings.content-sharing.simulate'))
+            ->assertOk()
+            ->assertJsonPath('multi_exemplar_learners', 2)
+            ->assertJsonPath('multi_exemplar_message', '2 apprenants verront plusieurs exemplaires');
     }
 
     public function test_quiz_answers_question_ids_remapped(): void

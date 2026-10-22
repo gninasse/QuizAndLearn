@@ -97,7 +97,14 @@
               + (res.groups[p.keep_group_id] || '#' + p.keep_group_id) + ' ; copie pour ' + copies
             ).appendTo($list);
           });
-          $('#planResult').empty().append($('<div class="alert alert-light border"></div>').append($list));
+          var $box = $('<div class="alert alert-light border"></div>').append($list);
+          if (res.multi_exemplar_learners > 0) {
+            // Examens : leurs tentatives terminées sont dupliquées sur chaque exemplaire visible.
+            $('<p class="mt-2 mb-0 small text-muted"></p>')
+              .text(res.multi_exemplar_message + ' (tentatives d\'examen reportées sur chaque exemplaire).')
+              .appendTo($box);
+          }
+          $('#planResult').empty().append($box);
         })
         .fail(fail('Simulation impossible'))
         .always(function () { $btn.prop('disabled', false); });
