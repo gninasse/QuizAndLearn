@@ -16,7 +16,7 @@ class UpdateArticleRequest extends FormRequest
             'content' => 'nullable|string',
             'is_active' => 'nullable|boolean',
             'group_ids' => 'nullable|array',
-            'group_ids.*' => 'exists:groups,id',
+            'group_ids.*' => 'nullable|exists:groups,id',
         ];
     }
 

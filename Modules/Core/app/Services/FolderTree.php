@@ -108,6 +108,45 @@ class FolderTree
     }
 
     /**
+     * Attribution depuis un éditeur : rattache le contenu au groupe (dans $folderId,
+     * en dernière position) ; s'il y est déjà et qu'un dossier est donné, l'y déplace
+     * en fin de dossier, sinon sa place est conservée.
+     * La règle du mode de partage est à appliquer par l'appelant.
+     *
+     * @throws ValidationException dossier d'un autre groupe, deck public dans un dossier
+     */
+    public function assign(Group $group, string $type, int $id, ?int $folderId): void
+    {
+        if (! $this->pivotRow($group->id, $type, $id)->exists()) {
+            $this->attach($group, $type, $id, $folderId);
+        } elseif ($folderId !== null) {
+            $this->place($group, $type, $id, $folderId, $this->nextPosition($group->id, $folderId));
+        }
+    }
+
+    /**
+     * Remplace la liste des groupes d'un contenu. Les rattachements conservés gardent
+     * leur place (dossier, rang) ; les nouveaux vont à la racine, en dernière position.
+     * La règle du mode de partage est à appliquer par l'appelant.
+     *
+     * @param  array<int, int|string>  $groupIds
+     */
+    public function syncGroups(string $type, int $id, array $groupIds): void
+    {
+        [, $pivot, $fk] = $this->type($type);
+        $ids = ContentSharing::groupIds($groupIds);
+
+        DB::transaction(function () use ($type, $id, $pivot, $fk, $ids) {
+            DB::table($pivot)->where($fk, $id)->whereNotIn('group_id', $ids)->delete();
+
+            $kept = DB::table($pivot)->where($fk, $id)->pluck('group_id')->map(fn ($g) => (int) $g)->all();
+            foreach (array_diff($ids, $kept) as $groupId) {
+                $this->attach(Group::findOrFail($groupId), $type, $id, null);
+            }
+        });
+    }
+
+    /**
      * Retire un contenu du groupe (le contenu lui-même est conservé).
      *
      * @throws ModelNotFoundException contenu non attribué au groupe

@@ -4,6 +4,7 @@ namespace Modules\Core\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Modules\Core\Http\Requests\StoreQuestionRequest;
 use Modules\Core\Http\Requests\StoreQuizRequest;
 use Modules\Core\Http\Requests\UpdateQuestionRequest;
@@ -11,6 +12,9 @@ use Modules\Core\Http\Requests\UpdateQuizRequest;
 use Modules\Core\Models\Group;
 use Modules\Core\Models\Question;
 use Modules\Core\Models\Quiz;
+use Modules\Core\Services\ContentEditAccess;
+use Modules\Core\Services\ContentSharing;
+use Modules\Core\Services\FolderTree;
 
 class QuizController extends Controller
 {
@@ -94,13 +98,11 @@ class QuizController extends Controller
             $quiz = Quiz::with('groups')->findOrFail($id);
 
             $user = auth()->user();
-            if (! ($user->hasRole('super-admin') || $user->hasRole('Admin') || $user->hasRole('admin'))) {
-                if ($quiz->created_by !== $user->id) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Action non autorisée.',
-                    ], 403);
-                }
+            if (! ContentEditAccess::canEdit($user, $quiz)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Action non autorisée.',
+                ], 403);
             }
 
             $data = $quiz->toArray();
@@ -121,9 +123,10 @@ class QuizController extends Controller
     /**
      * Créer un nouveau quiz (AJAX)
      */
-    public function store(StoreQuizRequest $request): \Illuminate\Http\JsonResponse
+    public function store(StoreQuizRequest $request, FolderTree $tree): \Illuminate\Http\JsonResponse
     {
         try {
+            ContentSharing::assertCanSync('quiz', null, (array) ($request->group_ids ?? []));
             $quiz = Quiz::create([
                 'title' => $request->title,
                 'description' => $request->description,
@@ -135,7 +138,7 @@ class QuizController extends Controller
 
             // Synchroniser les groupes si fournis
             if ($request->has('group_ids')) {
-                $quiz->groups()->sync($request->group_ids);
+                $tree->syncGroups('quiz', $quiz->id, (array) ($request->group_ids ?? []));
             }
 
             return response()->json([
@@ -143,6 +146,8 @@ class QuizController extends Controller
                 'message' => 'Quiz créé avec succès',
                 'data' => $quiz,
             ]);
+        } catch (ValidationException $e) {
+            throw $e;
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -154,21 +159,20 @@ class QuizController extends Controller
     /**
      * Mettre à jour un quiz (AJAX)
      */
-    public function update(UpdateQuizRequest $request, int $id): \Illuminate\Http\JsonResponse
+    public function update(UpdateQuizRequest $request, int $id, FolderTree $tree): \Illuminate\Http\JsonResponse
     {
         try {
             $quiz = Quiz::findOrFail($id);
 
             $user = auth()->user();
-            if (! ($user->hasRole('super-admin') || $user->hasRole('Admin') || $user->hasRole('admin'))) {
-                if ($quiz->created_by !== $user->id) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Action non autorisée.',
-                    ], 403);
-                }
+            if (! ContentEditAccess::canEdit($user, $quiz)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Action non autorisée.',
+                ], 403);
             }
 
+            ContentSharing::assertCanSync('quiz', $quiz->id, (array) ($request->group_ids ?? []));
             $quiz->update([
                 'title' => $request->title,
                 'description' => $request->description,
@@ -178,17 +182,15 @@ class QuizController extends Controller
             ]);
 
             // Synchroniser les groupes
-            if ($request->has('group_ids')) {
-                $quiz->groups()->sync($request->group_ids);
-            } else {
-                $quiz->groups()->sync([]);
-            }
+            $tree->syncGroups('quiz', $quiz->id, (array) ($request->group_ids ?? []));
 
             return response()->json([
                 'success' => true,
                 'message' => 'Quiz modifié avec succès',
                 'data' => $quiz,
             ]);
+        } catch (ValidationException $e) {
+            throw $e;
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -206,13 +208,11 @@ class QuizController extends Controller
             $quiz = Quiz::findOrFail($id);
 
             $user = auth()->user();
-            if (! ($user->hasRole('super-admin') || $user->hasRole('Admin') || $user->hasRole('admin'))) {
-                if ($quiz->created_by !== $user->id) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Action non autorisée.',
-                    ], 403);
-                }
+            if (! ContentEditAccess::canEdit($user, $quiz)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Action non autorisée.',
+                ], 403);
             }
 
             $quiz->delete();
@@ -238,13 +238,11 @@ class QuizController extends Controller
             $quiz = Quiz::findOrFail($id);
 
             $user = auth()->user();
-            if (! ($user->hasRole('super-admin') || $user->hasRole('Admin') || $user->hasRole('admin'))) {
-                if ($quiz->created_by !== $user->id) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Action non autorisée.',
-                    ], 403);
-                }
+            if (! ContentEditAccess::canEdit($user, $quiz)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Action non autorisée.',
+                ], 403);
             }
 
             $quiz->is_active = ! $quiz->is_active;

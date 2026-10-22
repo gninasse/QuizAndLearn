@@ -177,9 +177,13 @@
           <h6 class="fw-bold mb-0 text-success" style="color:var(--green-mid);"><i class="bi bi-people-fill me-2"></i> {{ term('Groups') }} cibles</h6>
         </div>
         <div class="card-body">
-          <p class="text-muted small">Sélectionnez les {{ term('groups') }} d'apprenants qui auront accès à ce paquet de flashcards.</p>
+          @php($singleGroup = \Modules\Core\Services\ContentSharing::isolated() && ! $deck->is_public)
+          <p class="text-muted small">Sélectionnez {{ $singleGroup ? term('the_group') : 'les '.term('groups') }} d'apprenants qui {{ $singleGroup ? 'aura' : 'auront' }} accès à ce paquet de flashcards.</p>
           <div class="mb-3">
-            <select class="form-control select2" id="deckGroupsAssign" multiple="multiple" style="width: 100%;">
+            <select class="form-control select2" id="deckGroupsAssign" @unless($singleGroup) multiple="multiple" @endunless style="width: 100%;">
+              @if($singleGroup)
+                <option value=""></option>
+              @endif
               @foreach($groups as $group)
                 <option value="{{ $group->id }}" {{ $deck->groups->contains($group->id) ? 'selected' : '' }}>{{ $group->name }}</option>
               @endforeach
@@ -188,6 +192,17 @@
           <button class="btn btn-primary btn-sm w-100" id="btnSaveGroups" style="border-radius: 8px;">
             Enregistrer les affectations
           </button>
+
+          <!-- Placement dans les dossiers de chaque groupe -->
+          <div id="deckGroupFolders" class="mt-3">
+            @foreach($deck->groups as $group)
+              <div class="deck-group-folder mb-2">
+                <div class="small fw-semibold">{{ $group->name }}</div>
+                <div class="group-folder-slot" data-group-id="{{ $group->id }}"></div>
+              </div>
+            @endforeach
+          </div>
+          @include('core::admin.partials.group-placement', ['type' => 'deck', 'content' => $deck])
         </div>
       </div>
 
@@ -411,7 +426,7 @@
     // Select2
     $('#deckGroupsAssign').select2({
       theme: 'bootstrap-5',
-      placeholder: @json('Sélectionner les '.term('groups')),
+      placeholder: @json($singleGroup ? 'Sélectionner '.term('a_group') : 'Sélectionner les '.term('groups')),
       allowClear: true
     });
 
@@ -569,20 +584,38 @@
 
     // Save Groups Target Assignments
     $('#btnSaveGroups').click(function() {
-      const selectedGroups = $('#deckGroupsAssign').val() || [];
-      
+      // Sélection unique (mode isolé) : val() renvoie une chaîne.
+      const selectedGroups = [].concat($('#deckGroupsAssign').val() || []).filter(Boolean);
+
       // Clear existing groups and sync them
       $.ajax({
         url: `/cores/flashcard-decks/${deckId}`,
         type: 'PUT',
         data: {
           _token: '{{ csrf_token() }}',
-          titre: '{{ $deck->titre }}',
-          algorithme: '{{ $deck->algorithme }}',
+          titre: @json($deck->titre),
+          description: @json($deck->description),
+          matiere: @json($deck->matiere),
+          algorithme: @json($deck->algorithme),
+          is_public: {{ $deck->is_public ? 1 : 0 }},
           group_ids: selectedGroups
         },
         success: function(res) {
           if (res.success) {
+            // Un sélecteur de dossier par groupe affecté
+            const $folders = $('#deckGroupFolders').empty();
+            selectedGroups.forEach(function (gId) {
+              const name = $('#deckGroupsAssign option[value="' + gId + '"]').text();
+              $('<div class="deck-group-folder mb-2"></div>')
+                .append($('<div class="small fw-semibold"></div>').text(name))
+                .append(window.GroupFolderPicker ? GroupFolderPicker.slotHtml(gId) : '')
+                .appendTo($folders);
+            });
+            if (window.GroupFolderPicker) {
+              GroupFolderPicker.mountAll($folders);
+              GroupFolderPicker.syncSingle($(), selectedGroups.length);
+            }
+
             Swal.fire({
               toast: true,
               position: 'top-end',
@@ -592,6 +625,9 @@
               timer: 2000
             });
           }
+        },
+        error: function(xhr) {
+          Swal.fire('Erreur', (xhr.responseJSON && xhr.responseJSON.message) || 'Erreur lors de l\'enregistrement.', 'error');
         }
       });
     });

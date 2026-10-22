@@ -15,6 +15,7 @@ use Modules\Core\Models\FlashcardDeck;
 use Modules\Core\Models\Folder;
 use Modules\Core\Models\Group;
 use Modules\Core\Models\Resource;
+use Modules\Core\Services\ContentEditAccess;
 use Modules\Core\Services\ContentSharing;
 use Modules\Core\Services\FolderTree;
 use Modules\Core\Services\ResourceStorage;
@@ -249,7 +250,7 @@ class GroupContentController extends Controller
 
     /**
      * POST — rattache un contenu existant (règle du mode de partage appliquée).
-     * Hors admins, seul le créateur du contenu peut le rattacher (decks publics exceptés).
+     * Il faut pouvoir modifier le contenu (ContentEditAccess), decks publics exceptés.
      */
     public function attachItem(Request $request, int $id): JsonResponse
     {
@@ -262,10 +263,8 @@ class GroupContentController extends Controller
         $type = $data['type'];
         $content = ContentSharing::TYPES[$type][0]::findOrFail((int) $data['id']);
 
-        if (! $this->isAdmin()) {
-            $public = $content instanceof FlashcardDeck && $content->is_public;
-            abort_unless($public || (int) $content->created_by === (int) auth()->id(), 403, 'Action non autorisée.');
-        }
+        $public = $content instanceof FlashcardDeck && $content->is_public;
+        abort_unless($public || ContentEditAccess::canEdit(auth()->user(), $content), 403, 'Action non autorisée.');
 
         ContentSharing::assertCanAttach($type, $content->id, $group->id);
         $this->tree->attach($group, $type, $content->id, $this->folderId($data));

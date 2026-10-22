@@ -244,6 +244,21 @@
           </div>
         </form>
       </div>
+
+      <!-- Groupes et placement dans leurs dossiers -->
+      <div class="params-card bg-white p-3 border mb-4" style="border-radius: 12px; box-shadow: var(--shadow);">
+        <h5 class="fw-bold mb-2" style="color: var(--green-dark);"><i class="bi bi-collection-fill me-2"></i>{{ term('Groups') }}</h5>
+        <p class="text-muted small mb-2">Les {{ term('groups') }} s'attribuent depuis la liste des examens ; choisissez ici le dossier de l'examen dans chacun.</p>
+        @forelse($exam->groups as $group)
+          <div class="mb-2">
+            <div class="small fw-semibold">{{ $group->name }}</div>
+            <div class="group-folder-slot" data-group-id="{{ $group->id }}"></div>
+          </div>
+        @empty
+          <p class="text-muted small mb-0">{{ ucfirst(term('no_group')) }} assigné{{ term('fem_e') }}.</p>
+        @endforelse
+        @include('core::admin.partials.group-placement', ['type' => 'exam', 'content' => $exam])
+      </div>
     </div>
   </div>
 </div>

@@ -74,11 +74,18 @@
                     <!-- Groupes assignés -->
                     <div class="form-group mb-4">
                         <label for="group_ids" class="form-label">{{ term('Groups') }} d'apprenants autorisé{{ term('fem_e') }}s</label>
-                        <select id="group_ids" name="group_ids[]" class="form-select select2" multiple data-placeholder="Sélectionner les {{ term('groups') }} d'apprenants" style="width: 100%;">
+                        @php($singleGroup = \Modules\Core\Services\ContentSharing::isolated())
+                        <select id="group_ids" name="group_ids[]" class="form-select select2" @unless($singleGroup) multiple @endunless data-placeholder="{{ $singleGroup ? 'Sélectionner '.term('a_group') : 'Sélectionner les '.term('groups').' d\'apprenants' }}" style="width: 100%;">
+                            @if($singleGroup)
+                                <option value=""></option>
+                            @endif
                             @foreach($groups as $group)
                                 <option value="{{ $group->id }}">{{ $group->name }}</option>
                             @endforeach
                         </select>
+                        @if($singleGroup)
+                            <div class="form-text">Un contenu n'appartient qu'à un{{ term('fem_e') }} seul{{ term('fem_e') }} {{ term('group') }}.</div>
+                        @endif
                     </div>
 
                     <h5 class="border-bottom pb-2 mb-3"><i class="fas fa-shield-alt text-danger me-2"></i>Sécurité et anti-triche</h5>

@@ -289,8 +289,12 @@
                 classement_anonyme: $('#classement_anonyme').is(':checked') ? 1 : 0,
                 note_max: $('#note_max').val(),
                 is_active: $('#is_active').is(':checked') ? 1 : 0,
-                group_ids: $('#group_ids').val() || []
+                // Toujours transmis (chaîne vide = aucun groupe) : sans la clé, le serveur conserve les groupes.
+                group_ids: [].concat($('#group_ids').val() || []).filter(Boolean)
             };
+            if (formData.group_ids.length === 0) {
+                formData.group_ids = '';
+            }
 
             $.ajax({
                 url: url,

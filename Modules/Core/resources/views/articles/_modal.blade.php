@@ -18,11 +18,18 @@
                     
                     <div class="form-group mb-3">
                         <label for="group_ids">{{ term('Groups') }} assigné{{ term('fem_e') }}s</label>
-                        <select id="group_ids" name="group_ids[]" class="form-select select2" multiple data-placeholder="Sélectionner les {{ term('groups') }}" style="width: 100%;">
+                        @php($singleGroup = \Modules\Core\Services\ContentSharing::isolated())
+                        <select id="group_ids" name="group_ids[]" class="form-select select2" @unless($singleGroup) multiple @endunless data-placeholder="{{ $singleGroup ? 'Sélectionner '.term('a_group') : 'Sélectionner les '.term('groups') }}" style="width: 100%;">
+                            @if($singleGroup)
+                                <option value=""></option>
+                            @endif
                             @foreach($groups as $group)
                                 <option value="{{ $group->id }}">{{ $group->name }}</option>
                             @endforeach
                         </select>
+                        @if($singleGroup)
+                            <div class="form-text">Un contenu n'appartient qu'à un{{ term('fem_e') }} seul{{ term('fem_e') }} {{ term('group') }}.</div>
+                        @endif
                     </div>
 
                     <div class="form-check form-switch mb-3">

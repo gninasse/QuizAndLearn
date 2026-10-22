@@ -532,6 +532,14 @@
     // -------------------------------------------------------------
     // 6. Group access membership & search
     // -------------------------------------------------------------
+
+    // Placement par groupe (dossiers) et règle du mode isolé : voir group-folder-picker.js
+    function afterGroupsChanged() {
+      if (window.GroupFolderPicker) {
+        GroupFolderPicker.syncSingle($('.group-search-wrapper'), $assignedGroupsList.children('.group-badge-card').length);
+      }
+    }
+
     var searchTimeout = null;
     $groupSearchInput.on('input', function() {
       clearTimeout(searchTimeout);
@@ -544,7 +552,7 @@
       
       searchTimeout = setTimeout(function() {
         $.ajax({
-          url: '/admin/groups/search',
+          url: $assignedGroupsList.data('url-search'),
           method: 'GET',
           data: { q: query },
           success: function(response) {
@@ -584,7 +592,7 @@
       $groupSearchInput.val('');
 
       $.ajax({
-        url: '/admin/articles/' + articleId + '/groups',
+        url: $assignedGroupsList.data('url-assign'),
         method: 'POST',
         data: { group_id: gId },
         success: function(response) {
@@ -596,18 +604,23 @@
               '<div class="group-badge-info">' +
                 '<span class="group-badge-name">' + gName + '</span>' +
                 '<span class="group-badge-learners">' + gCount + ' apprenants</span>' +
+                (window.GroupFolderPicker ? GroupFolderPicker.slotHtml(gId) : '') +
               '</div>' +
               '<button class="group-remove-btn" data-id="' + gId + '" title="Retirer l\'accès">' +
                 '<i class="bi bi-x"></i>' +
               '</button>' +
             '</div>';
-            $assignedGroupsList.append(badgeHtml);
+            var $badge = $(badgeHtml).appendTo($assignedGroupsList);
+            if (window.GroupFolderPicker) {
+              GroupFolderPicker.mountAll($badge);
+            }
+            afterGroupsChanged();
           } else {
             showToast('error', response.message || 'Erreur d\'assignation.');
           }
         },
-        error: function() {
-          showToast('error', 'Erreur de communication avec le serveur.');
+        error: function(xhr) {
+          showToast('error', (xhr.responseJSON && xhr.responseJSON.message) || 'Erreur de communication avec le serveur.');
         }
       });
     });
@@ -629,13 +642,14 @@
       }).then((result) => {
         if (result.isConfirmed) {
           $.ajax({
-            url: '/admin/articles/' + articleId + '/groups/' + gId,
+            url: String($assignedGroupsList.data('url-unassign')).replace('__GROUP__', gId),
             method: 'DELETE',
             success: function(response) {
               if (response.success) {
                 showToast('success', response.message || 'Accès retiré.');
                 $card.fadeOut(300, function() {
                   $(this).remove();
+                  afterGroupsChanged();
                   if ($assignedGroupsList.children('.group-badge-card').length === 0) {
                     $assignedGroupsList.append('<div class="text-center py-4 text-muted" id="noGroupsPlaceholder">' +
                       '<i class="bi bi-tags display-6 mb-2 d-block"></i>' +

@@ -6,22 +6,21 @@ use App\Http\Controllers\Controller;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Modules\Core\Models\Exam;
 use Modules\Core\Models\ExamAttempt;
 use Modules\Core\Models\ExamQuestion;
 use Modules\Core\Models\Group;
+use Modules\Core\Services\ContentEditAccess;
+use Modules\Core\Services\ContentSharing;
+use Modules\Core\Services\FolderTree;
 
 class ExamController extends Controller
 {
     private function authorizeExam(int $id): Exam
     {
         $exam = Exam::findOrFail($id);
-        $user = auth()->user();
-        if (! ($user->hasRole('super-admin') || $user->hasRole('Admin') || $user->hasRole('admin'))) {
-            if ($exam->created_by !== $user->id) {
-                abort(403, 'Action non autorisée.');
-            }
-        }
+        ContentEditAccess::authorize($exam);
 
         return $exam;
     }
@@ -118,7 +117,7 @@ class ExamController extends Controller
     /**
      * Store a new exam.
      */
-    public function store(Request $request): JsonResponse
+    public function store(Request $request, FolderTree $tree): JsonResponse
     {
         try {
             $request->validate([
@@ -138,6 +137,7 @@ class ExamController extends Controller
                 'note_max' => 'required|integer|min:1',
                 'group_ids' => 'nullable|array',
             ]);
+            ContentSharing::assertCanSync('exam', null, $request->group_ids ?? []);
 
             $exam = Exam::create([
                 'title' => $request->title,
@@ -159,7 +159,7 @@ class ExamController extends Controller
             ]);
 
             if ($request->has('group_ids')) {
-                $exam->groups()->sync($request->group_ids);
+                $tree->syncGroups('exam', $exam->id, $request->group_ids ?? []);
             }
 
             return response()->json([
@@ -167,6 +167,8 @@ class ExamController extends Controller
                 'message' => 'Examen créé avec succès',
                 'data' => $exam,
             ]);
+        } catch (ValidationException $e) {
+            throw $e;
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -178,7 +180,7 @@ class ExamController extends Controller
     /**
      * Update exam settings.
      */
-    public function update(Request $request, int $id): JsonResponse
+    public function update(Request $request, int $id, FolderTree $tree): JsonResponse
     {
         try {
             $request->validate([
@@ -200,6 +202,11 @@ class ExamController extends Controller
             ]);
 
             $exam = $this->authorizeExam($id);
+            // Sans `group_ids` (autosave de l'éditeur), les groupes et leurs placements sont conservés.
+            $syncGroups = $request->has('group_ids');
+            if ($syncGroups) {
+                ContentSharing::assertCanSync('exam', $exam->id, $request->group_ids ?? []);
+            }
             $exam->update([
                 'title' => $request->title,
                 'description' => $request->description,
@@ -218,10 +225,8 @@ class ExamController extends Controller
                 'is_active' => $request->has('is_active') ? (bool) $request->is_active : $exam->is_active,
             ]);
 
-            if ($request->has('group_ids')) {
-                $exam->groups()->sync($request->group_ids);
-            } else {
-                $exam->groups()->sync([]);
+            if ($syncGroups) {
+                $tree->syncGroups('exam', $exam->id, $request->group_ids ?? []);
             }
 
             return response()->json([
@@ -229,6 +234,8 @@ class ExamController extends Controller
                 'message' => 'Examen modifié avec succès',
                 'data' => $exam,
             ]);
+        } catch (ValidationException $e) {
+            throw $e;
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

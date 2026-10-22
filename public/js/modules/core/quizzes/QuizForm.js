@@ -22,6 +22,8 @@ export class QuizForm {
                 theme: 'bootstrap-5',
                 width: '100%',
                 placeholder: $('#group_ids', this.$form).data('placeholder'),
+                // Sélection unique en mode de partage isolé : permettre de vider le choix.
+                allowClear: !$('#group_ids', this.$form).prop('multiple'),
                 dropdownParent: this.$modal
             });
         }

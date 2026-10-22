@@ -6,21 +6,21 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Validation\ValidationException;
 use Modules\Core\Models\Article;
 use Modules\Core\Models\ArticleMedia;
+use Modules\Core\Models\Group;
 use Modules\Core\Models\Quiz;
+use Modules\Core\Services\ContentEditAccess;
+use Modules\Core\Services\ContentSharing;
+use Modules\Core\Services\FolderTree;
 
 class ArticleEditorController extends Controller
 {
     private function authorizeArticle(int $articleId): Article
     {
         $article = Article::findOrFail($articleId);
-        $user = auth()->user();
-        if (! ($user->hasRole('super-admin') || $user->hasRole('Admin') || $user->hasRole('admin'))) {
-            if ($article->created_by !== $user->id) {
-                abort(403, 'Action non autorisée.');
-            }
-        }
+        ContentEditAccess::authorize($article);
 
         return $article;
     }
@@ -104,13 +104,14 @@ class ArticleEditorController extends Controller
         }
     }
 
-    public function assignGroup(Request $request, int $articleId): JsonResponse
+    public function assignGroup(Request $request, int $articleId, FolderTree $tree): JsonResponse
     {
         try {
             $article = $this->authorizeArticle($articleId);
 
             $request->validate([
                 'group_id' => 'required|integer|exists:groups,id',
+                'folder_id' => 'nullable|integer',
             ]);
 
             $user = auth()->user();
@@ -134,12 +135,15 @@ class ArticleEditorController extends Controller
                 }
             }
 
-            $article->groups()->syncWithoutDetaching([$groupId]);
+            ContentSharing::assertCanAttach('article', $article->id, (int) $groupId);
+            $tree->assign(Group::findOrFail($groupId), 'article', $article->id, $request->filled('folder_id') ? (int) $request->folder_id : null);
 
             return response()->json([
                 'success' => true,
                 'message' => ucfirst(term('the_group')).' a été autorisé'.term('fem_e').' à accéder à l\'article.',
             ]);
+        } catch (ValidationException $e) {
+            throw $e;
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

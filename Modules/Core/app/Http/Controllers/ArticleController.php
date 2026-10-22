@@ -5,22 +5,21 @@ namespace Modules\Core\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Modules\Core\Http\Requests\StoreArticleRequest;
 use Modules\Core\Http\Requests\UpdateArticleRequest;
 use Modules\Core\Models\Article;
 use Modules\Core\Models\Group;
+use Modules\Core\Services\ContentEditAccess;
+use Modules\Core\Services\ContentSharing;
+use Modules\Core\Services\FolderTree;
 
 class ArticleController extends Controller
 {
     private function authorizeArticle(int $id): Article
     {
         $article = Article::findOrFail($id);
-        $user = auth()->user();
-        if (! ($user->hasRole('super-admin') || $user->hasRole('Admin') || $user->hasRole('admin'))) {
-            if ($article->created_by !== $user->id) {
-                abort(403, 'Action non autorisée.');
-            }
-        }
+        ContentEditAccess::authorize($article);
 
         return $article;
     }
@@ -120,9 +119,10 @@ class ArticleController extends Controller
     /**
      * Créer un nouvel article (AJAX)
      */
-    public function store(StoreArticleRequest $request): \Illuminate\Http\JsonResponse
+    public function store(StoreArticleRequest $request, FolderTree $tree): \Illuminate\Http\JsonResponse
     {
         try {
+            ContentSharing::assertCanSync('article', null, $request->group_ids ?? []);
             $article = Article::create([
                 'title' => $request->title,
                 'is_active' => $request->has('is_active') ? $request->is_active : true,
@@ -131,7 +131,7 @@ class ArticleController extends Controller
 
             // Synchroniser les groupes
             if ($request->has('group_ids')) {
-                $article->groups()->sync($request->group_ids);
+                $tree->syncGroups('article', $article->id, $request->group_ids ?? []);
             }
 
             return response()->json([
@@ -139,6 +139,8 @@ class ArticleController extends Controller
                 'message' => 'Article créé avec succès',
                 'data' => $article,
             ]);
+        } catch (ValidationException $e) {
+            throw $e;
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -150,10 +152,11 @@ class ArticleController extends Controller
     /**
      * Mettre à jour un article (AJAX)
      */
-    public function update(UpdateArticleRequest $request, int $id): \Illuminate\Http\JsonResponse
+    public function update(UpdateArticleRequest $request, int $id, FolderTree $tree): \Illuminate\Http\JsonResponse
     {
         try {
             $article = $this->authorizeArticle($id);
+            ContentSharing::assertCanSync('article', $article->id, $request->group_ids ?? []);
             $article->update([
                 'title' => $request->title,
                 'content' => $request->content,
@@ -161,17 +164,15 @@ class ArticleController extends Controller
             ]);
 
             // Synchroniser les groupes
-            if ($request->has('group_ids')) {
-                $article->groups()->sync($request->group_ids);
-            } else {
-                $article->groups()->sync([]);
-            }
+            $tree->syncGroups('article', $article->id, $request->group_ids ?? []);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Article modified successfully',
                 'data' => $article,
             ]);
+        } catch (ValidationException $e) {
+            throw $e;
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

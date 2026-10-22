@@ -109,11 +109,18 @@
                     </div>
                     <div class="mb-3" id="groups-select-container">
                         <label for="deck-groups" class="form-label">Assigner aux {{ term('groups') }} d'apprenants</label>
-                        <select class="form-control select2" id="deck-groups" name="group_ids[]" multiple="multiple" style="width: 100%;">
+                        @php($singleGroup = \Modules\Core\Services\ContentSharing::isolated())
+                        <select class="form-control select2" id="deck-groups" name="group_ids[]" @unless($singleGroup) multiple="multiple" @endunless style="width: 100%;">
+                            @if($singleGroup)
+                                <option value=""></option>
+                            @endif
                             @foreach($groups as $group)
                                 <option value="{{ $group->id }}">{{ $group->name }}</option>
                             @endforeach
                         </select>
+                        @if($singleGroup)
+                            <div class="form-text">Un paquet privé n'appartient qu'à un{{ term('fem_e') }} seul{{ term('fem_e') }} {{ term('group') }} ; un paquet public peut être partagé.</div>
+                        @endif
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -171,9 +178,31 @@
         // Init Select2
         $('.select2').select2({
             theme: 'bootstrap-5',
-            placeholder: @json('Sélectionner les '.term('groups')),
+            placeholder: @json($singleGroup ? 'Sélectionner '.term('a_group') : 'Sélectionner les '.term('groups')),
             allowClear: true
         });
+
+        // Mode de partage isolé : un paquet privé n'a qu'un groupe ; un paquet public peut en avoir plusieurs.
+        const singleGroupMode = @json($singleGroup);
+        function applyGroupMode() {
+            const $sel = $('#deck-groups');
+            const multiple = !singleGroupMode || $('#deck-is-public').is(':checked');
+            if ($sel.prop('multiple') === multiple) return;
+
+            const values = [].concat($sel.val() || []).filter(Boolean);
+            $sel.select2('destroy').prop('multiple', multiple);
+            $sel.find('option[value=""]').remove();
+            if (!multiple) {
+                $sel.prepend('<option value=""></option>');
+            }
+            $sel.select2({
+                theme: 'bootstrap-5',
+                placeholder: multiple ? @json('Sélectionner les '.term('groups')) : @json('Sélectionner '.term('a_group')),
+                allowClear: true
+            });
+            $sel.val(multiple ? values : (values[0] || '')).trigger('change');
+        }
+        $('#deck-is-public').on('change', applyGroupMode);
 
         const $table = $('#decks-table');
         const $btnEdit = $('#btn-edit-deck');
@@ -199,6 +228,7 @@
         $('#btn-add-deck').click(function () {
             $('#deck-form')[0].reset();
             $('#deck-id').val('');
+            applyGroupMode();
             $('#deck-groups').val([]).trigger('change');
             $('#modal-deck-label').text('Nouveau paquet de cartes');
             $('#modal-deck').modal('show');
@@ -217,6 +247,7 @@
                     $('#deck-matiere').val(res.data.matiere);
                     $('#deck-algorithme').val(res.data.algorithme);
                     $('#deck-is-public').prop('checked', !!res.data.is_public);
+                    applyGroupMode();
                     $('#deck-groups').val(res.data.group_ids).trigger('change');
 
                     $('#modal-deck-label').text('Modifier le paquet de cartes');

@@ -88,4 +88,44 @@ class ContentSharing
             throw ValidationException::withMessages(['group_id' => self::ALREADY_OWNED]);
         }
     }
+
+    /**
+     * Règle du mode `isolated` pour une liste complète de groupes (formulaires
+     * `group_ids`) : au plus un groupe, et pas un autre que celui qui possède déjà
+     * le contenu ($id null = contenu en création). Un deck public (état demandé :
+     * $publicDeck) en est exempté.
+     *
+     * @param  array<int, int|string>  $groupIds
+     *
+     * @throws ValidationException (clé `group_ids`)
+     */
+    public static function assertCanSync(string $type, ?int $id, array $groupIds, bool $publicDeck = false): void
+    {
+        if (! isset(self::TYPES[$type])) {
+            throw new InvalidArgumentException("Type de contenu inconnu : {$type}");
+        }
+        if (! self::isolated() || ($type === 'deck' && $publicDeck)) {
+            return;
+        }
+
+        $ids = self::groupIds($groupIds);
+        if (count($ids) > 1) {
+            throw ValidationException::withMessages(['group_ids' => self::ALREADY_OWNED]);
+        }
+        if ($id !== null && count($ids) === 1) {
+            self::assertCanAttach($type, $id, $ids[0]);
+        }
+    }
+
+    /**
+     * Identifiants de groupe d'un formulaire, normalisés (entiers > 0, sans doublon) :
+     * une sélection unique vide envoie `group_ids[]=` (null après ConvertEmptyStringsToNull).
+     *
+     * @param  array<int, mixed>  $groupIds
+     * @return array<int, int>
+     */
+    public static function groupIds(array $groupIds): array
+    {
+        return array_values(array_unique(array_filter(array_map('intval', $groupIds), fn (int $id) => $id > 0)));
+    }
 }

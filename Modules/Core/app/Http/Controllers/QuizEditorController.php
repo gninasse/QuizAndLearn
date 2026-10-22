@@ -6,21 +6,20 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Validation\ValidationException;
 use Modules\Core\Models\Group;
 use Modules\Core\Models\Question;
 use Modules\Core\Models\Quiz;
+use Modules\Core\Services\ContentEditAccess;
+use Modules\Core\Services\ContentSharing;
+use Modules\Core\Services\FolderTree;
 
 class QuizEditorController extends Controller
 {
     private function authorizeQuiz(int $quizId): Quiz
     {
         $quiz = Quiz::findOrFail($quizId);
-        $user = auth()->user();
-        if (! ($user->hasRole('super-admin') || $user->hasRole('Admin') || $user->hasRole('admin'))) {
-            if ($quiz->created_by !== $user->id) {
-                abort(403, 'Action non autorisée.');
-            }
-        }
+        ContentEditAccess::authorize($quiz);
 
         return $quiz;
     }
@@ -185,13 +184,14 @@ class QuizEditorController extends Controller
     /**
      * Assign a group to the quiz.
      */
-    public function assignGroup(Request $request, int $quizId): JsonResponse
+    public function assignGroup(Request $request, int $quizId, FolderTree $tree): JsonResponse
     {
         try {
             $quiz = $this->authorizeQuiz($quizId);
 
             $request->validate([
                 'group_id' => 'required|integer|exists:groups,id',
+                'folder_id' => 'nullable|integer',
             ]);
 
             $user = auth()->user();
@@ -215,12 +215,15 @@ class QuizEditorController extends Controller
                 }
             }
 
-            $quiz->groups()->syncWithoutDetaching([$groupId]);
+            ContentSharing::assertCanAttach('quiz', $quiz->id, (int) $groupId);
+            $tree->assign(Group::findOrFail($groupId), 'quiz', $quiz->id, $request->filled('folder_id') ? (int) $request->folder_id : null);
 
             return response()->json([
                 'success' => true,
                 'message' => ucfirst(term('the_group')).' a été assigné'.term('fem_e').' au quiz.',
             ]);
+        } catch (ValidationException $e) {
+            throw $e;
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

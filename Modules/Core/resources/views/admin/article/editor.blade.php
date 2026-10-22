@@ -281,7 +281,7 @@
               </p>
 
               <!-- Search input for adding groups -->
-              <div class="group-search-wrapper">
+              <div class="group-search-wrapper" @if(\Modules\Core\Services\ContentSharing::isolated() && $article->groups->isNotEmpty()) style="display: none;" @endif>
                 <div class="input-group">
                   <span class="input-group-text bg-white border-end-0" style="border-top-left-radius: 8px; border-bottom-left-radius: 8px;">
                     <i class="bi bi-search text-muted"></i>
@@ -293,12 +293,16 @@
               </div>
 
               <!-- Assigned Groups List -->
-              <div class="groups-list mt-3" id="assignedGroupsList" data-article-id="{{ $article->id }}">
+              <div class="groups-list mt-3" id="assignedGroupsList" data-article-id="{{ $article->id }}"
+                   data-url-search="{{ route('cores.editor.groups.search') }}"
+                   data-url-assign="{{ route('cores.editor.articles.groups.assign', $article->id) }}"
+                   data-url-unassign="{{ route('cores.editor.articles.groups.unassign', [$article->id, '__GROUP__']) }}">
                 @forelse($article->groups as $group)
                   <div class="group-badge-card" data-id="{{ $group->id }}">
                     <div class="group-badge-info">
                       <span class="group-badge-name">{{ $group->name }}</span>
                       <span class="group-badge-learners">{{ $group->learners()->count() }} apprenants</span>
+                      <div class="group-folder-slot mt-1" data-group-id="{{ $group->id }}"></div>
                     </div>
                     <button class="group-remove-btn" data-id="{{ $group->id }}" title="Retirer {{ term('this_group') }}">
                       <i class="bi bi-x"></i>
@@ -311,6 +315,7 @@
                   </div>
                 @endforelse
               </div>
+              @include('core::admin.partials.group-placement', ['type' => 'article', 'content' => $article])
             </div>
 
           </div>

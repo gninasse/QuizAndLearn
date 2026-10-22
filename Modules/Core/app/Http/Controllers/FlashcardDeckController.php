@@ -12,18 +12,16 @@ use Modules\Core\Models\FlashcardDeck;
 use Modules\Core\Models\FlashcardItem;
 use Modules\Core\Models\Group;
 use Modules\Core\Models\Quiz;
+use Modules\Core\Services\ContentEditAccess;
+use Modules\Core\Services\ContentSharing;
+use Modules\Core\Services\FolderTree;
 
 class FlashcardDeckController extends Controller
 {
     private function authorizeDeck(int $deckId): FlashcardDeck
     {
         $deck = FlashcardDeck::findOrFail($deckId);
-        $user = auth()->user();
-        if (! ($user->hasRole('super-admin') || $user->hasRole('Admin') || $user->hasRole('admin'))) {
-            if ($deck->created_by !== $user->id) {
-                abort(403, 'Action non autorisée.');
-            }
-        }
+        ContentEditAccess::authorize($deck);
 
         return $deck;
     }
@@ -133,7 +131,7 @@ class FlashcardDeckController extends Controller
     /**
      * Store a new flashcard deck.
      */
-    public function store(Request $request): JsonResponse
+    public function store(Request $request, FolderTree $tree): JsonResponse
     {
         $validated = $request->validate([
             'titre' => 'required|string|max:255',
@@ -142,17 +140,18 @@ class FlashcardDeckController extends Controller
             'algorithme' => 'required|string|in:sm2,leitner',
             'is_public' => 'boolean',
             'group_ids' => 'nullable|array',
-            'group_ids.*' => 'exists:groups,id',
+            'group_ids.*' => 'nullable|exists:groups,id',
         ]);
 
         $validated['created_by'] = auth()->id();
         $validated['is_public'] = $request->boolean('is_public', false);
         $validated['active'] = true;
+        ContentSharing::assertCanSync('deck', null, $request->group_ids ?? [], $validated['is_public']);
 
         $deck = FlashcardDeck::create($validated);
 
         if (! empty($request->group_ids)) {
-            $deck->groups()->sync($request->group_ids);
+            $tree->syncGroups('deck', $deck->id, $request->group_ids);
         }
 
         return response()->json([
@@ -162,7 +161,7 @@ class FlashcardDeckController extends Controller
         ]);
     }
 
-    public function update(Request $request, int $id): JsonResponse
+    public function update(Request $request, int $id, FolderTree $tree): JsonResponse
     {
         $deck = $this->authorizeDeck($id);
 
@@ -173,14 +172,15 @@ class FlashcardDeckController extends Controller
             'algorithme' => 'required|string|in:sm2,leitner',
             'is_public' => 'boolean',
             'group_ids' => 'nullable|array',
-            'group_ids.*' => 'exists:groups,id',
+            'group_ids.*' => 'nullable|exists:groups,id',
         ]);
 
         $validated['is_public'] = $request->boolean('is_public', false);
+        ContentSharing::assertCanSync('deck', $deck->id, $request->group_ids ?? [], $validated['is_public']);
 
         $deck->update($validated);
 
-        $deck->groups()->sync($request->group_ids ?? []);
+        $tree->syncGroups('deck', $deck->id, $request->group_ids ?? []);
 
         return response()->json([
             'success' => true,
@@ -316,11 +316,15 @@ class FlashcardDeckController extends Controller
     /**
      * Assign group to deck.
      */
-    public function assignGroup(Request $request, int $deckId): JsonResponse
+    public function assignGroup(Request $request, int $deckId, FolderTree $tree): JsonResponse
     {
-        $request->validate(['group_id' => 'required|exists:groups,id']);
+        $request->validate([
+            'group_id' => 'required|integer|exists:groups,id',
+            'folder_id' => 'nullable|integer',
+        ]);
         $deck = $this->authorizeDeck($deckId);
-        $deck->groups()->syncWithoutDetaching($request->group_id);
+        ContentSharing::assertCanAttach('deck', $deck->id, (int) $request->group_id);
+        $tree->assign(Group::findOrFail($request->group_id), 'deck', $deck->id, $request->filled('folder_id') ? (int) $request->folder_id : null);
 
         return response()->json([
             'success' => true,
