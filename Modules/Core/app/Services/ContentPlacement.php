@@ -106,9 +106,10 @@ class ContentPlacement
     }
 
     /**
-     * Moment du masquage d'un contenu pour l'apprenant : le plus récent
-     * `updated_at` parmi les dossiers masqués de ses chaînes de placement
-     * (groupes courants). Null si aucun dossier masqué n'est en cause.
+     * Moment du masquage d'un contenu pour l'apprenant : le plus récent, parmi
+     * les dossiers masqués de ses chaînes de placement (groupes courants), de
+     * max(updated_at, available_until si déjà passé). Null si aucun dossier
+     * masqué n'est en cause.
      */
     public function hiddenSince(Learner $learner, string $type, int $id, ?CarbonInterface $at = null): ?CarbonInterface
     {
@@ -128,8 +129,17 @@ class ContentPlacement
             $seen = [];
             for ($folder = $folders->get($folderId); $folder !== null && ! isset($seen[$folder->id]); $folder = $folders->get($folder->parent_id)) {
                 $seen[$folder->id] = true;
-                if (! self::ownVisible($folder, $at) && ($latest === null || $folder->updated_at->gt($latest))) {
-                    $latest = $folder->updated_at;
+                if (self::ownVisible($folder, $at)) {
+                    continue;
+                }
+                // Une fenêtre expirée masque le dossier à available_until,
+                // même sans modification ultérieure.
+                $hiddenAt = $folder->updated_at;
+                if ($folder->available_until !== null && $folder->available_until->lt($at) && $folder->available_until->gt($hiddenAt)) {
+                    $hiddenAt = $folder->available_until;
+                }
+                if ($latest === null || $hiddenAt->gt($latest)) {
+                    $latest = $hiddenAt;
                 }
             }
         }

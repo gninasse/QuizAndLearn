@@ -299,4 +299,26 @@ class LearnerFoldersApiTest extends TestCase
             ->assertJsonPath('results.3.status', 'rejected');
         $this->assertDatabaseCount('quiz_attempts', 2);
     }
+
+    public function test_offline_quiz_attempt_before_window_expiry_accepted(): void
+    {
+        // Dossier modifié pour la dernière fois à 08:00, fermé par sa fenêtre à 10:00.
+        $this->travelTo(Carbon::parse('2026-10-20 08:00:00'));
+        $folder = $this->folder(['available_until' => Carbon::parse('2026-10-20 10:00:00')]);
+        $quiz = $this->quiz($folder);
+        $questionId = $quiz->questions()->first()->id;
+        $this->travelTo(Carbon::parse('2026-10-20 12:00:00'));
+
+        $action = fn (string $startedAt) => ['id' => (string) Str::uuid(), 'type' => 'quiz_attempt', 'data' => [
+            'quiz_id' => $quiz->id, 'answers' => [$questionId => 'true'], 'started_at' => $startedAt,
+        ]];
+
+        $this->actingAs($this->user)->postJson(route('learn.v1.actions'), ['actions' => [
+            $action('2026-10-20 09:30:00'),
+            $action('2026-10-20 10:30:00'),
+        ]])->assertOk()
+            ->assertJsonPath('results.0.status', 'applied')
+            ->assertJsonPath('results.1.status', 'rejected');
+        $this->assertSame('2026-10-20 08:00:00', $folder->fresh()->updated_at->toDateTimeString());
+    }
 }
