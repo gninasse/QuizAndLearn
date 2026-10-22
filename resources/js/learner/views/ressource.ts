@@ -83,7 +83,8 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
   // Consultation : lecture seule, rien à télécharger ni à garder sur l'appareil.
   const consultation = isConsultation();
   const canKeepOffline = !consultation && OFFLINE_KINDS.has(resource.kind);
-  const canDownload = !consultation && resource.allow_download;
+  // Vidéo : lecture en streaming uniquement, `download` répond 404 côté serveur.
+  const canDownload = !consultation && resource.allow_download && resource.kind !== 'video';
   const chip = pathChipHtml('resource', id);
 
   el.innerHTML = html`

@@ -153,6 +153,15 @@ describe('lecteur de ressource', () => {
     await flush();
   });
 
+  it('vidéo : jamais de « Télécharger », même avec allow_download (le serveur répond 404)', async () => {
+    mocked.resourceView.mockResolvedValue({ status: 'pending' });
+    resourcesStore.set([resource({ id: 14, kind: 'video', allow_download: true, video_ref: 'vid-abc', conversion_status: null })]);
+    const el = document.createElement('div');
+    mount(el, { id: '14' });
+    expect(el.querySelector('[data-role="download"]')).toBeNull();
+    await flush();
+  });
+
   it('lien YouTube → lecteur de marque ; autre lien → window.open', async () => {
     resourcesStore.set([
       resource({ id: 9, kind: 'link', url: 'https://youtu.be/dQw4w9WgXcQ', conversion_status: null }),
