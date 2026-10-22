@@ -23,5 +23,12 @@
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
 </IfModule>
+# Scripts et styles du back-office (noms non hachés) : le navigateur revalide à
+# chaque chargement (304 si inchangé) au lieu de garder une version périmée.
+<IfModule mod_headers.c>
+    <FilesMatch "\.(js|css)$">
+        Header set Cache-Control "no-cache" "expr=%{REQUEST_URI} =~ m#^/(js|css)/#"
+    </FilesMatch>
+</IfModule>
 php_value upload_max_filesize 50M
 php_value post_max_size 55M

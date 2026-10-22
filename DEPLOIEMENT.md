@@ -319,6 +319,13 @@ server {
         try_files $uri =404;
     }
 
+    # Scripts et styles du back-office (noms non hachés) : revalidation à chaque
+    # chargement, sinon les navigateurs gardent une version périmée après une mise à jour.
+    location ~ ^/(js|css)/ {
+        add_header Cache-Control "no-cache";
+        try_files $uri =404;
+    }
+
     location ~ \.php$ {
         include snippets/fastcgi-php.conf;
         fastcgi_pass unix:/run/php/php8.2-fpm.sock;
