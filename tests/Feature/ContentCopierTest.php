@@ -21,6 +21,7 @@ use Modules\Core\Models\Trainer;
 use Modules\Core\Models\User;
 use Modules\Core\Services\ContentCopier;
 use Modules\Core\Services\ContentSharing;
+use Modules\Core\Services\MediaReferences;
 use Tests\TestCase;
 
 /**
@@ -298,6 +299,91 @@ class ContentCopierTest extends TestCase
             ->assertSee('btn-copy-to-group', false)
             ->assertSee('/contenus/items/quiz/'.$quiz->id.'/copy', false)
             ->assertSee('Promo B');
+    }
+
+    public function test_editors_render_copy_button_in_shared_mode(): void
+    {
+        $quiz = $this->quiz();
+
+        $this->actingAs($this->creator)->get(route('cores.editor.quizzes.edit', $quiz->id))
+            ->assertOk()
+            ->assertSee('data-isolated="0"', false)
+            ->assertSee('btn-copy-to-group', false)
+            ->assertSee('/contenus/items/quiz/'.$quiz->id.'/copy', false);
+    }
+
+    private function img(string $path): string
+    {
+        return '<p>Voir</p><img src="'.asset('storage/'.$path).'" alt="">';
+    }
+
+    public function test_deleting_original_question_keeps_inline_image_used_by_copy(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('editor/q.png', 'x');
+        $quiz = $this->quiz();
+        $question = $quiz->questions()->first();
+        $question->update(['question_text' => $this->img('editor/q.png')]);
+
+        $copy = $this->copier()->copy('quiz', $quiz->id, $this->groupB->id, null, $this->admin)['model'];
+
+        $question->delete();
+        Storage::disk('public')->assertExists('editor/q.png');
+
+        // Dernière référence supprimée : le fichier part.
+        $copy->questions()->where('question_text', 'like', '%editor/q.png%')->first()->delete();
+        Storage::disk('public')->assertMissing('editor/q.png');
+    }
+
+    public function test_deleting_exam_and_deck_copies_keeps_shared_inline_images(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('editor/e.png', 'x');
+        Storage::disk('public')->put('editor/r.png', 'x');
+
+        $exam = Exam::create([
+            'title' => 'Examen', 'duration' => 30, 'passing_score' => 50, 'max_attempts' => 1,
+            'publication_resultats' => 'immediate', 'note_max' => 20, 'is_active' => true, 'created_by' => $this->creator->id,
+        ]);
+        ExamQuestion::create(['exam_id' => $exam->id, 'question_text' => $this->img('editor/e.png'), 'type' => 'single', 'points' => 1, 'order' => 1, 'options' => []]);
+        $deck = FlashcardDeck::create([
+            'titre' => 'Deck', 'algorithme' => 'sm2', 'easiness_default' => 2.5, 'interval_min' => 1,
+            'interval_max' => 365, 'active' => true, 'created_by' => $this->creator->id,
+        ]);
+        FlashcardItem::create(['deck_id' => $deck->id, 'recto' => $this->img('editor/r.png'), 'verso' => 'V', 'ordre' => 1]);
+
+        $examCopy = $this->copier()->copy('exam', $exam->id, $this->groupB->id, null, $this->admin)['model'];
+        $deckCopy = $this->copier()->copy('deck', $deck->id, $this->groupB->id, null, $this->admin)['model'];
+
+        $examCopy->delete();
+        $deckCopy->delete();
+        Storage::disk('public')->assertExists('editor/e.png');
+        Storage::disk('public')->assertExists('editor/r.png');
+
+        $exam->fresh()->delete();
+        $deck->fresh()->delete();
+        Storage::disk('public')->assertMissing('editor/e.png');
+        Storage::disk('public')->assertMissing('editor/r.png');
+    }
+
+    public function test_media_references_cover_json_and_article_columns(): void
+    {
+        $item = FlashcardItem::create([
+            'deck_id' => FlashcardDeck::create([
+                'titre' => 'Deck', 'algorithme' => 'sm2', 'easiness_default' => 2.5, 'interval_min' => 1,
+                'interval_max' => 365, 'active' => true, 'created_by' => $this->creator->id,
+            ])->id,
+            'recto' => 'R', 'verso' => 'V', 'ordre' => 1, 'recto_media' => ['type' => 'image', 'path' => 'cards/m_1.png'],
+        ]);
+        $article = Article::create(['title' => 'A', 'content' => $this->img('articles/inline.png'), 'is_active' => true, 'created_by' => $this->creator->id]);
+
+        $this->assertTrue(MediaReferences::isReferenced('cards/m_1.png'));
+        $this->assertFalse(MediaReferences::isReferenced('cards/m_1.png', $item));
+        // « _ » n'est pas un joker LIKE.
+        $this->assertFalse(MediaReferences::isReferenced('cards/mX1.png'));
+        $this->assertTrue(MediaReferences::isReferenced('articles/inline.png'));
+        $this->assertFalse(MediaReferences::isReferenced('articles/inline.png', $article));
+        $this->assertFalse(MediaReferences::isReferenced('nowhere.png'));
     }
 
     public function test_copy_requires_rights(): void

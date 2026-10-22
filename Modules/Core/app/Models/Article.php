@@ -67,16 +67,8 @@ class Article extends Model
         static::deleted(fn () => \Modules\Core\Services\ShowcaseMedia::flush());
 
         static::deleting(function (Article $article) {
-            foreach ($article->media as $mediaItem) {
-                // Fichier partagé avec une copie (« Copier vers… ») : conservé.
-                $shared = ArticleMedia::query()
-                    ->where('file_path', $mediaItem->file_path)
-                    ->where('article_id', '!=', $article->id)
-                    ->exists();
-                if (! $shared) {
-                    \Illuminate\Support\Facades\Storage::disk('public')->delete($mediaItem->file_path);
-                }
-            }
+            // Fichiers partagés avec une copie (« Copier vers… ») : conservés.
+            \Modules\Core\Services\MediaReferences::releaseArticleMedia($article);
             $article->media()->delete();
         });
     }

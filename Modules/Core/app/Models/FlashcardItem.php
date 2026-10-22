@@ -53,23 +53,8 @@ class FlashcardItem extends Model
         static::deleted(fn () => \Modules\Core\Services\ShowcaseMedia::flush());
 
         static::deleting(function (FlashcardItem $item) {
-            $fields = [$item->recto, $item->verso];
-            foreach ($fields as $content) {
-                if (empty($content)) {
-                    continue;
-                }
-                preg_match_all('/<img[^>]+src=["\']([^"\']+)["\']/i', $content, $matches);
-                foreach ($matches[1] ?? [] as $url) {
-                    $storageUrl = asset('storage/');
-                    if (str_starts_with($url, $storageUrl)) {
-                        $path = str_replace($storageUrl, '', $url);
-                        $path = ltrim($path, '/');
-                        if (\Illuminate\Support\Facades\Storage::disk('public')->exists($path)) {
-                            \Illuminate\Support\Facades\Storage::disk('public')->delete($path);
-                        }
-                    }
-                }
-            }
+            // Images inline : supprimées seulement si aucun autre contenu ne les référence.
+            \Modules\Core\Services\MediaReferences::releaseInline($item, [$item->recto, $item->verso]);
         });
     }
 }
