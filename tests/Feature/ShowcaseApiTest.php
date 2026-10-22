@@ -311,7 +311,7 @@ class ShowcaseApiTest extends TestCase
             ->assertStatus(200)
             ->json();
 
-        $this->assertSame(['success', 'cursor', 'user', 'groups', 'articles', 'quizzes', 'decks', 'exams', 'badges', 'preferences', 'terms'], array_keys($json));
+        $this->assertSame(['success', 'cursor', 'user', 'groups', 'articles', 'quizzes', 'decks', 'exams', 'resources', 'folders', 'placements', 'badges', 'preferences', 'terms'], array_keys($json));
 
         // Instantané pris avant l'extraction de ContentSerializer : clés,
         // ordre et valeurs identiques (dates normalisées).

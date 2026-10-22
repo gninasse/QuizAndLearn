@@ -66,6 +66,9 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->bind(\Modules\Core\Services\Push\PushSender::class, \Modules\Core\Services\Push\WebPushSender::class);
         $this->app->singleton(\Modules\Core\Services\ModuleService::class);
         $this->app->scoped(\Modules\Core\Services\ContentPlacement::class);
+        // Le cache de visibilité vaut pour une requête : oublié à la fin de
+        // chacune (tests, processus longs), où les dossiers peuvent changer.
+        $this->app->terminating(fn () => $this->app->forgetInstance(\Modules\Core\Services\ContentPlacement::class));
         $this->app->singleton(\Modules\Core\Services\PermissionService::class);
     }
 

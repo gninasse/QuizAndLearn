@@ -9,6 +9,7 @@ use Modules\Core\Models\AppSetting;
 use Modules\Core\Models\Article;
 use Modules\Core\Models\FlashcardDeck;
 use Modules\Core\Models\Quiz;
+use Modules\Core\Services\ContentPlacement;
 use Modules\Core\Services\Push\PushMessage;
 use Modules\Core\Services\Push\PushNotifier;
 
@@ -86,12 +87,23 @@ class PushNewContent extends Command
         return self::SUCCESS;
     }
 
-    /** @return array<int, array{group_id: int, type: string, id: int}> */
+    /**
+     * Affectations visibles (racine ou dossier visible) : une affectation
+     * masquée reste hors instantané et sera notifiée quand elle le deviendra.
+     *
+     * @return array<int, array{group_id: int, type: string, id: int}>
+     */
     private function currentPairs(): array
     {
+        $groupIds = DB::table('folders')->distinct()->pluck('group_id');
+        $visibleFolders = array_flip(app(ContentPlacement::class)->visibleFolderIds($groupIds));
+
         $pairs = [];
         foreach (self::PIVOTS as $type => [$table, $column]) {
-            foreach (DB::table($table)->get(['group_id', $column]) as $row) {
+            foreach (DB::table($table)->get(['group_id', $column, 'folder_id']) as $row) {
+                if ($row->folder_id !== null && ! isset($visibleFolders[$row->folder_id])) {
+                    continue;
+                }
                 $pairs[$this->key($row->group_id, $type, $row->{$column})] = [
                     'group_id' => (int) $row->group_id, 'type' => $type, 'id' => (int) $row->{$column},
                 ];

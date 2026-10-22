@@ -3,6 +3,7 @@
 namespace Modules\Core\Http\Controllers\Learner\Api;
 
 use App\Http\Controllers\Controller;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,6 +17,7 @@ use Modules\Core\Models\Learner;
 use Modules\Core\Models\LearnerActionLog;
 use Modules\Core\Models\LearnerProgress;
 use Modules\Core\Models\Quiz;
+use Modules\Core\Services\ContentPlacement;
 use Modules\Core\Services\GamificationService;
 use Modules\Core\Services\QuizScoringService;
 use Modules\Core\Services\Sm2Service;
@@ -258,6 +260,7 @@ class ActionController extends Controller
         if (! $quiz->is_active || ! $isAssigned) {
             throw new InvalidArgumentException('Quiz non autorisé.');
         }
+        $this->ensureQuizAttemptVisible($learner, $quiz, $data);
 
         $completedCount = $learner->attempts()
             ->where('quiz_id', $quiz->id)
@@ -289,6 +292,32 @@ class ActionController extends Controller
         ];
     }
 
+    /**
+     * Quiz rangé dans un dossier masqué : la tentative hors-ligne reste
+     * acceptée si elle a commencé (à défaut, s'est terminée) avant le
+     * masquage, c'est-à-dire avant le dernier updated_at des dossiers masqués
+     * de ses chaînes de placement.
+     */
+    private function ensureQuizAttemptVisible(Learner $learner, Quiz $quiz, array $data): void
+    {
+        $placement = app(ContentPlacement::class);
+        if ($placement->isVisible($learner, 'quiz', $quiz->id)) {
+            return;
+        }
+
+        $hiddenSince = $placement->hiddenSince($learner, 'quiz', $quiz->id);
+        $attemptAt = $data['started_at'] ?? $data['completed_at'] ?? null;
+        try {
+            $attemptAt = $attemptAt !== null ? Carbon::parse($attemptAt) : null;
+        } catch (Throwable) {
+            $attemptAt = null;
+        }
+
+        if ($hiddenSince === null || $attemptAt === null || ! $attemptAt->lt($hiddenSince)) {
+            throw new InvalidArgumentException("Ce contenu n'est pas disponible.");
+        }
+    }
+
     private function cardReview(Learner $learner, array $data): array
     {
         $cardId = $data['card_id'] ?? throw new InvalidArgumentException('card_id manquant.');
@@ -303,9 +332,8 @@ class ActionController extends Controller
         }
 
         $deck = $card->deck;
-        $groupIds = $learner->groups()->current()->pluck('groups.id');
         $isAccessible = $deck->active
-            && ($deck->is_public || $deck->groups()->whereIn('groups.id', $groupIds)->exists());
+            && ($deck->is_public || app(ContentPlacement::class)->isVisible($learner, 'deck', $deck->id));
         if (! $isAccessible) {
             throw new InvalidArgumentException('Deck non autorisé.');
         }

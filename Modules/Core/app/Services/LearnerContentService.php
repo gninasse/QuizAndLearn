@@ -9,10 +9,12 @@ use Modules\Core\Models\Badge;
 use Modules\Core\Models\Exam;
 use Modules\Core\Models\ExamAttempt;
 use Modules\Core\Models\FlashcardDeck;
+use Modules\Core\Models\Folder;
 use Modules\Core\Models\Learner;
 use Modules\Core\Models\LearnerProgress;
 use Modules\Core\Models\Quiz;
 use Modules\Core\Models\QuizAttempt;
+use Modules\Core\Models\Resource;
 
 /**
  * Contenu pédagogique du volet apprenant : payload bootstrap complet
@@ -26,6 +28,15 @@ class LearnerContentService
     ) {}
 
     /**
+     * Résolu à chaque appel : ce service vit dans des contrôleurs mis en
+     * cache par le routeur, alors que la visibilité ne vaut que par requête.
+     */
+    private function placement(): ContentPlacement
+    {
+        return app(ContentPlacement::class);
+    }
+
+    /**
      * Payload complet pour l'amorçage hors-ligne, avec cursor de delta.
      */
     public function bootstrap(Learner $learner): array
@@ -33,14 +44,23 @@ class LearnerContentService
         $cursor = now();
         $groupIds = $learner->groups()->current()->pluck('groups.id');
 
+        $articles = $this->articlesFor($learner, $groupIds);
+        $quizzes = $this->quizzesFor($learner, $groupIds);
+        $decks = $this->decksFor($learner, $groupIds);
+        $exams = $this->examsFor($learner, $groupIds);
+        $resources = $this->resourcesFor($learner);
+
         return [
             'cursor' => $cursor->toIso8601String(),
             'user' => $this->serializeUser($learner),
             'groups' => $this->groupsFor($learner),
-            'articles' => $this->articlesFor($learner, $groupIds)->values(),
-            'quizzes' => $this->quizzesFor($learner, $groupIds)->values(),
-            'decks' => $this->decksFor($learner, $groupIds)->values(),
-            'exams' => $this->examsFor($learner, $groupIds)->values(),
+            'articles' => $articles->values(),
+            'quizzes' => $quizzes->values(),
+            'decks' => $decks->values(),
+            'exams' => $exams->values(),
+            'resources' => $resources->values(),
+            'folders' => $this->foldersFor($groupIds),
+            'placements' => $this->placementsFor($learner, compact('articles', 'quizzes', 'decks', 'exams', 'resources')),
             'badges' => $this->serializeBadges($learner),
             'preferences' => $this->preferencesFor($learner),
             'terms' => $this->terminology->toArray(),
@@ -60,6 +80,7 @@ class LearnerContentService
         $quizzes = $this->quizzesFor($learner, $groupIds);
         $decks = $this->decksFor($learner, $groupIds);
         $exams = $this->examsFor($learner, $groupIds);
+        $resources = $this->resourcesFor($learner);
 
         return [
             'cursor' => $cursor->toIso8601String(),
@@ -79,6 +100,14 @@ class LearnerContentService
                 'updated' => $exams->filter(fn ($e) => $e['updated_at'] > $since->toIso8601String())->values(),
                 'authorized_ids' => $exams->pluck('id')->values(),
             ],
+            'resources' => [
+                'updated' => $resources->filter(fn ($r) => $r['updated_at'] > $since->toIso8601String())->values(),
+                'authorized_ids' => $resources->pluck('id')->values(),
+            ],
+            // Arborescence et placements toujours complets (légers, et un
+            // déplacement ne modifie pas updated_at des contenus).
+            'folders' => $this->foldersFor($groupIds),
+            'placements' => $this->placementsFor($learner, compact('articles', 'quizzes', 'decks', 'exams', 'resources')),
             'groups' => $this->groupsFor($learner),
             'badges' => $this->serializeBadges($learner),
             'xp' => $this->gamification->snapshot($learner),
@@ -129,7 +158,7 @@ class LearnerContentService
             ->keyBy('content_id');
 
         return Article::where('is_active', true)
-            ->whereHas('groups', fn ($q) => $q->whereIn('group_id', $groupIds))
+            ->whereIn('id', $this->placement()->visibleIds($learner, 'article'))
             ->latest()
             ->get()
             ->map(fn (Article $art) => ContentSerializer::article($art, $progress->get($art->id)));
@@ -143,7 +172,7 @@ class LearnerContentService
             ->groupBy('quiz_id');
 
         return Quiz::where('is_active', true)
-            ->whereHas('groups', fn ($q) => $q->whereIn('group_id', $groupIds))
+            ->whereIn('id', $this->placement()->visibleIds($learner, 'quiz'))
             ->with('questions')
             ->get()
             ->map(fn (Quiz $qz) => ContentSerializer::quiz($qz, $attempts->get($qz->id) ?? collect()));
@@ -154,8 +183,9 @@ class LearnerContentService
         $reviews = $learner->cardReviews()->get()->keyBy('flashcard_item_id');
 
         return FlashcardDeck::where('active', true)
-            ->where(function ($query) use ($groupIds) {
-                $query->whereHas('groups', fn ($q) => $q->whereIn('group_id', $groupIds))
+            ->where(function ($query) use ($learner) {
+                // Les decks publics restent hors dossiers.
+                $query->whereIn('id', $this->placement()->visibleIds($learner, 'deck'))
                     ->orWhere('is_public', true);
             })
             ->with(['cards' => fn ($q) => $q->orderBy('ordre')])
@@ -171,7 +201,7 @@ class LearnerContentService
             ->groupBy('exam_id');
 
         return Exam::where('is_active', true)
-            ->whereHas('groups', fn ($q) => $q->whereIn('group_id', $groupIds))
+            ->whereIn('id', $this->placement()->visibleIds($learner, 'exam'))
             ->get()
             ->map(function (Exam $ex) use ($examAttempts) {
                 $exAttempts = $examAttempts->get($ex->id) ?? collect();
@@ -224,6 +254,59 @@ class LearnerContentService
                     ])->values(),
                 ];
             });
+    }
+
+    private function resourcesFor(Learner $learner): Collection
+    {
+        return Resource::where('is_active', true)
+            ->whereIn('id', $this->placement()->visibleIds($learner, 'resource'))
+            ->with('video')
+            ->latest()
+            ->get()
+            ->map(fn (Resource $res) => ContentSerializer::resource($res));
+    }
+
+    /**
+     * Dossiers visibles des groupes courants (sous-arbres masqués exclus).
+     *
+     * @param  Collection<int, int>  $groupIds
+     */
+    private function foldersFor(Collection $groupIds): array
+    {
+        if ($groupIds->isEmpty()) {
+            return [];
+        }
+
+        return Folder::whereIn('id', $this->placement()->visibleFolderIds($groupIds))
+            ->orderBy('group_id')->orderBy('position')->orderBy('id')
+            ->get()
+            ->map(fn (Folder $folder) => [
+                'id' => $folder->id,
+                'group_id' => $folder->group_id,
+                'parent_id' => $folder->parent_id,
+                'name' => $folder->name,
+                'position' => $folder->position,
+            ])->values()->all();
+    }
+
+    /**
+     * Placements visibles, restreints aux contenus effectivement envoyés
+     * (un contenu inactif garde son placement mais n'est pas exposé).
+     *
+     * @param  array<string, Collection>  $collections
+     */
+    private function placementsFor(Learner $learner, array $collections): array
+    {
+        $sent = [
+            'article' => $collections['articles'], 'quiz' => $collections['quizzes'],
+            'deck' => $collections['decks'], 'exam' => $collections['exams'],
+            'resource' => $collections['resources'],
+        ];
+        $ids = array_map(fn (Collection $items) => $items->pluck('id')->flip(), $sent);
+
+        return $this->placement()->placementsFor($learner)
+            ->filter(fn (array $p) => $ids[$p['type']]->has($p['id']))
+            ->values()->all();
     }
 
     private function serializeBadges(Learner $learner): array

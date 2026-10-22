@@ -11,6 +11,7 @@ use Modules\Core\Models\Exam;
 use Modules\Core\Models\FlashcardDeck;
 use Modules\Core\Models\FlashcardItem;
 use Modules\Core\Models\FlashcardItemReview;
+use Modules\Core\Models\Folder;
 use Modules\Core\Models\Group;
 use Modules\Core\Models\Learner;
 use Modules\Core\Models\LearnerXp;
@@ -443,5 +444,43 @@ class PushCommandsTest extends TestCase
         $this->run15('push:exam-open');
 
         $this->assertCount(0, $this->sender->sent);
+    }
+
+    public function test_push_waits_until_folder_visible(): void
+    {
+        $this->quiz('Q0');
+        $this->run15('push:new-content');
+
+        $folder = Folder::create(['group_id' => $this->group->id, 'name' => 'Semaine 2', 'position' => 0, 'is_visible' => false]);
+        $quiz = $this->quiz('Caché');
+        DB::table('group_quiz')->where('quiz_id', $quiz->id)->update(['folder_id' => $folder->id]);
+
+        $this->run15('push:new-content');
+        $this->assertCount(0, $this->sender->sent);
+        $this->assertFalse(DB::table('push_assignment_snapshots')->where('content_id', $quiz->id)->where('content_type', 'quiz')->exists());
+
+        $folder->update(['is_visible' => true]);
+        $this->run15('push:new-content');
+        $this->run15('push:new-content');
+
+        $this->assertCount(1, $this->sender->sent);
+        $this->assertSame("quiz:{$quiz->id}", $this->sentMessages()[0]->ref);
+    }
+
+    public function test_exam_open_waits_until_folder_visible(): void
+    {
+        $folder = Folder::create(['group_id' => $this->group->id, 'name' => 'Examens', 'position' => 0, 'is_visible' => false]);
+        $exam = $this->exam('Partiel');
+        DB::table('group_exam')->where('exam_id', $exam->id)->update(['folder_id' => $folder->id]);
+
+        $this->run15('push:exam-open');
+        $this->assertCount(0, $this->sender->sent);
+
+        $folder->update(['is_visible' => true]);
+        $this->run15('push:exam-open');
+        $this->run15('push:exam-open');
+
+        $this->assertCount(1, $this->sender->sent);
+        $this->assertSame("exam:{$exam->id}", $this->sentMessages()[0]->ref);
     }
 }

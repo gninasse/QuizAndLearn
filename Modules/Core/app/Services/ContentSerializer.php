@@ -8,6 +8,7 @@ use Modules\Core\Models\FlashcardDeck;
 use Modules\Core\Models\LearnerProgress;
 use Modules\Core\Models\Quiz;
 use Modules\Core\Models\QuizAttempt;
+use Modules\Core\Models\Resource;
 
 /**
  * Sérialisation commune des contenus (articles, quiz, decks) pour le volet
@@ -145,6 +146,27 @@ class ContentSerializer
                     ] : null,
                 ];
             })->values(),
+        ];
+    }
+
+    /**
+     * Ressource pour l'apprenant : jamais de chemin de fichier (consultation
+     * via URL signée), l'URL n'est exposée que pour un lien externe.
+     */
+    public static function resource(Resource $resource): array
+    {
+        return [
+            'id' => $resource->id,
+            'kind' => $resource->kind,
+            'title' => $resource->title,
+            'description' => $resource->description,
+            'mime' => $resource->mime,
+            'size' => $resource->size,
+            'allow_download' => (bool) $resource->allow_download,
+            'video_ref' => $resource->kind === 'video' ? $resource->video?->ref : null,
+            'url' => $resource->kind === 'link' ? $resource->url : null,
+            'conversion_status' => $resource->conversion_status,
+            'updated_at' => $resource->updated_at->toIso8601String(),
         ];
     }
 }

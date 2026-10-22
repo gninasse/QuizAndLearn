@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Modules\Core\Models\Exam;
 use Modules\Core\Models\ExamAttempt;
+use Modules\Core\Services\ContentPlacement;
 use Modules\Core\Services\ExamEvaluationService;
 
 /**
@@ -31,6 +32,11 @@ class ExamAttemptController extends Controller
         $exam = Exam::where('is_active', true)
             ->whereHas('groups', fn ($q) => $q->whereIn('group_id', $groupIds))
             ->findOrFail($examId);
+
+        // Affecté mais rangé dans un dossier masqué pour ce groupe.
+        if (! app(ContentPlacement::class)->isVisible($learner, 'exam', $exam->id)) {
+            return response()->json(['success' => false, 'message' => "Ce contenu n'est pas disponible."], 403);
+        }
 
         $now = now();
         if ($exam->available_from && $now->lt($exam->available_from)) {

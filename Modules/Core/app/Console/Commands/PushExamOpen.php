@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Modules\Core\Console\Commands\Concerns\TargetsPushLearners;
 use Modules\Core\Models\Exam;
+use Modules\Core\Services\ContentPlacement;
 use Modules\Core\Services\Push\PushMessage;
 use Modules\Core\Services\Push\PushNotifier;
 
@@ -29,8 +30,14 @@ class PushExamOpen extends Command
             ->where(fn ($q) => $q->whereNull('available_until')->orWhere('available_until', '>', $now))
             ->get(['id', 'title']);
 
+        // Groupes où l'examen est rangé dans un dossier masqué : notifiés au
+        // passage suivant la levée du masquage (dédoublonnage par ref).
+        $visibleFolders = array_flip(app(ContentPlacement::class)->visibleFolderIds(DB::table('folders')->distinct()->pluck('group_id')));
+
         foreach ($exams as $exam) {
-            $groupIds = DB::table('group_exam')->where('exam_id', $exam->id)->pluck('group_id');
+            $groupIds = DB::table('group_exam')->where('exam_id', $exam->id)->get(['group_id', 'folder_id'])
+                ->filter(fn ($row) => $row->folder_id === null || isset($visibleFolders[$row->folder_id]))
+                ->pluck('group_id');
             $learnerIds = DB::table('group_learner')->whereIn('group_id', $groupIds)->pluck('learner_id');
 
             $this->pushableLearners($now)->whereIn('id', $learnerIds)->each(
