@@ -26,6 +26,7 @@
      data-url-resources="{{ route('cores.groups.contents.resources.store', $group->id) }}"
      data-url-links="{{ route('cores.groups.contents.links.store', $group->id) }}"
      data-url-retry="{{ route('cores.groups.contents.resources.retry-conversion', ['id' => $group->id, 'resource' => '__ID__']) }}"
+     data-url-resource="{{ route('cores.groups.contents.resources.update', ['id' => $group->id, 'resource' => '__ID__']) }}"
      data-url-edit-article="{{ route('cores.editor.articles.edit', ['article' => '__ID__']) }}"
      data-url-edit-quiz="{{ route('cores.editor.quizzes.edit', ['quiz' => '__ID__']) }}"
      data-url-edit-exam="{{ route('cores.editor.exams.edit', ['exam' => '__ID__']) }}"

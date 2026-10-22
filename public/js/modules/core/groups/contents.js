@@ -25,6 +25,7 @@ const urls = {
     resources: d.urlResources,
     links: d.urlLinks,
     retry: d.urlRetry,
+    resource: d.urlResource,
     edit: { article: d.urlEditArticle, quiz: d.urlEditQuiz, exam: d.urlEditExam, deck: d.urlEditDeck },
 };
 const copyTargets = JSON.parse(d.copyTargets || '[]');
@@ -284,9 +285,11 @@ function rowHtml(entry) {
            <li><button class="dropdown-item text-danger" data-action="delete-folder"><i class="bi bi-trash me-2"></i>Supprimer</button></li>`
         : `${editUrl ? `<li><a class="dropdown-item" href="${esc(editUrl)}"><i class="bi bi-pencil-square me-2"></i>Ouvrir dans l'éditeur</a></li>` : ''}
            <li><button class="dropdown-item" data-action="move"><i class="bi bi-arrow-right-square me-2"></i>Déplacer vers…</button></li>
+           ${entry.type === 'resource' ? '<li><button class="dropdown-item" data-action="edit-resource"><i class="bi bi-sliders me-2"></i>Paramètres</button></li>' : ''}
            <li><button class="dropdown-item" data-action="copy"><i class="bi bi-copy me-2"></i>Copier vers…</button></li>
            <li><hr class="dropdown-divider"></li>
-           <li><button class="dropdown-item text-danger" data-action="detach"><i class="bi bi-x-circle me-2"></i>Retirer ${esc(T('of_group'))}</button></li>`;
+           <li><button class="dropdown-item text-danger" data-action="detach"><i class="bi bi-x-circle me-2"></i>Retirer ${esc(T('of_group'))}</button></li>
+           ${entry.type === 'resource' ? '<li><button class="dropdown-item text-danger" data-action="delete-resource"><i class="bi bi-trash me-2"></i>Supprimer</button></li>' : ''}`;
 
     return `<li class="list-group-item gc-row${isFolder ? ' gc-folder-row' : ''}" data-type="${entry.type}" data-id="${entry.id}">
         <span class="gc-handle" title="Glisser pour réordonner ou déposer sur un dossier"><i class="bi bi-grip-vertical"></i></span>
@@ -297,6 +300,8 @@ function rowHtml(entry) {
                 <span>${esc(typeLabel)}</span>
                 ${entry.is_public ? '<span class="badge text-bg-light border"><i class="bi bi-globe2 me-1"></i>Public</span>' : ''}
                 ${isFolder ? visibilityBadges(entry) : ''}
+                ${entry.type === 'resource' && entry.is_active === false ? '<span class="badge text-bg-secondary" title="Désactivée : invisible pour les apprenants"><i class="bi bi-eye-slash me-1"></i>Désactivée</span>' : ''}
+                ${entry.type === 'resource' && entry.allow_download ? '<span class="badge text-bg-light border" title="Téléchargement autorisé"><i class="bi bi-download"></i></span>' : ''}
                 ${statusBadge(entry)}
             </div>
         </div>
@@ -508,6 +513,69 @@ async function detachDialog(item) {
         cancelButtonText: 'Annuler',
     });
     if (result.isConfirmed) await mutate(request('DELETE', fill(urls.detach, { TYPE: item.type, ID: item.id })));
+}
+
+/** « Paramètres » d'une ressource : titre, description, téléchargement, activation. */
+async function resourceDialog(item) {
+    const result = await Swal.fire({
+        title: 'Paramètres de la ressource',
+        html: `
+            <div class="text-start">
+                <label class="form-label small fw-semibold" for="rs-title">Titre</label>
+                <input id="rs-title" class="form-control mb-3" maxlength="255" value="${esc(item.title)}">
+                <label class="form-label small fw-semibold" for="rs-description">Description <span class="text-muted fw-normal">(facultatif)</span></label>
+                <textarea id="rs-description" class="form-control mb-3" rows="2" maxlength="5000">${esc(item.description ?? '')}</textarea>
+                <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" role="switch" id="rs-download" ${item.allow_download ? 'checked' : ''}>
+                    <label class="form-check-label" for="rs-download">Autoriser le téléchargement</label>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" id="rs-active" ${item.is_active === false ? '' : 'checked'}>
+                    <label class="form-check-label" for="rs-active">Active (visible par les apprenants)</label>
+                </div>
+                ${item.kind === 'video' ? '<p class="form-text mb-0 mt-2">Les vidéos se regardent en ligne : elles ne se téléchargent pas.</p>' : ''}
+            </div>`,
+        showCancelButton: true,
+        confirmButtonText: 'Enregistrer',
+        cancelButtonText: 'Annuler',
+        focusConfirm: false,
+        preConfirm: async () => {
+            const popup = Swal.getPopup();
+            const payload = {
+                title: popup.querySelector('#rs-title').value.trim(),
+                description: popup.querySelector('#rs-description').value.trim() || null,
+                allow_download: popup.querySelector('#rs-download').checked,
+                is_active: popup.querySelector('#rs-active').checked,
+            };
+            if (!payload.title) {
+                Swal.showValidationMessage('Le titre est obligatoire.');
+                return false;
+            }
+            try {
+                return await request('PATCH', fill(urls.resource, { ID: item.id }), payload);
+            } catch (error) {
+                Swal.showValidationMessage(esc(error.message));
+                return false;
+            }
+        },
+    });
+    if (result.isConfirmed && result.value) {
+        notify(result.value.message);
+        await load();
+    }
+}
+
+async function deleteResourceDialog(item) {
+    const result = await Swal.fire({
+        title: `Supprimer « ${esc(item.title)} » ?`,
+        text: 'La ressource et son fichier sont supprimés définitivement. Pour la retirer seulement d\'ici, utilisez « Retirer ».',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        confirmButtonText: 'Supprimer',
+        cancelButtonText: 'Annuler',
+    });
+    if (result.isConfirmed) await mutate(request('DELETE', fill(urls.resource, { ID: item.id })));
 }
 
 async function copyDialog(item) {
@@ -738,6 +806,8 @@ document.getElementById('gc-list').addEventListener('click', async (event) => {
         case 'move': moveDialog(entry); break;
         case 'copy': copyDialog(entry); break;
         case 'detach': detachDialog(entry); break;
+        case 'edit-resource': resourceDialog(entry); break;
+        case 'delete-resource': deleteResourceDialog(entry); break;
         case 'retry':
             actionEl.disabled = true;
             await mutate(request('POST', fill(urls.retry, { ID: id })));

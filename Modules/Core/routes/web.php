@@ -183,6 +183,8 @@ Route::middleware(['auth', 'staff'])->group(function () {
                 Route::post('/resources', [GroupContentController::class, 'storeResource'])->name('resources.store');
                 Route::post('/links', [GroupContentController::class, 'storeLink'])->name('links.store');
                 Route::post('/resources/{resource}/retry-conversion', [GroupContentController::class, 'retryConversion'])->name('resources.retry-conversion');
+                Route::patch('/resources/{resource}', [GroupContentController::class, 'updateResource'])->name('resources.update');
+                Route::delete('/resources/{resource}', [GroupContentController::class, 'destroyResource'])->name('resources.destroy');
             });
         });
 

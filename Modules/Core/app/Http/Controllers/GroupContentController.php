@@ -134,7 +134,8 @@ class GroupContentController extends Controller
             $titleColumn = $model === FlashcardDeck::class ? 'titre' : 'title';
             $columns = ["{$table}.id", "{$table}.{$titleColumn} as title", "{$pivot}.folder_id", "{$pivot}.position"];
             if ($type === 'resource') {
-                array_push($columns, "{$table}.kind", "{$table}.conversion_status", "{$table}.conversion_error");
+                array_push($columns, "{$table}.kind", "{$table}.conversion_status", "{$table}.conversion_error",
+                    "{$table}.description", "{$table}.allow_download", "{$table}.is_active");
             }
             if ($type === 'deck') {
                 $columns[] = "{$table}.is_public";
@@ -158,6 +159,9 @@ class GroupContentController extends Controller
                         'kind' => $row->kind,
                         'conversion_status' => $row->conversion_status,
                         'conversion_error' => $row->conversion_error,
+                        'description' => $row->description,
+                        'allow_download' => (bool) $row->allow_download,
+                        'is_active' => (bool) $row->is_active,
                     ];
                 }
                 if ($type === 'deck') {
@@ -319,6 +323,70 @@ class GroupContentController extends Controller
         $this->tree->attach($group, 'resource', $resource->id, $folderId);
 
         return response()->json(['success' => true, 'message' => 'Lien ajouté.', 'resource' => $this->resourcePayload($resource)], 201);
+    }
+
+    /**
+     * PATCH — paramètres d'une ressource du groupe (titre, description, téléchargement, activation).
+     * Il faut pouvoir modifier la ressource (ContentEditAccess::canEdit).
+     */
+    public function updateResource(Request $request, int $id, int $resource): JsonResponse
+    {
+        $group = $this->authorizedGroup($id);
+        $model = $group->resources()->whereKey($resource)->firstOrFail();
+        ContentEditAccess::authorize($model);
+
+        $data = $request->validate([
+            'title' => ['sometimes', 'required', 'string', 'max:255'],
+            'description' => ['sometimes', 'nullable', 'string', 'max:5000'],
+            'allow_download' => ['sometimes', 'boolean'],
+            'is_active' => ['sometimes', 'boolean'],
+        ]);
+        if (array_key_exists('description', $data) && $data['description'] === '') {
+            $data['description'] = null;
+        }
+        $model->update($data);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Ressource mise à jour.',
+            'resource' => $this->resourcePayload($model->fresh()) + [
+                'description' => $model->description,
+                'allow_download' => (bool) $model->allow_download,
+                'is_active' => (bool) $model->is_active,
+            ],
+        ]);
+    }
+
+    /**
+     * DELETE — supprime définitivement une ressource (et ses fichiers s'ils ne servent plus à une copie).
+     * Créateur et admins seulement (ContentEditAccess::canDelete). Refus 422 si elle est encore
+     * rattachée à un autre groupe que l'utilisateur ne gère pas : on ne retire rien aux collègues.
+     */
+    public function destroyResource(int $id, int $resource, ResourceStorage $storage): JsonResponse
+    {
+        $group = $this->authorizedGroup($id);
+        $model = $group->resources()->whereKey($resource)->firstOrFail();
+        abort_unless(ContentEditAccess::canDelete(auth()->user(), $model), 403, 'Action non autorisée.');
+
+        if (! $this->isAdmin()) {
+            $managed = auth()->user()->trainer?->groups()->pluck('groups.id')->all() ?? [];
+            $foreign = DB::table('group_resource')->where('resource_id', $model->id)
+                ->whereNotIn('group_id', $managed)->exists();
+            if ($foreign) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cette ressource est aussi utilisée dans '.term('a_group').' que vous ne gérez pas. Retirez-la '.term('of_group').' au lieu de la supprimer.',
+                ], 422);
+            }
+        }
+
+        DB::transaction(function () use ($model) {
+            DB::table('group_resource')->where('resource_id', $model->id)->delete();
+            $model->delete();
+        });
+        $storage->release($model);
+
+        return response()->json(['success' => true, 'message' => 'Ressource supprimée.']);
     }
 
     /**

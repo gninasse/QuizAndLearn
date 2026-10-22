@@ -651,4 +651,115 @@ class GroupContentApiTest extends TestCase
         $this->actingAs($this->admin)->getJson($this->url('/candidates?type=nope'))->assertStatus(422);
         $this->actingAs($this->trainerUser)->getJson($this->url('/candidates?type=quiz', $this->other))->assertForbidden();
     }
+
+    // ------------------------------------------------ paramètres / suppression d'une ressource
+
+    private function fileResource(?User $by = null, string $path = 'resources/9/support.pdf'): Resource
+    {
+        Storage::disk('local')->put($path, '%PDF');
+        $resource = Resource::create([
+            'kind' => 'pdf', 'title' => 'Support', 'disk' => 'local', 'path' => $path, 'mime' => 'application/pdf',
+            'size' => 4, 'allow_download' => false, 'is_active' => true, 'created_by' => $by?->id,
+        ]);
+        $this->group->resources()->attach($resource->id, ['folder_id' => null, 'position' => 0]);
+
+        return $resource;
+    }
+
+    private function coTrainer(): User
+    {
+        $user = $this->makeUser('coprof');
+        $user->assignRole('trainer');
+        $this->group->trainers()->attach(Trainer::create(['user_id' => $user->id])->id);
+
+        return $user;
+    }
+
+    public function test_resource_settings_update_by_creator(): void
+    {
+        $resource = $this->fileResource($this->trainerUser);
+
+        $this->actingAs($this->trainerUser)->patchJson($this->url("/resources/{$resource->id}"), [
+            'title' => 'Support de cours', 'description' => 'Chapitre 1', 'allow_download' => true, 'is_active' => false,
+        ])->assertOk()->assertJsonPath('success', true)->assertJsonPath('resource.title', 'Support de cours');
+
+        $resource->refresh();
+        $this->assertSame('Support de cours', $resource->title);
+        $this->assertSame('Chapitre 1', $resource->description);
+        $this->assertTrue((bool) $resource->allow_download);
+        $this->assertFalse((bool) $resource->is_active);
+        // Les valeurs actuelles alimentent la boîte « Paramètres ».
+        $item = collect($this->actingAs($this->trainerUser)->getJson($this->url('/data'))->json('items'))->firstWhere('id', $resource->id);
+        $this->assertSame(['Chapitre 1', true, false], [$item['description'], $item['allow_download'], $item['is_active']]);
+
+        // Champs partiels ; titre vide refusé.
+        $this->actingAs($this->trainerUser)->patchJson($this->url("/resources/{$resource->id}"), ['allow_download' => false])->assertOk();
+        $this->assertFalse((bool) $resource->fresh()->allow_download);
+        $this->assertSame('Support de cours', $resource->fresh()->title);
+        $this->actingAs($this->trainerUser)->patchJson($this->url("/resources/{$resource->id}"), ['title' => ''])->assertStatus(422);
+    }
+
+    public function test_resource_settings_rights(): void
+    {
+        $resource = $this->fileResource($this->admin);
+        $co = $this->coTrainer();
+
+        // Mode partagé : un formateur du groupe qui n'est pas l'auteur ne modifie pas.
+        $this->actingAs($co)->patchJson($this->url("/resources/{$resource->id}"), ['title' => 'X'])->assertForbidden();
+        // Mode isolé : les formateurs du groupe propriétaire modifient.
+        ContentSharing::setMode('isolated');
+        $this->actingAs($co)->patchJson($this->url("/resources/{$resource->id}"), ['title' => 'Co'])->assertOk();
+        $this->assertSame('Co', $resource->fresh()->title);
+
+        // Ressource d'un autre groupe : 404 ; groupe non géré : 403.
+        $foreign = Resource::create(['kind' => 'link', 'title' => 'L', 'url' => 'https://example.org', 'created_by' => $co->id]);
+        $this->other->resources()->attach($foreign->id, ['folder_id' => null, 'position' => 0]);
+        $this->actingAs($this->admin)->patchJson($this->url("/resources/{$foreign->id}"), ['title' => 'X'])->assertNotFound();
+        $this->actingAs($co)->patchJson($this->url("/resources/{$foreign->id}", $this->other), ['title' => 'X'])->assertForbidden();
+    }
+
+    public function test_resource_delete_by_creator_removes_row_and_file(): void
+    {
+        $resource = $this->fileResource($this->trainerUser);
+
+        $this->actingAs($this->trainerUser)->deleteJson($this->url("/resources/{$resource->id}"))
+            ->assertOk()->assertJsonPath('success', true);
+
+        $this->assertDatabaseMissing('resources', ['id' => $resource->id]);
+        $this->assertDatabaseMissing('group_resource', ['resource_id' => $resource->id]);
+        Storage::disk('local')->assertMissing('resources/9/support.pdf');
+    }
+
+    public function test_resource_delete_keeps_file_shared_with_a_copy(): void
+    {
+        $resource = $this->fileResource($this->admin);
+        Resource::create(['kind' => 'pdf', 'title' => 'Copie', 'disk' => 'local', 'path' => 'resources/9/support.pdf']);
+
+        $this->actingAs($this->admin)->deleteJson($this->url("/resources/{$resource->id}"))->assertOk();
+
+        $this->assertDatabaseMissing('resources', ['id' => $resource->id]);
+        Storage::disk('local')->assertExists('resources/9/support.pdf');
+    }
+
+    public function test_resource_delete_rights(): void
+    {
+        $resource = $this->fileResource($this->trainerUser);
+        $co = $this->coTrainer();
+        ContentSharing::setMode('isolated');
+
+        // Co-formateur : modifie mais ne supprime pas.
+        $this->actingAs($co)->deleteJson($this->url("/resources/{$resource->id}"))->assertForbidden();
+        // Toujours rattachée à un groupe que l'auteur ne gère pas : 422, rien n'est supprimé.
+        $this->other->resources()->attach($resource->id, ['folder_id' => null, 'position' => 0]);
+        $this->actingAs($this->trainerUser)->deleteJson($this->url("/resources/{$resource->id}"))
+            ->assertStatus(422)
+            ->assertJsonPath('success', false);
+        $this->assertDatabaseHas('resources', ['id' => $resource->id]);
+        Storage::disk('local')->assertExists('resources/9/support.pdf');
+
+        // Un admin gère tous les groupes.
+        $this->actingAs($this->admin)->deleteJson($this->url("/resources/{$resource->id}"))->assertOk();
+        $this->assertDatabaseMissing('resources', ['id' => $resource->id]);
+        $this->assertDatabaseMissing('group_resource', ['resource_id' => $resource->id]);
+    }
 }
