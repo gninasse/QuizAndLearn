@@ -8,7 +8,7 @@ import { escapeHtml } from '../core/html';
 
 const GRADIENTS = [
   'from-sky-500 to-blue-600',
-  'from-violet-500 to-purple-600',
+  'from-teal-500 to-cyan-600',
   'from-emerald-500 to-teal-600',
   'from-amber-500 to-orange-600',
   'from-rose-500 to-pink-600',

@@ -129,7 +129,7 @@ export function mount(el: HTMLElement): void {
       </section>
 
       ${consultation
-        ? raw(`<button id="btn-quit-consultation" class="rounded-xl bg-violet-700 hover:bg-violet-600 text-white font-bold py-3 text-sm">
+        ? raw(`<button id="btn-quit-consultation" class="rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-bold py-3 text-sm">
             <i class="bi bi-eye-slash"></i> Quitter la consultation
           </button>`)
         : raw(`<button id="btn-logout" class="rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold py-3 text-sm">

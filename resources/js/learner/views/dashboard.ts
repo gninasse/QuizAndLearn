@@ -129,7 +129,7 @@ export function mount(el: HTMLElement): void {
           [
             statCard('/entrainement', 'bi-patch-question', 'bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-400', pendingQuizzes.length, `Quiz à faire`),
             statCard('/articles', 'bi-journal-text', 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400', unreadArticles.length, `Articles à lire`),
-            statCard('/entrainement?tab=cartes', 'bi-stack', 'bg-violet-100 text-violet-600 dark:bg-violet-500/15 dark:text-violet-400', dueCards.length, `Cartes à réviser`),
+            statCard('/entrainement?tab=cartes', 'bi-stack', 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400', dueCards.length, `Cartes à réviser`),
             statCard('/examens', 'bi-mortarboard', 'bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400', openExams.length, `Examens ouverts`),
           ].join(''),
         )}
@@ -217,7 +217,7 @@ function mountGuest(el: HTMLElement): void {
           [
             tile('/entrainement', 'bi-patch-question', 'bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-400', quizzes.length, 'Quiz'),
             tile('/articles', 'bi-journal-text', 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400', articles.length, 'Articles'),
-            tile('/entrainement?tab=cartes', 'bi-stack', 'bg-violet-100 text-violet-600 dark:bg-violet-500/15 dark:text-violet-400', decks.length, 'Paquets de cartes'),
+            tile('/entrainement?tab=cartes', 'bi-stack', 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400', decks.length, 'Paquets de cartes'),
           ].join(''),
         )}
       </section>

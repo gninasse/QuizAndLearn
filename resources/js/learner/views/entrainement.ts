@@ -51,7 +51,7 @@ function deckCard(deck: DeckItem): string {
   return html`
     <div class="rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 panel-glass backdrop-blur-xl p-4 shadow-sm flex flex-col gap-3">
       <div class="flex items-start gap-3.5">
-        <span class="w-11 h-11 shrink-0 rounded-xl bg-violet-100 dark:bg-violet-500/15 text-violet-600 dark:text-violet-400 flex items-center justify-center text-lg">
+        <span class="w-11 h-11 shrink-0 rounded-xl bg-emerald-100 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-lg">
           <i class="bi bi-stack"></i>
         </span>
         <div class="min-w-0 flex-1">
@@ -61,14 +61,14 @@ function deckCard(deck: DeckItem): string {
           <p class="text-xs text-zinc-500 mt-1">${deck.cards.length} ${pluralize(deck.cards.length, 'carte')} · ${mastered} maîtrisée(s)</p>
         </div>
         ${dueCount > 0
-          ? raw(`<span class="shrink-0 inline-flex items-center justify-center min-w-6 h-6 px-2 rounded-full bg-violet-600 text-white text-xs font-bold">${dueCount}</span>`)
+          ? raw(`<span class="shrink-0 inline-flex items-center justify-center min-w-6 h-6 px-2 rounded-full bg-emerald-600 text-white text-xs font-bold">${dueCount}</span>`)
           : raw('<span class="shrink-0 text-emerald-500 text-lg"><i class="bi bi-check-circle-fill"></i></span>')}
       </div>
       <div class="h-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
-        <div class="h-full bg-violet-500 rounded-full transition-all" style="width:${progress}%"></div>
+        <div class="h-full bg-emerald-500 rounded-full transition-all" style="width:${progress}%"></div>
       </div>
       <a data-link href="/reviser/${deck.id}"
-         class="rounded-xl ${dueCount > 0 ? 'bg-violet-600 hover:bg-violet-500' : 'bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200'} ${dueCount > 0 ? 'text-white' : ''} text-center text-sm font-bold py-2.5 transition-colors">
+         class="rounded-xl ${dueCount > 0 ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200'} ${dueCount > 0 ? 'text-white' : ''} text-center text-sm font-bold py-2.5 transition-colors">
         ${dueCount > 0 ? `Réviser ${dueCount} ${pluralize(dueCount, 'carte')}` : 'Réviser en avance'}
       </a>
     </div>
@@ -164,7 +164,7 @@ export function mount(el: HTMLElement): void {
         </button>
         <button data-tab="cartes" role="tab"
                 class="flex-1 rounded-lg py-2 text-sm font-bold transition-colors flex items-center justify-center gap-1.5">
-          <i class="bi bi-stack"></i> Flashcards${totalDue > 0 ? raw(`<span class="inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-violet-600 text-white text-[10px] font-bold">${totalDue}</span>`) : ''}
+          <i class="bi bi-stack"></i> Flashcards${totalDue > 0 ? raw(`<span class="inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-emerald-600 text-white text-[10px] font-bold">${totalDue}</span>`) : ''}
         </button>
       </div>
       <div id="training-content">${raw(renderContent(tab))}</div>
@@ -213,15 +213,15 @@ export function mount(el: HTMLElement): void {
     if (!count) return;
     slot.innerHTML = `
       <a data-link href="/quizzes/erreurs/play"
-         class="flex items-center gap-3.5 rounded-2xl border-2 border-dashed border-violet-300 dark:border-violet-500/40 bg-violet-50/60 dark:bg-violet-500/10 p-4 hover:border-violet-400 transition-colors">
-        <span class="w-11 h-11 shrink-0 rounded-xl bg-violet-600 text-white flex items-center justify-center text-lg">
+         class="flex items-center gap-3.5 rounded-2xl border-2 border-dashed border-emerald-300 dark:border-emerald-500/40 bg-emerald-50/60 dark:bg-emerald-500/10 p-4 hover:border-emerald-400 transition-colors">
+        <span class="w-11 h-11 shrink-0 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-lg">
           <i class="bi bi-arrow-repeat"></i>
         </span>
         <div class="min-w-0 flex-1">
-          <p class="font-bold text-sm text-violet-800 dark:text-violet-300">Rejouer mes erreurs</p>
-          <p class="text-xs text-violet-600/80 dark:text-violet-400/80">${count} question(s) ratée(s) à retravailler — entraînement libre, sans XP.</p>
+          <p class="font-bold text-sm text-emerald-800 dark:text-emerald-300">Rejouer mes erreurs</p>
+          <p class="text-xs text-emerald-600/80 dark:text-emerald-400/80">${count} question(s) ratée(s) à retravailler — entraînement libre, sans XP.</p>
         </div>
-        <i class="bi bi-chevron-right text-violet-400"></i>
+        <i class="bi bi-chevron-right text-emerald-400"></i>
       </a>`;
   };
 

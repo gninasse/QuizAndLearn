@@ -153,10 +153,10 @@ body::before {
         0 8px 24px -8px rgb(2 132 199 / 0.45),
         0 2px 8px -2px rgb(2 132 199 / 0.25);
 }
-.glow-violet {
+.glow-emerald {
     box-shadow:
-        0 8px 24px -8px rgb(124 58 237 / 0.45),
-        0 2px 8px -2px rgb(124 58 237 / 0.25);
+        0 8px 24px -8px rgb(5 150 105 / 0.45),
+        0 2px 8px -2px rgb(5 150 105 / 0.25);
 }
 .glow-amber {
     box-shadow:

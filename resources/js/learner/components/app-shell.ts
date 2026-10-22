@@ -50,7 +50,7 @@ function consultationBannerHtml(user: UserProfile): string {
 
   return html`
     <div data-role="consultation-banner"
-         class="bg-violet-700 text-white text-xs font-semibold py-1.5 px-4 flex items-center justify-center gap-3">
+         class="bg-emerald-700 text-white text-xs font-semibold py-1.5 px-4 flex items-center justify-center gap-3">
       <span><i class="bi bi-eye mr-1"></i>Consultation de l'espace de ${user.full_name} — lecture seule</span>
       <button type="button" data-role="consultation-quit"
               class="rounded-lg bg-white/15 hover:bg-white/25 px-2.5 py-0.5 font-bold">Quitter</button>

@@ -86,7 +86,7 @@ function startSession(el: HTMLElement, deck: DeckItem): void {
             <i class="bi bi-x-lg"></i> Arrêter
           </a>
           <div class="flex-1 h-2 rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden">
-            <div class="h-full bg-violet-500 rounded-full transition-all" style="width:${Math.round((stats.studied / total) * 100)}%"></div>
+            <div class="h-full bg-emerald-500 rounded-full transition-all" style="width:${Math.round((stats.studied / total) * 100)}%"></div>
           </div>
           <span class="text-xs font-bold text-zinc-500 tabular-nums">${position}/${total}</span>
         </div>
@@ -94,8 +94,8 @@ function startSession(el: HTMLElement, deck: DeckItem): void {
 
         <div id="flip" class="flip-card cursor-pointer select-none" role="button" tabindex="0" aria-label="Retourner la carte">
           <div class="flip-card-inner relative min-h-72">
-            <div class="flip-face absolute inset-0 rounded-2xl border-2 border-violet-200 dark:border-violet-500/30 bg-white dark:bg-zinc-900 p-6 flex flex-col">
-              <span class="text-[11px] font-bold uppercase tracking-wide text-violet-500 mb-3">Question</span>
+            <div class="flip-face absolute inset-0 rounded-2xl border-2 border-emerald-200 dark:border-emerald-500/30 bg-white dark:bg-zinc-900 p-6 flex flex-col">
+              <span class="text-[11px] font-bold uppercase tracking-wide text-emerald-500 mb-3">Question</span>
               <div class="rich-content flex-1 flex items-center justify-center text-center font-semibold">${raw(card.recto)}</div>
               <p class="text-xs text-zinc-400 text-center mt-3"><i class="bi bi-arrow-repeat"></i> Touchez pour retourner</p>
             </div>
@@ -234,7 +234,7 @@ function startSession(el: HTMLElement, deck: DeckItem): void {
         ${isGuest() ? raw(accessCtaHtml('review')) : ''}
         <div class="flex gap-3 justify-center">
           <a data-link href="/reviser/${deck.id}" class="rounded-xl border border-zinc-300 dark:border-zinc-700 px-5 py-2.5 text-sm font-bold">Recommencer</a>
-          <a data-link href="/entrainement?tab=cartes" class="rounded-xl glow-violet bg-violet-600 hover:bg-violet-500 text-white px-5 py-2.5 text-sm font-bold">Mes paquets de cartes</a>
+          <a data-link href="/entrainement?tab=cartes" class="rounded-xl glow-emerald bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 text-sm font-bold">Mes paquets de cartes</a>
         </div>
       </div>
     `;

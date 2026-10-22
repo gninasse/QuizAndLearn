@@ -321,7 +321,7 @@ async function mountAsync(el: HTMLElement, params: Record<string, string>): Prom
       <div class="max-w-2xl mx-auto flex flex-col gap-4">
         ${state.practice
           ? raw(
-              '<p class="rounded-xl bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-300 text-xs font-semibold px-4 py-2.5"><i class="bi bi-arrow-repeat"></i> Entraînement libre sur vos erreurs — sans XP ni enregistrement.</p>',
+              '<p class="rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 text-xs font-semibold px-4 py-2.5"><i class="bi bi-arrow-repeat"></i> Entraînement libre sur vos erreurs — sans XP ni enregistrement.</p>',
             )
           : ''}
         <div class="flex items-center gap-3">
