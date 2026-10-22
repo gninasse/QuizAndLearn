@@ -25,7 +25,7 @@ class ImpersonationTest extends TestCase
     private const HEADER = 'X-Impersonation-Token';
 
     // videos.hls : hors middleware impersonation (signature seule), GET en lecture seule.
-    private const WHITELIST = ['learn.v1.me', 'learn.v1.bootstrap', 'learn.v1.changes', 'learn.v1.leaderboard', 'learn.v1.videos.playback', 'learn.v1.videos.hls'];
+    private const WHITELIST = ['learn.v1.me', 'learn.v1.bootstrap', 'learn.v1.changes', 'learn.v1.leaderboard', 'learn.v1.videos.playback', 'learn.v1.videos.hls', 'learn.v1.resources.view', 'learn.v1.resources.file'];
 
     private User $superAdmin;
 

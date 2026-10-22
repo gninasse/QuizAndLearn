@@ -5,6 +5,7 @@ use Modules\Core\Http\Controllers\Learner\Api\ActionController;
 use Modules\Core\Http\Controllers\Learner\Api\ContentController;
 use Modules\Core\Http\Controllers\Learner\Api\ExamAttemptController;
 use Modules\Core\Http\Controllers\Learner\Api\MobileAuthController;
+use Modules\Core\Http\Controllers\Learner\Api\ResourceController;
 
 /*
  |--------------------------------------------------------------------------
@@ -31,6 +32,11 @@ Route::prefix('mobile/v1')->name('mobile.v1.')->middleware('throttle:api')->grou
         Route::get('/leaderboard', [ContentController::class, 'leaderboard'])->name('leaderboard');
 
         Route::post('/actions', [ActionController::class, 'store'])->name('actions');
+
+        // Ressources : URL signée courte (fichier servi par learn.v1.resources.file,
+        // sans jeton) et téléchargement soumis à allow_download.
+        Route::get('/resources/{resource}/view', [ResourceController::class, 'view'])->whereNumber('resource')->name('resources.view');
+        Route::get('/resources/{resource}/download', [ResourceController::class, 'download'])->whereNumber('resource')->name('resources.download');
 
         Route::post('/exams/{exam}/attempts', [ExamAttemptController::class, 'store'])->name('exams.attempts.store');
         Route::patch('/exams/{exam}/attempts/{attempt}', [ExamAttemptController::class, 'update'])->name('exams.attempts.update');

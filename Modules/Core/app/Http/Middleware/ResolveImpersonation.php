@@ -25,6 +25,8 @@ class ResolveImpersonation
         'learn.v1.changes',
         'learn.v1.leaderboard',
         'learn.v1.videos.playback',
+        // Consulter une ressource (URL signée). `download` reste refusé.
+        'learn.v1.resources.view',
     ];
 
     public const END_ROUTE = 'learn.v1.impersonation.end';

@@ -45,6 +45,6 @@ return [
     'documents' => [
         'max_size_kb' => 51200,
         'soffice_binary' => env('SOFFICE_BINARY', 'soffice'),
-        'queue' => 'documents',
+        'queue' => env('DOCUMENT_QUEUE', 'documents'),
     ],
 ];

@@ -361,6 +361,15 @@ Route::prefix('api/learner/v1')->name('learn.v1.')->group(function () {
         ->middleware('signed')
         ->name('videos.hls');
 
+    // Fichier d'une ressource (original ou PDF converti). HORS groupe auth, comme
+    // videos.hls : lecteur PDF, <img>/<audio> et application mobile n'envoient ni
+    // cookie ni jeton. L'autorisation est la signature temporaire (15 min)
+    // délivrée par /resources/{resource}/view, lui-même protégé (visibilité).
+    Route::get('/resources/{resource}/file', [\Modules\Core\Http\Controllers\Learner\Api\ResourceController::class, 'file'])
+        ->whereNumber('resource')
+        ->middleware('signed')
+        ->name('resources.file');
+
     // `impersonation` AVANT `auth` : en consultation, l'apprenant devient
     // l'utilisateur de la requête (lecture seule, liste blanche).
     Route::middleware(['impersonation', 'auth', 'learner'])->group(function () {
@@ -373,6 +382,8 @@ Route::prefix('api/learner/v1')->name('learn.v1.')->group(function () {
         Route::get('/leaderboard', [\Modules\Core\Http\Controllers\Learner\Api\ContentController::class, 'leaderboard'])->name('leaderboard');
 
         Route::get('/videos/{ref}/playback', [\Modules\Core\Http\Controllers\Learner\Api\VideoPlaybackController::class, 'show'])->name('videos.playback');
+        Route::get('/resources/{resource}/view', [\Modules\Core\Http\Controllers\Learner\Api\ResourceController::class, 'view'])->whereNumber('resource')->name('resources.view');
+        Route::get('/resources/{resource}/download', [\Modules\Core\Http\Controllers\Learner\Api\ResourceController::class, 'download'])->whereNumber('resource')->name('resources.download');
 
         Route::post('/actions', [\Modules\Core\Http\Controllers\Learner\Api\ActionController::class, 'store'])->name('actions');
 

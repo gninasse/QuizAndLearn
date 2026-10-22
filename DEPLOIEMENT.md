@@ -26,6 +26,7 @@
 - **Nginx** (recommandé) ou Apache 2.4.
 - **HTTPS obligatoire** : le service worker, l'installation de la PWA et les cookies de session sécurisés ne fonctionnent qu'en HTTPS (Let's Encrypt / certbot).
 - **Disque** : prévoir la volumétrie des vidéos (100 Mo max par vidéo par défaut).
+- **LibreOffice** (sans interface) pour convertir en PDF les documents Word, PowerPoint et OpenDocument des ressources : voir §5 ter.
 
 ## 3. Installation initiale
 
@@ -237,6 +238,38 @@ cours de traitement est interrogé à la lecture (au plus une fois par minute et
 
 Les clés ne s'affichent jamais dans le back-office (seulement « configuré / manquant »).
 
+## 5 ter. Ressources et conversion des documents (LibreOffice)
+
+Les ressources des dossiers (PDF, images, audio, documents) sont stockées sur le disque
+**privé** `local` (`storage/app/private/resources/{id}/`), jamais sous `public/`. L'apprenant
+ne reçoit qu'une URL signée valable **15 min** ; le téléchargement n'est possible que si la
+ressource l'autorise. Taille maximale : 50 Mo par fichier (`media.documents.max_size_kb`),
+à garder cohérente avec `upload_max_filesize` / `post_max_size` et `client_max_body_size` (§5).
+
+Les documents Word, PowerPoint et OpenDocument (`doc`, `docx`, `odt`, `ppt`, `pptx`, `odp`)
+sont convertis en PDF par LibreOffice :
+
+```bash
+sudo apt install --no-install-recommends libreoffice-core libreoffice-writer libreoffice-impress
+soffice --version
+```
+
+```dotenv
+SOFFICE_BINARY=soffice           # ou chemin absolu, ex. /usr/bin/soffice
+DOCUMENT_QUEUE=documents         # file dédiée aux conversions
+```
+
+- **Worker dédié** sur la file **`documents`** (voir §7) :
+  `php artisan queue:work --queue=documents --tries=2 --timeout=300`.
+  LibreOffice s'arrête au bout de 270 s, le job au bout de 300 s, deux essais au plus.
+  `DB_QUEUE_RETRY_AFTER` (ou `REDIS_QUEUE_RETRY_AFTER`) doit rester supérieur à 300.
+- Le worker doit pouvoir écrire dans `storage/app/tmp` (profil LibreOffice et fichiers
+  temporaires propres à chaque conversion, supprimés ensuite).
+- **LibreOffice absent** (ou `SOFFICE_BINARY` erroné) : le document passe en « échec » avec le
+  message « LibreOffice n'est pas installé sur le serveur. », l'apprenant voit « Document
+  indisponible ». Après installation, relancer la conversion depuis le back-office (« Réessayer »).
+- Sans worker `documents`, les documents restent « en préparation » (l'apprenant reçoit 202).
+
 ## 6. Serveur web
 
 ### Nginx (recommandé)
@@ -318,6 +351,8 @@ workers supervisés (systemd ou supervisor) — **les mêmes commandes partout**
 php artisan queue:work --queue=default --tries=3 --timeout=90
 # File vidéo (pilote s3_hls uniquement) : conversions HLS longues, un seul essai
 php artisan queue:work --queue=videos --tries=1 --timeout=4000
+# File documents : conversions PDF par LibreOffice (§5 ter)
+php artisan queue:work --queue=documents --tries=2 --timeout=300
 ```
 
 Avec le pilote `s3_hls`, `DB_QUEUE_RETRY_AFTER` (ou `REDIS_QUEUE_RETRY_AFTER`) doit valoir
@@ -435,6 +470,7 @@ chargement suivant (message « Application mise à jour ✨ »).
 |---|---|
 | Base de données | `pg_dump -Fc learnquiz > learnquiz-$(date +%F).dump` |
 | Médias pédagogiques | `tar czf media-$(date +%F).tgz storage/app/public` |
+| Ressources (fichiers privés) | `tar czf resources-$(date +%F).tgz storage/app/private/resources` |
 | Configuration | copie chiffrée du `.env` |
 
 Restauration : `pg_restore -d learnquiz <fichier.dump>` puis extraction de
@@ -450,6 +486,7 @@ l'archive des médias dans `storage/app/public`.
 - [ ] Upload d'une image, d'un audio et d'une vidéo depuis l'éditeur de quiz.
 - [ ] `APP_DEBUG=false` dans le `.env`.
 - [ ] Vidéo `s3_hls` : `php artisan queue:work --queue=videos …` tourne, une vidéo envoyée passe de « en cours de préparation » à lue.
+- [ ] Ressources : `soffice --version` répond et `php artisan queue:work --queue=documents …` tourne ; un fichier `.docx` envoyé passe de « en préparation » à lisible (PDF).
 - [ ] **Lecteur de marque YouTube / Vimeo sur appareils réels** (à faire par l'équipe, non couvert par les tests automatisés) :
   - [ ] Safari iOS (iPhone) et Chrome Android : toucher « Lire la vidéo » démarre la lecture ; si le navigateur exige un geste dans le lecteur, l'indication « Touchez la vidéo pour lancer la lecture » apparaît et un toucher sur la vidéo la lance.
   - [ ] Une fois la lecture lancée, l'indication disparaît et un toucher sur la vidéo met en pause (calque rétabli) : aucun lien « Regarder sur YouTube », titre, logo ni menu du fournisseur n'est atteignable.
