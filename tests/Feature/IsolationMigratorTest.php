@@ -562,4 +562,14 @@ class IsolationMigratorTest extends TestCase
         $lock->release();
         $this->postJson(route('cores.settings.content-sharing.apply'))->assertOk()->assertJsonPath('copied', 1);
     }
+
+    public function test_switch_confirmation_asks_learners_to_sync_first(): void
+    {
+        $this->learner($this->groupA);
+        $this->quiz([$this->groupA, $this->groupB]);
+
+        $this->get(route('cores.settings.content-sharing'))->assertOk()
+            ->assertSee('synchroniser leur application', false)
+            ->assertSee('seront refusées', false);
+    }
 }

@@ -114,7 +114,9 @@
       var $btn = $(this);
       Swal.fire({
         icon: 'warning', title: 'Lancer la bascule ?',
-        text: 'Les copies seront créées et l\'historique des apprenants transféré. Cette opération ne s\'annule pas.',
+        text: 'Les copies seront créées et l\'historique des apprenants transféré. Cette opération ne s\'annule pas. '
+          + 'Avant de lancer, demandez aux apprenants de synchroniser leur application : les actions faites hors ligne '
+          + 'sur un contenu copié et pas encore envoyées seront refusées après la bascule.',
         showCancelButton: true, confirmButtonText: 'Lancer', cancelButtonText: 'Annuler'
       }).then(function (r) {
         if (!r.isConfirmed) { return; }
