@@ -57,3 +57,21 @@ describe('videoEmbedError', () => {
         expect(videoEmbedError('https://evil.com/x', ['youtube'])).toMatch(/non reconnu/);
     });
 });
+
+describe('portage TypeScript (volet apprenant)', () => {
+    it.each([
+        `https://www.youtube.com/watch?v=${ID}`,
+        `https://youtu.be/${ID}?si=abc123`,
+        `https://www.youtube.com/shorts/${ID}`,
+        'https://vimeo.com/123456/abcdef0123',
+        'https://player.vimeo.com/video/123456?h=abcdef0123',
+        'https://evil.com/watch?v=abc',
+        `https://youtube.com.evil.com/watch?v=${ID}`,
+        'javascript:alert(1)',
+        'https://example.org/cours',
+        '',
+    ])('même résultat que le parseur partagé pour %s', async (url) => {
+        const { parseVideoEmbed: parseTs } = await import('./video-embed-parser');
+        expect(parseTs(url)).toEqual(parseVideoEmbed(url));
+    });
+});

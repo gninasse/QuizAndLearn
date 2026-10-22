@@ -21,3 +21,25 @@ export function isVideoStreamRequest(url: URL): boolean {
     PLAYBACK_PATH.test(url.pathname)
   );
 }
+
+// ------------------------------------------------ Ressources hors ligne
+
+/**
+ * Fichiers de ressources gardés pour le hors-ligne (« Disponible hors ligne »).
+ * L'URL de fichier est signée et expire après 15 min : elle n'est jamais une
+ * clé de cache. Le fichier est rangé sous une clé stable par id.
+ */
+export const RESOURCE_CACHE = 'learner-resources-v1';
+
+const RESOURCE_FILE_PATH = /^\/api\/[^/]+\/v\d+\/resources\/(\d+)\/file$/;
+
+/** Clé de cache d'une ressource : `resource:{id}` (chemin même origine, jamais servi par le réseau). */
+export function resourceCacheKey(id: number): string {
+  return `/offline/resource:${id}`;
+}
+
+/** Id de ressource d'une URL de fichier signée, ou null. */
+export function resourceFileId(url: URL): number | null {
+  const match = url.pathname.match(RESOURCE_FILE_PATH);
+  return match ? Number(match[1]) : null;
+}

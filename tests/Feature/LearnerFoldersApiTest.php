@@ -321,4 +321,42 @@ class LearnerFoldersApiTest extends TestCase
             ->assertJsonPath('results.1.status', 'rejected');
         $this->assertSame('2026-10-20 08:00:00', $folder->fresh()->updated_at->toDateTimeString());
     }
+
+    public function test_resource_view_action_records_completed_progress_without_xp(): void
+    {
+        $resource = $this->resource(['kind' => 'link', 'title' => 'Site', 'url' => 'https://example.org/cours'], $this->folder());
+        $action = fn () => ['id' => (string) Str::uuid(), 'type' => 'resource_view', 'data' => ['resource_id' => $resource->id]];
+
+        $this->actingAs($this->user)->postJson(route('learn.v1.actions'), ['actions' => [$action(), $action()]])
+            ->assertOk()
+            ->assertJsonPath('results.0.status', 'applied')
+            ->assertJsonPath('results.1.status', 'applied')
+            ->assertJsonPath('xp.total_xp', 0);
+
+        $this->assertDatabaseCount('learner_progress', 1);
+        $this->assertDatabaseHas('learner_progress', [
+            'learner_id' => $this->learner->id,
+            'content_type' => 'resource',
+            'content_id' => $resource->id,
+            'status' => 'completed',
+        ]);
+        $progress = $this->learner->progress()->where('content_type', 'resource')->first();
+        $this->assertNotNull($progress->completed_at);
+        $this->assertNotNull($progress->last_accessed_at);
+    }
+
+    public function test_resource_view_action_rejected_when_resource_hidden(): void
+    {
+        $hidden = $this->resource(['kind' => 'link', 'title' => 'Masquée', 'url' => 'https://example.org/x'], $this->folder(['is_visible' => false]));
+
+        $this->actingAs($this->user)->postJson(route('learn.v1.actions'), ['actions' => [
+            ['id' => (string) Str::uuid(), 'type' => 'resource_view', 'data' => ['resource_id' => $hidden->id]],
+            ['id' => (string) Str::uuid(), 'type' => 'resource_view', 'data' => []],
+        ]])->assertOk()
+            ->assertJsonPath('results.0.status', 'rejected')
+            ->assertJsonPath('results.0.message', "Ce contenu n'est pas disponible.")
+            ->assertJsonPath('results.1.status', 'rejected');
+
+        $this->assertDatabaseCount('learner_progress', 0);
+    }
 }

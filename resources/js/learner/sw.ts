@@ -11,6 +11,8 @@
  * - Vidéos : jamais en cache — ni les sources de lecture (/api/…/videos/…/
  *   playback), ni les playlists HLS signées (/videos/…/hls/…, *.m3u8), ni
  *   les segments (*.ts), ni les lecteurs YouTube / Vimeo (en ligne uniquement).
+ * - Ressources « Disponible hors ligne » : rangées sous `resource:{id}`
+ *   (jamais sous l'URL signée), servies en repli quand le réseau manque.
  * - Background Sync : réveille l'app (clients ouverts) pour rejouer l'outbox.
  */
 
@@ -21,7 +23,7 @@ import { NavigationRoute, registerRoute } from 'workbox-routing';
 import { CacheFirst, NetworkOnly } from 'workbox-strategies';
 
 import { pickLearnerClient } from './sw-clients';
-import { isVideoStreamRequest } from './sw-video';
+import { isVideoStreamRequest, RESOURCE_CACHE, resourceCacheKey, resourceFileId } from './sw-video';
 
 declare const self: ServiceWorkerGlobalScope;
 
@@ -48,6 +50,23 @@ registerRoute(
 registerRoute(
   ({ url }) => url.origin === self.location.origin && isVideoStreamRequest(url),
   new NetworkOnly(),
+);
+
+// Fichiers de ressources (URL signée 15 min) : jamais mis en cache sous leur
+// URL. Réseau d'abord ; sans réseau, repli sur la copie « Disponible hors
+// ligne » rangée par l'app sous la clé stable `resource:{id}`.
+registerRoute(
+  ({ url }) => url.origin === self.location.origin && resourceFileId(url) !== null,
+  async ({ url, request }) => {
+    try {
+      return await fetch(request);
+    } catch (error) {
+      const cache = await caches.open(RESOURCE_CACHE);
+      const offline = await cache.match(resourceCacheKey(resourceFileId(url)!));
+      if (offline) return offline;
+      throw error;
+    }
+  },
 );
 
 // Données : réseau uniquement — IndexedDB est la seule source hors-ligne.

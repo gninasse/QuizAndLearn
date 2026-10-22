@@ -10,6 +10,7 @@ import { api, ApiError, NetworkError } from '../api/client';
 import { db, getMeta, setMeta, META_CONSULTED_RESOURCES, META_CURSOR, META_TERMS } from '../db/schema';
 import { resetTerms, setTerms } from '../core/terms';
 import * as outbox from '../db/outbox';
+import { clearResourceCache } from './resource-cache';
 import { isGuest, leaveGuestMode, refreshGuestContent } from '../guest/guest-session';
 import {
   blockedInConsultation,
@@ -519,6 +520,7 @@ export async function clearLocalData(): Promise<void> {
   // Les médias en cache hors-ligne partent avec la session.
   warmedUrls.clear();
   await globalThis.caches?.delete('learner-static-v1').catch(() => false);
+  await clearResourceCache();
   foldersStore.set([]);
   resourcesStore.set([]);
   placementsStore.set([]);

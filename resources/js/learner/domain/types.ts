@@ -194,7 +194,8 @@ export interface Folder {
   position: number;
 }
 
-export type ResourceKind = 'video' | 'document' | 'link';
+/** Mêmes valeurs que `Resource::KINDS` côté serveur. */
+export type ResourceKind = 'video' | 'audio' | 'image' | 'pdf' | 'document' | 'link';
 
 /** Ressource (vidéo, document, lien). Aucune URL de fichier stable n'est exposée. */
 export interface Resource {
@@ -221,6 +222,15 @@ export interface Placement {
   folder_id: number | null;
   position: number;
 }
+
+/** Réponse 200 de `GET /resources/{id}/view` : URL signée 15 min pour les fichiers. */
+export type ResourceView =
+  | { type: 'pdf' | 'audio' | 'image'; url: string; expires_at: string }
+  | { type: 'video'; video_ref: string }
+  | { type: 'link'; url: string };
+
+/** 202 : conversion Word → PDF en cours. */
+export type ResourceViewResponse = ResourceView | { status: 'pending' };
 
 export interface BadgeItem {
   id: number;
@@ -389,7 +399,8 @@ export type ActionType =
   | 'quiz_error_report'
   | 'card_review'
   | 'review_session'
-  | 'preferences_update';
+  | 'preferences_update'
+  | 'resource_view';
 
 export interface OutboxAction {
   /** auto-incrément Dexie */

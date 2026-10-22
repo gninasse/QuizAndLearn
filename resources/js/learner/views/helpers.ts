@@ -48,3 +48,14 @@ export function shuffleArray<T>(items: T[]): T[] {
 export function pluralize(count: number, singular: string, plural?: string): string {
   return count <= 1 ? singular : (plural ?? `${singular}s`);
 }
+
+/**
+ * Navigation depuis une vue ou un composant (sans accès au routeur) : même
+ * mécanisme que la redirection de /reviser — l'URL change puis `popstate`
+ * fait résoudre la route par le routeur.
+ */
+export function navigateTo(path: string, replace = false): void {
+  if (replace) history.replaceState(null, '', path);
+  else history.pushState(null, '', path);
+  window.dispatchEvent(new PopStateEvent('popstate'));
+}

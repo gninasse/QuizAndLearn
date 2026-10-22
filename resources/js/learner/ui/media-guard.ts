@@ -26,12 +26,17 @@ const PLAYER_SELECTOR = '.rich-content video, .rich-content audio';
 /** Vidéos référencées, embeds de marque et anciennes iframes d'embed. */
 const VIDEO_SELECTOR = '.rich-content iframe, .rich-content [data-embed]';
 const PROTECTED_SELECTOR =
-  '.rich-content img, .rich-content video, .rich-content audio, .media-frame, .media-lightbox, .brand-video';
+  '.rich-content img, .rich-content video, .rich-content audio, .media-frame, .media-lightbox, .brand-video, .pdf-viewer';
 
 /** Texte du filigrane courant (repris par le lecteur de marque). */
 let currentWatermark: string | null = null;
 
 // ------------------------------------------------------------- Filigrane
+
+/** Texte du filigrane courant (lecteur PDF, lecteur de marque). */
+export function currentWatermarkText(): string | null {
+  return currentWatermark;
+}
 
 function escapeXml(value: string): string {
   return value.replace(/[<>&'"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' })[c] ?? c);

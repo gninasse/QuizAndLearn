@@ -5,6 +5,7 @@ import { isDue } from '../domain/sm2';
 import type { DeckItem, QuizItem } from '../domain/types';
 import { decksStore, quizzesStore } from '../stores';
 import { pluralize } from './helpers';
+import { pathChipHtml } from '../ui/path-chip';
 
 /**
  * Espace Entraînement : quiz et flashcards réunis (segments), sans enjeu —
@@ -31,6 +32,7 @@ function quizCard(quiz: QuizItem): string {
       </span>
       <div class="min-w-0 flex-1">
         <p class="font-bold text-sm leading-snug">${quiz.title}</p>
+        ${raw(pathChipHtml('quiz', quiz.id))}
         <p class="text-xs text-zinc-500 mt-0.5">
           ${quiz.questions.length} questions${quiz.duration ? ` · ${quiz.duration} min` : ''} · réussite ≥ ${quiz.passing_score} %
         </p>
@@ -54,6 +56,7 @@ function deckCard(deck: DeckItem): string {
         </span>
         <div class="min-w-0 flex-1">
           <p class="font-bold text-sm">${deck.titre}</p>
+          ${raw(pathChipHtml('deck', deck.id))}
           ${deck.matiere ? raw(`<p class="text-xs text-zinc-500">${escapeHtml(deck.matiere)}</p>`) : ''}
           <p class="text-xs text-zinc-500 mt-1">${deck.cards.length} ${pluralize(deck.cards.length, 'carte')} · ${mastered} maîtrisée(s)</p>
         </div>

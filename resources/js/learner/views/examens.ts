@@ -6,6 +6,7 @@ import { lockedCardHtml } from '../guest/guest-ui';
 import type { ExamItem } from '../domain/types';
 import { examsStore } from '../stores';
 import { formatDateTime } from './helpers';
+import { pathChipHtml } from '../ui/path-chip';
 
 /**
  * Espace Examens — séparé de l'entraînement : épreuves officielles,
@@ -34,6 +35,7 @@ function examCard(exam: ExamItem): string {
           </span>
           <div class="min-w-0 flex-1">
             <p class="font-bold text-sm leading-snug">${exam.title}</p>
+            ${raw(pathChipHtml('exam', exam.id))}
             <p class="text-xs text-zinc-500 mt-0.5">${exam.duration} min · note /${exam.note_max} · ${exam.max_attempts} tentative(s)</p>
             ${exam.available_until
               ? raw(`<p class="text-xs text-zinc-500"><i class="bi bi-calendar-x"></i> Ferme le ${formatDateTime(exam.available_until)}</p>`)

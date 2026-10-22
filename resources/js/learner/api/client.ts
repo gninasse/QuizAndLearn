@@ -15,6 +15,7 @@ import type {
   ExamStartResponse,
   LeaderboardGroup,
   OutboxAction,
+  ResourceViewResponse,
   ShowcaseContent,
   ShowcaseSettings,
   UserProfile,
@@ -191,6 +192,22 @@ export const api = {
   videoPlayback(ref: string, guest = false) {
     const path = `/videos/${encodeURIComponent(ref)}/playback`;
     return guest ? showcaseRequest<VideoPlaybackResponse>('GET', path) : request<VideoPlaybackResponse>('GET', path);
+  },
+
+  // ------------------------------------------------------- Ressources
+
+  /**
+   * Accès à une ressource : 200 source (URL signée 15 min pour un fichier),
+   * 202 `{status:'pending'}` en conversion ; 409 (conversion échouée) et
+   * 403 (masquée) → ApiError.
+   */
+  resourceView(id: number) {
+    return request<ResourceViewResponse>('GET', `/resources/${id}/view`);
+  },
+
+  /** Fichier d'origine (Content-Disposition: attachment), si `allow_download`. */
+  resourceDownloadUrl(id: number): string {
+    return `${BASE}/resources/${id}/download`;
   },
 
   // ------------------------------------------------ Vitrine (mode découverte)

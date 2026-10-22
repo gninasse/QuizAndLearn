@@ -25,7 +25,9 @@ export default defineConfig({
             injectManifest: {
                 // Le shell SPA est precaché pour le repli de navigation offline.
                 additionalManifestEntries: [{ url: '/', revision: `${Date.now()}` }],
-                globPatterns: ['**/*.{js,css,woff2}'],
+                // + worker pdf.js (.mjs) : lecture hors ligne d'un PDF gardé
+                // « Disponible hors ligne ».
+                globPatterns: ['**/*.{js,css,woff2}', '**/pdf.worker*.mjs'],
                 // hls.js (~600 ko) : chargé à la demande pour une vidéo HLS,
                 // en ligne uniquement — inutile de l'imposer au precache.
                 globIgnores: ['**/hls-*.js'],

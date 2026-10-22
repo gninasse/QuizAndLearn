@@ -30,6 +30,7 @@ import { toast } from './ui/app-toast';
 import { setVideoEmbedPolicy } from './ui/brand-video';
 import { captureInstallPrompt, maybeShowInstallBanner } from './ui/install';
 import { dismissLightbox, installMediaGuard, setWatermark } from './ui/media-guard';
+import { installPathChips } from './ui/path-chip';
 import { playBadge } from './ui/sound';
 
 // ------------------------------------------------------------------ Thème
@@ -42,6 +43,7 @@ setVideoEmbedPolicy(() => {
   return user?.is_guest ? guestSettings()?.video?.embeds : user?.video?.embeds;
 });
 installMediaGuard();
+installPathChips();
 
 // ---------------------------------------------------------------- Routage
 
@@ -50,6 +52,10 @@ const CONSULTATION_POLL_MS = 60_000;
 const routes: RouteDefinition[] = [
   { path: '/connexion', title: 'Connexion', public: true, view: () => import('./views/login') },
   { path: '/', title: 'Tableau de bord', view: () => import('./views/dashboard') },
+  { path: '/cours', title: 'Cours', view: () => import('./views/cours') },
+  { path: '/cours/:groupId', title: 'Cours', view: () => import('./views/cours') },
+  { path: '/cours/:groupId/:folderId', title: 'Cours', view: () => import('./views/cours') },
+  { path: '/ressources/:id', title: 'Ressource', view: () => import('./views/ressource') },
   { path: '/articles', title: 'Articles', view: () => import('./views/articles') },
   { path: '/articles/:id', title: 'Lecture', view: () => import('./views/article-detail') },
   { path: '/entrainement', title: 'Entraînement', view: () => import('./views/entrainement') },
@@ -172,7 +178,8 @@ async function boot(): Promise<void> {
   // Événements de synchronisation → retours visuels.
   onSyncEvent((event) => {
     if (event.kind === 'data-refreshed') {
-      if (REFRESHABLE_PATHS.has(window.location.pathname)) {
+      const path = window.location.pathname;
+      if (REFRESHABLE_PATHS.has(path) || path.startsWith('/cours')) {
         void router.resolve();
       }
       return;

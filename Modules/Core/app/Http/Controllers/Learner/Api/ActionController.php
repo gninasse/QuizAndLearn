@@ -43,6 +43,7 @@ class ActionController extends Controller
         'card_review',
         'review_session',
         'preferences_update',
+        'resource_view',
     ];
 
     public function __construct(
@@ -151,6 +152,7 @@ class ActionController extends Controller
             'card_review' => $this->cardReview($learner, $data),
             'review_session' => $this->reviewSession($learner, $data),
             'preferences_update' => $this->preferencesUpdate($learner, $data),
+            'resource_view' => $this->resourceView($learner, $data),
         };
     }
 
@@ -316,6 +318,34 @@ class ActionController extends Controller
         if ($hiddenSince === null || $attemptAt === null || ! $attemptAt->lt($hiddenSince)) {
             throw new InvalidArgumentException("Ce contenu n'est pas disponible.");
         }
+    }
+
+    /**
+     * Ouverture d'une ressource (PWA) : progression « consultée », sans XP.
+     * Rejetée si la ressource n'est plus visible pour l'apprenant (dossier
+     * masqué, hors de ses groupes).
+     */
+    private function resourceView(Learner $learner, array $data): array
+    {
+        $resourceId = (int) ($data['resource_id'] ?? throw new InvalidArgumentException('resource_id manquant.'));
+        if (! app(ContentPlacement::class)->isVisible($learner, 'resource', $resourceId)) {
+            throw new InvalidArgumentException("Ce contenu n'est pas disponible.");
+        }
+
+        $progress = LearnerProgress::firstOrNew([
+            'learner_id' => $learner->id,
+            'content_type' => 'resource',
+            'content_id' => $resourceId,
+        ]);
+        $progress->fill([
+            'status' => 'completed',
+            'progress_percentage' => 100,
+            'started_at' => $progress->started_at ?? now(),
+            'completed_at' => $progress->completed_at ?? now(),
+            'last_accessed_at' => now(),
+        ])->save();
+
+        return ['resource_id' => $resourceId, 'status' => 'completed'];
     }
 
     private function cardReview(Learner $learner, array $data): array

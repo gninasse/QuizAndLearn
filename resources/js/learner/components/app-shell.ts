@@ -22,6 +22,12 @@ interface NavItem {
 
 const NAV: NavItem[] = [
   { path: '/', label: 'Accueil', icon: 'bi-house-door', match: (p) => p === '/' },
+  {
+    path: '/cours',
+    label: 'Cours',
+    icon: 'bi-folder2-open',
+    match: (p) => p.startsWith('/cours') || p.startsWith('/ressources'),
+  },
   { path: '/articles', label: 'Articles', icon: 'bi-journal-text', match: (p) => p.startsWith('/articles') },
   {
     path: '/entrainement',

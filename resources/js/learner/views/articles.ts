@@ -3,6 +3,7 @@ import { t } from '../core/terms';
 import { articlesStore } from '../stores';
 import type { ArticleItem } from '../domain/types';
 import { formatDate } from './helpers';
+import { pathChipHtml } from '../ui/path-chip';
 
 function starRating(rating: number): string {
   return [1, 2, 3, 4, 5]
@@ -29,6 +30,7 @@ function articleCard(article: ArticleItem): string {
         ${article.is_favorite ? raw('<i class="bi bi-heart-fill text-rose-500 text-sm"></i>') : ''}
       </div>
       <h3 class="font-bold leading-snug">${article.title}</h3>
+      ${raw(pathChipHtml('article', article.id))}
       <div class="flex items-center gap-3 text-xs text-zinc-500">
         <span><i class="bi bi-clock"></i> ${article.estimated_reading_time ?? '?'} min</span>
         <span>${formatDate(article.created_at)}</span>

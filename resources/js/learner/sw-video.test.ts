@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isVideoStreamRequest } from './sw-video';
+import { isVideoStreamRequest, RESOURCE_CACHE, resourceCacheKey, resourceFileId } from './sw-video';
 
 const at = (href: string): boolean => isVideoStreamRequest(new URL(href, 'https://app.example'));
 
@@ -24,4 +24,24 @@ describe('isVideoStreamRequest', () => {
       expect(at(href)).toBe(false);
     },
   );
+});
+
+describe('ressources hors ligne (clé resource:{id})', () => {
+  it("extrait l'id d'une URL de fichier signée, quelle que soit la signature", () => {
+    const signed = new URL('https://app.test/api/learner/v1/resources/12/file?expires=1&signature=abc');
+    const renewed = new URL('https://app.test/api/learner/v1/resources/12/file?expires=2&signature=def');
+    expect(resourceFileId(signed)).toBe(12);
+    expect(resourceFileId(renewed)).toBe(12);
+    expect(resourceFileId(new URL('https://app.test/api/learner/v1/resources/12/view'))).toBeNull();
+    expect(resourceFileId(new URL('https://app.test/storage/12/file'))).toBeNull();
+  });
+
+  it('la clé de cache ne dépend que de l’id', () => {
+    expect(resourceCacheKey(12)).toBe('/offline/resource:12');
+    expect(RESOURCE_CACHE).toBe('learner-resources-v1');
+  });
+
+  it("une URL de fichier signée n'est jamais mise en cache telle quelle", () => {
+    expect(isVideoStreamRequest(new URL('https://app.test/api/learner/v1/resources/12/file?expires=1&signature=a'))).toBe(false);
+  });
 });

@@ -9,6 +9,7 @@ import { decksStore, sessionStore } from '../stores';
 import { dispatch } from '../sync/engine';
 import { toast } from '../ui/app-toast';
 import { playCorrect, playWrong } from '../ui/sound';
+import { pathChipHtml } from '../ui/path-chip';
 
 /**
  * Révision par deck (système FlashcardDeck/FlashcardItem) :
@@ -89,6 +90,7 @@ function startSession(el: HTMLElement, deck: DeckItem): void {
           </div>
           <span class="text-xs font-bold text-zinc-500 tabular-nums">${position}/${total}</span>
         </div>
+        ${raw(pathChipHtml('deck', deck.id))}
 
         <div id="flip" class="flip-card cursor-pointer select-none" role="button" tabindex="0" aria-label="Retourner la carte">
           <div class="flip-card-inner relative min-h-72">
