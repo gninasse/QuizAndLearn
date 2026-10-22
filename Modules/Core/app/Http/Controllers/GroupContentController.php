@@ -15,6 +15,7 @@ use Modules\Core\Models\FlashcardDeck;
 use Modules\Core\Models\Folder;
 use Modules\Core\Models\Group;
 use Modules\Core\Models\Resource;
+use Modules\Core\Services\ContentCopier;
 use Modules\Core\Services\ContentEditAccess;
 use Modules\Core\Services\ContentSharing;
 use Modules\Core\Services\FolderTree;
@@ -280,6 +281,37 @@ class GroupContentController extends Controller
         $this->tree->detach($group, $type, $itemId);
 
         return response()->json(['success' => true, 'message' => 'Contenu retiré '.term('of_group').'.']);
+    }
+
+    /**
+     * POST — « Copier vers… » : copie profonde d'un contenu du groupe vers `target_group_id`
+     * (dans `target_folder_id`, null = racine), en dernière position.
+     * Il faut pouvoir modifier le contenu et gérer le groupe cible.
+     */
+    public function copyItem(Request $request, ContentCopier $copier, int $id, string $type, int $itemId): JsonResponse
+    {
+        $group = $this->authorizedGroup($id);
+        abort_unless(isset(ContentSharing::TYPES[$type]), 404);
+        [$model, $pivot, $fk] = ContentSharing::TYPES[$type];
+
+        abort_unless(DB::table($pivot)->where('group_id', $group->id)->where($fk, $itemId)->exists(), 404);
+        $content = $model::findOrFail($itemId);
+        ContentEditAccess::authorize($content);
+
+        $data = $request->validate([
+            'target_group_id' => ['required', 'integer', 'exists:groups,id'],
+            'target_folder_id' => ['nullable', 'integer'],
+        ]);
+        $target = $this->authorizedGroup((int) $data['target_group_id']);
+        $folderId = isset($data['target_folder_id']) ? (int) $data['target_folder_id'] : null;
+
+        $copy = $copier->copy($type, $content->id, $target->id, $folderId, auth()->user())['model'];
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Copie créée dans '.term('the_group').' « '.$target->name.' ».',
+            'item' => ['type' => $type, 'id' => $copy->id, 'group_id' => $target->id, 'folder_id' => $folderId],
+        ], 201);
     }
 
     /**

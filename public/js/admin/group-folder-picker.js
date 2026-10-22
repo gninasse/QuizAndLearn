@@ -8,6 +8,7 @@
  *   data-url-place (…/groups/__GROUP__/contenus/items/place).
  * Chaque emplacement .group-folder-slot[data-group-id] reçoit un <select> « Racine / dossiers ».
  * Un changement de dossier place le contenu en fin du dossier choisi (POST items.place).
+ * Bouton .btn-copy-to-group (data-url-copy, data-targets) : « Copier vers… » (POST items.copy).
  */
 (function ($) {
   'use strict';
@@ -150,6 +151,76 @@
     }
   };
 
+  /**
+   * « Copier vers… » (mode isolé) : choix du groupe cible (groupes gérés, hors groupe
+   * source) puis d'un dossier facultatif, puis POST items.copy depuis le groupe source.
+   */
+  function onCopy() {
+    var cfg = config();
+    var $btn = $(this);
+    var sourceId = $('.group-folder-slot[data-group-id]').first().data('group-id');
+    if (!cfg || !sourceId || !window.Swal) {
+      notify('error', 'Copie indisponible : le contenu n\'est rattaché à aucun groupe.');
+      return;
+    }
+    var targets = ($btn.data('targets') || []).filter(function (g) { return g.id !== parseInt(sourceId, 10); });
+    if (!targets.length) {
+      notify('error', 'Aucun autre groupe disponible pour la copie.');
+      return;
+    }
+
+    var $form = $('<div class="text-start"></div>');
+    var $group = $('<select id="copy-target-group" class="form-select mb-3" aria-label="Groupe cible"></select>');
+    targets.forEach(function (g) { $group.append($('<option></option>').val(g.id).text(g.name)); });
+    var $folder = $('<select id="copy-target-folder" class="form-select" aria-label="Dossier cible"></select>');
+    $form.append('<label class="form-label small text-muted" for="copy-target-group">Groupe</label>', $group,
+      '<label class="form-label small text-muted" for="copy-target-folder">Dossier</label>', $folder);
+
+    function loadFolders(groupId) {
+      var $f = $(Swal.getPopup()).find('#copy-target-folder');
+      $f.empty().append($('<option value=""></option>').text('Racine (aucun dossier)')).prop('disabled', true);
+      $.getJSON(url(cfg.urlData, groupId)).done(function (res) {
+        flatten(res.folders || []).forEach(function (f) {
+          $f.append($('<option></option>').val(f.id).text(f.label));
+        });
+      }).always(function () {
+        $f.prop('disabled', false);
+      });
+    }
+
+    Swal.fire({
+      title: 'Copier vers…',
+      html: $form[0],
+      showCancelButton: true,
+      confirmButtonText: 'Copier',
+      cancelButtonText: 'Annuler',
+      focusConfirm: false,
+      didOpen: function (popup) {
+        var $g = $(popup).find('#copy-target-group');
+        $g.on('change', function () { loadFolders($g.val()); });
+        loadFolders($g.val());
+      },
+      preConfirm: function () {
+        var $popup = $(Swal.getPopup());
+        var folderId = $popup.find('#copy-target-folder').val();
+        return $.ajax({
+          url: url(String($btn.data('url-copy')), sourceId),
+          method: 'POST',
+          data: { target_group_id: $popup.find('#copy-target-group').val(), target_folder_id: folderId === '' ? null : folderId }
+        }).then(function (res) {
+          return res;
+        }, function (xhr) {
+          Swal.showValidationMessage(errorMessage(xhr, 'Copie impossible.'));
+        });
+      }
+    }).then(function (result) {
+      if (result.isConfirmed && result.value) {
+        notify('success', result.value.message || 'Copie créée.');
+      }
+    });
+  }
+
+  $(document).on('click', '.btn-copy-to-group', onCopy);
   $(document).on('change', '.group-folder-select', onChange);
   $(function () {
     window.GroupFolderPicker.mountAll();

@@ -173,6 +173,7 @@ Route::middleware(['auth', 'staff'])->group(function () {
                 Route::post('/items/reorder', [GroupContentController::class, 'reorder'])->name('items.reorder');
                 Route::post('/items/attach', [GroupContentController::class, 'attachItem'])->name('items.attach');
                 Route::delete('/items/{type}/{itemId}', [GroupContentController::class, 'detachItem'])->name('items.detach');
+                Route::post('/items/{type}/{itemId}/copy', [GroupContentController::class, 'copyItem'])->name('items.copy');
                 Route::post('/resources', [GroupContentController::class, 'storeResource'])->name('resources.store');
                 Route::post('/links', [GroupContentController::class, 'storeLink'])->name('links.store');
                 Route::post('/resources/{resource}/retry-conversion', [GroupContentController::class, 'retryConversion'])->name('resources.retry-conversion');
