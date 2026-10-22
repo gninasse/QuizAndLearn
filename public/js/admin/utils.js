@@ -46,9 +46,10 @@ window.showToast = function(type, message) {
         color = '#b45309';
     }
 
+    // titleText : le message (souvent issu du serveur) n'est jamais interprété comme HTML.
     Toast.fire({
         icon: icon,
-        title: message,
+        titleText: message == null ? '' : String(message),
         background: background,
         color: color
     });

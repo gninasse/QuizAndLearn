@@ -73,9 +73,10 @@ async function request(method, url, body) {
 }
 
 const notify = (message, icon = 'success') =>
-    Swal.fire({ toast: true, position: 'top-end', icon, title: message, showConfirmButton: false, timer: 2600 });
+    Swal.fire({ toast: true, position: 'top-end', icon, titleText: String(message ?? ''), showConfirmButton: false, timer: 2600 });
 
-const fail = (error) => Swal.fire('Erreur', error.message || 'Une erreur est survenue.', 'error');
+// Texte serveur : jamais interprété comme HTML (titleText / text).
+const fail = (error) => Swal.fire({ titleText: 'Erreur', text: error.message || 'Une erreur est survenue.', icon: 'error' });
 
 /** Exécute une mutation, recharge l'arbre, notifie. */
 async function mutate(promise) {
@@ -437,7 +438,7 @@ async function folderDialog(folder = null) {
                     ? await request('PATCH', fill(urls.folder, { FOLDER: folder.id }), payload)
                     : await request('POST', urls.folders, { ...payload, parent_id: current });
             } catch (error) {
-                Swal.showValidationMessage(error.message);
+                Swal.showValidationMessage(esc(error.message));
                 return false;
             }
         },
@@ -562,7 +563,7 @@ async function uploadDialog() {
             try {
                 return await request('POST', urls.resources, form);
             } catch (error) {
-                Swal.showValidationMessage(error.message);
+                Swal.showValidationMessage(esc(error.message));
                 return false;
             }
         },
@@ -598,7 +599,7 @@ async function linkDialog() {
             try {
                 return await request('POST', urls.links, payload);
             } catch (error) {
-                Swal.showValidationMessage(error.message);
+                Swal.showValidationMessage(esc(error.message));
                 return false;
             }
         },

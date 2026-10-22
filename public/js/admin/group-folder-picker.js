@@ -39,8 +39,15 @@
     if (typeof window.showToast === 'function') {
       window.showToast(type, message);
     } else if (window.Swal) {
-      Swal.fire({ toast: true, position: 'top-end', icon: type, title: message, showConfirmButton: false, timer: 2500 });
+      Swal.fire({ toast: true, position: 'top-end', icon: type, titleText: String(message == null ? '' : message), showConfirmButton: false, timer: 2500 });
     }
+  }
+
+  /** showValidationMessage interprète du HTML : on échappe tout texte serveur. */
+  function escapeHtml(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
   }
 
   function errorMessage(xhr, fallback) {
@@ -209,7 +216,7 @@
         }).then(function (res) {
           return res;
         }, function (xhr) {
-          Swal.showValidationMessage(errorMessage(xhr, 'Copie impossible.'));
+          Swal.showValidationMessage(escapeHtml(errorMessage(xhr, 'Copie impossible.')));
         });
       }
     }).then(function (result) {
