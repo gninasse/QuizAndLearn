@@ -27,6 +27,9 @@
             <button id="btn-members-group" class="btn btn-warning" disabled data-bs-toggle="tooltip" title="Gérer les membres">
                 <i class="fas fa-users-cog"></i> Membres
             </button>
+            <button id="btn-contents-group" class="btn btn-warning" disabled data-bs-toggle="tooltip" title="Organiser les contenus">
+                <i class="fas fa-folder-tree"></i> Contenus
+            </button>
             <button id="btn-enable-group" class="btn btn-success" disabled data-bs-toggle="tooltip" title="Activer">
                 <i class="fas fa-check"></i>
             </button>

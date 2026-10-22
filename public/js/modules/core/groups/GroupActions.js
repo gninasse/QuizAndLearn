@@ -1,6 +1,6 @@
 /**
  * GroupActions.js
- * Handles Delete, Toggle Status and navigation to the members page.
+ * Handles Delete, Toggle Status and navigation to the members and contents pages.
  */
 export class GroupActions {
     constructor(tableInstance, formInstance) {
@@ -48,6 +48,14 @@ export class GroupActions {
             if (groupId) {
                 // Page dédiée (recherche, fiche détaillée, suspension…).
                 window.location.href = `/cores/groups/${groupId}/membres`;
+            }
+        });
+
+        $('#btn-contents-group').click(() => {
+            const groupId = this.table.getSelectedId();
+            if (groupId) {
+                // Arborescence de dossiers et contenus du groupe.
+                window.location.href = `/cores/groups/${groupId}/contenus`;
             }
         });
     }

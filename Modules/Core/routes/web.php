@@ -170,6 +170,7 @@ Route::middleware(['auth', 'staff'])->group(function () {
             Route::prefix('/{id}/contenus')->name('contents.')->whereNumber(['id', 'folder', 'itemId', 'resource'])->group(function () {
                 Route::get('/', [GroupContentController::class, 'page'])->name('page');
                 Route::get('/data', [GroupContentController::class, 'data'])->name('data');
+                Route::get('/candidates', [GroupContentController::class, 'candidates'])->name('candidates');
                 Route::post('/folders', [GroupContentController::class, 'storeFolder'])->name('folders.store');
                 Route::patch('/folders/{folder}', [GroupContentController::class, 'updateFolder'])->name('folders.update');
                 Route::post('/folders/{folder}/move', [GroupContentController::class, 'moveFolder'])->name('folders.move');

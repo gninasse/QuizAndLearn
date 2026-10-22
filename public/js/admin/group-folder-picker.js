@@ -9,6 +9,7 @@
  * Chaque emplacement .group-folder-slot[data-group-id] reçoit un <select> « Racine / dossiers ».
  * Un changement de dossier place le contenu en fin du dossier choisi (POST items.place).
  * Bouton .btn-copy-to-group (data-url-copy, data-targets) : « Copier vers… » (POST items.copy).
+ * GroupFolderPicker.copyDialog(opts) : la même boîte, réutilisée par la page « Contenus » d'un groupe.
  */
 (function ($) {
   'use strict';
@@ -152,21 +153,19 @@
   };
 
   /**
-   * « Copier vers… » (mode isolé) : choix du groupe cible (groupes gérés, hors groupe
-   * source) puis d'un dossier facultatif, puis POST items.copy depuis le groupe source.
+   * Boîte « Copier vers… » réutilisable (éditeurs et page « Contenus » d'un groupe) :
+   * choix du groupe cible (hors groupe source) puis d'un dossier facultatif, puis POST items.copy.
+   *   opts.urlCopy  : URL de copie (« __GROUP__ » remplacé par sourceId)
+   *   opts.urlData  : URL des données d'un groupe (« __GROUP__ » remplacé par le groupe cible)
+   *   opts.sourceId : groupe source ; opts.targets : [{id, name}]
+   * Résout avec la réponse JSON de la copie, ou null si annulé.
    */
-  function onCopy() {
-    var cfg = config();
-    var $btn = $(this);
-    var sourceId = $('.group-folder-slot[data-group-id]').first().data('group-id');
-    if (!cfg || !sourceId || !window.Swal) {
-      notify('error', 'Copie indisponible : le contenu n\'est rattaché à aucun groupe.');
-      return;
-    }
-    var targets = ($btn.data('targets') || []).filter(function (g) { return g.id !== parseInt(sourceId, 10); });
+  function copyDialog(opts) {
+    var sourceId = parseInt(opts.sourceId, 10);
+    var targets = (opts.targets || []).filter(function (g) { return g.id !== sourceId; });
     if (!targets.length) {
       notify('error', 'Aucun autre groupe disponible pour la copie.');
-      return;
+      return Promise.resolve(null);
     }
 
     var $form = $('<div class="text-start"></div>');
@@ -179,7 +178,7 @@
     function loadFolders(groupId) {
       var $f = $(Swal.getPopup()).find('#copy-target-folder');
       $f.empty().append($('<option value=""></option>').text('Racine (aucun dossier)')).prop('disabled', true);
-      $.getJSON(url(cfg.urlData, groupId)).done(function (res) {
+      $.getJSON(url(opts.urlData, groupId)).done(function (res) {
         flatten(res.folders || []).forEach(function (f) {
           $f.append($('<option></option>').val(f.id).text(f.label));
         });
@@ -188,7 +187,7 @@
       });
     }
 
-    Swal.fire({
+    return Swal.fire({
       title: 'Copier vers…',
       html: $form[0],
       showCancelButton: true,
@@ -204,7 +203,7 @@
         var $popup = $(Swal.getPopup());
         var folderId = $popup.find('#copy-target-folder').val();
         return $.ajax({
-          url: url(String($btn.data('url-copy')), sourceId),
+          url: url(opts.urlCopy, sourceId),
           method: 'POST',
           data: { target_group_id: $popup.find('#copy-target-group').val(), target_folder_id: folderId === '' ? null : folderId }
         }).then(function (res) {
@@ -216,8 +215,26 @@
     }).then(function (result) {
       if (result.isConfirmed && result.value) {
         notify('success', result.value.message || 'Copie créée.');
+        return result.value;
       }
+      return null;
     });
+  }
+
+  window.GroupFolderPicker.copyDialog = copyDialog;
+
+  /**
+   * Bouton « Copier vers… » d'un éditeur : le groupe source est le premier groupe attribué.
+   */
+  function onCopy() {
+    var cfg = config();
+    var $btn = $(this);
+    var sourceId = $('.group-folder-slot[data-group-id]').first().data('group-id');
+    if (!cfg || !sourceId || !window.Swal) {
+      notify('error', 'Copie indisponible : le contenu n\'est rattaché à aucun groupe.');
+      return;
+    }
+    copyDialog({ urlCopy: String($btn.data('url-copy')), urlData: cfg.urlData, sourceId: sourceId, targets: $btn.data('targets') || [] });
   }
 
   $(document).on('click', '.btn-copy-to-group', onCopy);

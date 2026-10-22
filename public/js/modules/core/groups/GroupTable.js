@@ -8,6 +8,7 @@ export class GroupTable {
         this.$btnEdit = $('#btn-edit-group');
         this.$btnDelete = $('#btn-delete-group');
         this.$btnMembers = $('#btn-members-group');
+        this.$btnContents = $('#btn-contents-group');
         this.$btnEnable = $('#btn-enable-group');
         this.$btnDisable = $('#btn-disable-group');
     }
@@ -31,6 +32,7 @@ export class GroupTable {
         this.$btnEdit.prop('disabled', !isSingle);
         this.$btnDelete.prop('disabled', !isSingle);
         this.$btnMembers.prop('disabled', !isSingle);
+        this.$btnContents.prop('disabled', !isSingle);
 
         if (isSingle) {
             const row = selections[0];

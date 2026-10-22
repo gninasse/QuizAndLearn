@@ -589,4 +589,66 @@ class GroupContentApiTest extends TestCase
         ContentSharing::assertCanAttach('quiz', $quiz->id, $this->group->id);
         $this->assertTrue(true);
     }
+
+    // ------------------------------------------------------------- page (UI)
+
+    public function test_contents_page_renders_for_trainer(): void
+    {
+        $this->actingAs($this->trainerUser)->get($this->url())
+            ->assertOk()
+            ->assertSee('Promo A')
+            ->assertSee('id="group-contents-app"', false)
+            ->assertSee('data-url-candidates=', false)
+            ->assertSee('data-url-copy=', false)
+            ->assertSee('Nouveau dossier')
+            ->assertSee('Ajouter un contenu existant');
+
+        $this->actingAs($this->trainerUser)->get($this->url('', $this->other))->assertForbidden();
+    }
+
+    // --------------------------------------------------------- candidates
+
+    public function test_candidates_lists_editable_contents_not_in_group(): void
+    {
+        $inGroup = $this->article(by: $this->trainerUser);
+        $mine = Article::create(['title' => 'Algèbre linéaire', 'content' => 'x', 'is_active' => true, 'created_by' => $this->trainerUser->id]);
+        Article::create(['title' => 'Algèbre — autre auteur', 'content' => 'x', 'is_active' => true, 'created_by' => $this->admin->id]);
+
+        $res = $this->actingAs($this->trainerUser)
+            ->getJson($this->url('/candidates?type=article'))
+            ->assertOk();
+        $this->assertSame([$mine->id], collect($res->json('items'))->pluck('id')->all());
+        $this->assertNotContains($inGroup->id, collect($res->json('items'))->pluck('id')->all());
+        $res->assertJsonPath('items.0.title', 'Algèbre linéaire')
+            ->assertJsonPath('items.0.type', 'article');
+
+        // Admin : tous les contenus hors groupe, filtrés par titre.
+        $res = $this->actingAs($this->admin)->getJson($this->url('/candidates?type=article&q=autre'))->assertOk();
+        $this->assertSame(['Algèbre — autre auteur'], collect($res->json('items'))->pluck('title')->all());
+    }
+
+    public function test_candidates_include_public_decks_and_flag_locked_in_isolated_mode(): void
+    {
+        $public = $this->deck(true);
+        $owned = FlashcardDeck::create([
+            'titre' => 'Deck privé', 'algorithme' => 'sm2', 'easiness_default' => 2.5,
+            'interval_min' => 1, 'interval_max' => 365, 'active' => true, 'created_by' => $this->admin->id,
+        ]);
+        $this->other->flashcardDecks()->attach($owned->id);
+        ContentSharing::setMode('isolated');
+
+        $items = collect($this->actingAs($this->admin)->getJson($this->url('/candidates?type=deck'))->assertOk()->json('items'))->keyBy('id');
+        $this->assertFalse($items[$public->id]['locked']);
+        $this->assertTrue($items[$owned->id]['locked']);
+
+        // Formateur : le deck public d'un autre auteur est proposé, pas le deck privé.
+        $ids = collect($this->actingAs($this->trainerUser)->getJson($this->url('/candidates?type=deck'))->json('items'))->pluck('id')->all();
+        $this->assertSame([$public->id], $ids);
+    }
+
+    public function test_candidates_validation_and_access(): void
+    {
+        $this->actingAs($this->admin)->getJson($this->url('/candidates?type=nope'))->assertStatus(422);
+        $this->actingAs($this->trainerUser)->getJson($this->url('/candidates?type=quiz', $this->other))->assertForbidden();
+    }
 }

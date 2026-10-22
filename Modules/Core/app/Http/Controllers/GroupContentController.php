@@ -33,7 +33,79 @@ class GroupContentController extends Controller
 
     public function page(int $id): View
     {
-        return view('core::groups.contents', ['group' => $this->authorizedGroup($id)]);
+        $group = $this->authorizedGroup($id);
+
+        // Groupes cibles de « Copier vers… » : tous pour un admin, ceux qu'il anime pour un formateur
+        // (revérifié côté serveur par copyItem).
+        $copyTargets = $this->isAdmin()
+            ? Group::query()->orderBy('name')->get(['id', 'name'])
+            : (auth()->user()->trainer?->groups()->orderBy('name')->get(['groups.id', 'groups.name']) ?? collect());
+
+        return view('core::groups.contents', [
+            'group' => $group,
+            'sharingMode' => ContentSharing::mode(),
+            'copyTargets' => $copyTargets->map(fn ($g) => ['id' => $g->id, 'name' => $g->name])->values(),
+        ]);
+    }
+
+    /**
+     * GET ?type=&q= — contenus existants que l'utilisateur peut rattacher au groupe :
+     * ceux qu'il peut modifier (ContentEditAccess) et les decks publics, hors contenus déjà présents.
+     * `locked` : en mode `isolated`, le contenu appartient déjà à un autre groupe (rattachement refusé).
+     */
+    public function candidates(Request $request, int $id): JsonResponse
+    {
+        $group = $this->authorizedGroup($id);
+        $data = $request->validate([
+            'type' => ['required', Rule::in(array_keys(ContentSharing::TYPES))],
+            'q' => ['nullable', 'string', 'max:100'],
+        ]);
+        $type = $data['type'];
+        $model = ContentSharing::TYPES[$type][0];
+        $isDeck = $model === FlashcardDeck::class;
+        $titleColumn = $isDeck ? 'titre' : 'title';
+        $user = auth()->user();
+
+        $query = $model::query()
+            ->whereDoesntHave('groups', fn ($g) => $g->where('groups.id', $group->id))
+            ->withCount('groups');
+
+        if (! $user->hasAnyRole(ContentEditAccess::ADMIN_ROLES)) {
+            // scopeEditable n'ajoute aucune contrainte pour un admin : ne l'imbriquer que pour les autres.
+            $query->where(function ($q) use ($user, $isDeck) {
+                $q->where(fn ($editable) => ContentEditAccess::scopeEditable($editable, $user));
+                if ($isDeck) {
+                    $q->orWhere('is_public', true);
+                }
+            });
+        }
+
+        $term = trim((string) ($data['q'] ?? ''));
+        if ($term !== '') {
+            $query->where($titleColumn, 'like', '%'.addcslashes($term, '%_\\').'%');
+        }
+
+        $isolated = ContentSharing::isolated();
+        $items = $query->orderBy($titleColumn)->limit(50)->get()->map(function ($content) use ($type, $titleColumn, $isolated, $isDeck) {
+            $public = $isDeck && $content->is_public;
+            $item = [
+                'type' => $type,
+                'id' => $content->id,
+                'title' => $content->{$titleColumn},
+                'groups_count' => (int) $content->groups_count,
+                'locked' => $isolated && ! $public && $content->groups_count > 0,
+            ];
+            if ($type === 'resource') {
+                $item['kind'] = $content->kind;
+            }
+            if ($isDeck) {
+                $item['is_public'] = (bool) $content->is_public;
+            }
+
+            return $item;
+        })->values();
+
+        return response()->json(['success' => true, 'items' => $items]);
     }
 
     /**
