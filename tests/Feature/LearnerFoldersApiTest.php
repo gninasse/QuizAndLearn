@@ -139,6 +139,7 @@ class LearnerFoldersApiTest extends TestCase
             'id' => $link->id, 'kind' => 'link', 'title' => 'Site officiel', 'description' => null,
             'mime' => null, 'size' => null, 'allow_download' => false, 'video_ref' => null,
             'url' => 'https://example.org/doc', 'conversion_status' => null,
+            'consulted' => false,
             'updated_at' => $link->updated_at->toIso8601String(),
         ], $resources[$link->id]);
         $this->assertSame($video->ref, $resources[$vid->id]['video_ref']);
@@ -358,5 +359,50 @@ class LearnerFoldersApiTest extends TestCase
             ->assertJsonPath('results.1.status', 'rejected');
 
         $this->assertDatabaseCount('learner_progress', 0);
+    }
+
+    public function test_resources_carry_server_consulted_flag_for_current_learner(): void
+    {
+        $seen = $this->resource(['kind' => 'link', 'title' => 'Vue', 'url' => 'https://example.org/a']);
+        $unseen = $this->resource(['kind' => 'link', 'title' => 'Pas vue', 'url' => 'https://example.org/b']);
+        $started = $this->resource(['kind' => 'link', 'title' => 'Commencée', 'url' => 'https://example.org/c']);
+        $this->learner->progress()->create(['content_type' => 'resource', 'content_id' => $started->id, 'status' => 'reading']);
+
+        // Un autre apprenant qui a consulté « Pas vue » n'influence pas le drapeau.
+        $otherUser = User::create([
+            'name' => 'Autre', 'last_name' => 'Learner', 'user_name' => 'otherlearner',
+            'email' => 'other@learnandquiz.fr', 'password' => bcrypt('password123'), 'is_active' => true,
+        ]);
+        $other = Learner::create(['user_id' => $otherUser->id, 'matricule' => 'MAT-OTH']);
+        $other->progress()->create(['content_type' => 'resource', 'content_id' => $unseen->id, 'status' => 'completed']);
+
+        $this->actingAs($this->user)->postJson(route('learn.v1.actions'), ['actions' => [
+            ['id' => (string) Str::uuid(), 'type' => 'resource_view', 'data' => ['resource_id' => $seen->id]],
+        ]])->assertOk();
+
+        $resources = collect($this->actingAs($this->user)->getJson(route('learn.v1.bootstrap'))->assertOk()->json('resources'))->keyBy('id');
+        $this->assertTrue($resources[$seen->id]['consulted']);
+        $this->assertFalse($resources[$unseen->id]['consulted']);
+        $this->assertFalse($resources[$started->id]['consulted']);
+    }
+
+    public function test_changes_resend_a_resource_consulted_on_another_device(): void
+    {
+        $resource = $this->resource(['kind' => 'link', 'title' => 'Site', 'url' => 'https://example.org/a']);
+        $untouched = $this->resource(['kind' => 'link', 'title' => 'Autre', 'url' => 'https://example.org/b']);
+
+        $this->travel(1)->hours();
+        $since = now()->toIso8601String();
+        $this->travel(5)->minutes();
+        // Consultée depuis un autre appareil : la ressource elle-même n'a pas changé.
+        $this->actingAs($this->user)->postJson(route('learn.v1.actions'), ['actions' => [
+            ['id' => (string) Str::uuid(), 'type' => 'resource_view', 'data' => ['resource_id' => $resource->id]],
+        ]])->assertOk();
+
+        $changes = $this->actingAs($this->user)->getJson(route('learn.v1.changes', ['since' => $since]))->assertOk();
+        $updated = collect($changes->json('resources.updated'));
+        $this->assertSame([$resource->id], $updated->pluck('id')->all());
+        $this->assertTrue($updated->first()['consulted']);
+        $this->assertEqualsCanonicalizing([$resource->id, $untouched->id], $changes->json('resources.authorized_ids'));
     }
 }

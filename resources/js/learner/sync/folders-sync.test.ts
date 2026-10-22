@@ -49,6 +49,7 @@ function resource(id: number, updated_at = '2026-10-20T10:00:00+00:00'): Resourc
     video_ref: null,
     url: 'https://example.org/doc',
     conversion_status: null,
+    consulted: false,
     updated_at,
   };
 }
@@ -196,6 +197,13 @@ describe('isConsulted', () => {
     consultedResourcesStore.set([]);
     await hydrateFromDb();
     expect(isConsulted('resource', 1)).toBe(true);
+  });
+
+  it('ressource : consultée sur un autre appareil (drapeau serveur), sans marqueur local', async () => {
+    consultedResourcesStore.set([]);
+    resourcesStore.set([{ ...resource(1), consulted: true }, resource(2)]);
+    expect(isConsulted('resource', 1)).toBe(true);
+    expect(isConsulted('resource', 2)).toBe(false);
   });
 
   it('examen : consulté dès une tentative', () => {

@@ -15,7 +15,7 @@ import { mount } from './cours';
 function resource(id: number, kind: Resource['kind'], title: string): Resource {
   return {
     id, kind, title, description: null, mime: null, size: null, allow_download: false,
-    video_ref: null, url: null, conversion_status: null, updated_at: '2026-10-20T10:00:00+00:00',
+    video_ref: null, url: null, conversion_status: null, consulted: false, updated_at: '2026-10-20T10:00:00+00:00',
   };
 }
 

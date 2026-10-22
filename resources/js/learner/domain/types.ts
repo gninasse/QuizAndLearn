@@ -211,6 +211,8 @@ export interface Resource {
   url: string | null;
   /** Conversion Word → PDF : null hors document. */
   conversion_status: 'pending' | 'ready' | 'failed' | null;
+  /** Consultée par l'apprenant courant (tous appareils confondus, d'après le serveur). */
+  consulted: boolean;
   updated_at: string;
 }
 

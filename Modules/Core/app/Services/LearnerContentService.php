@@ -80,7 +80,8 @@ class LearnerContentService
         $quizzes = $this->quizzesFor($learner, $groupIds);
         $decks = $this->decksFor($learner, $groupIds);
         $exams = $this->examsFor($learner, $groupIds);
-        $resources = $this->resourcesFor($learner);
+        $consulted = $this->consultedResources($learner);
+        $resources = $this->resourcesFor($learner, $consulted);
 
         return [
             'cursor' => $cursor->toIso8601String(),
@@ -101,7 +102,10 @@ class LearnerContentService
                 'authorized_ids' => $exams->pluck('id')->values(),
             ],
             'resources' => [
-                'updated' => $resources->filter(fn ($r) => $r['updated_at'] > $since->toIso8601String())->values(),
+                // Une consultation (éventuellement depuis un autre appareil) ne touche pas
+                // updated_at de la ressource : on la renvoie aussi pour propager `consulted`.
+                'updated' => $resources->filter(fn ($r) => $r['updated_at'] > $since->toIso8601String()
+                    || ($consulted->has($r['id']) && $consulted[$r['id']] > $since))->values(),
                 'authorized_ids' => $resources->pluck('id')->values(),
             ],
             // Arborescence et placements toujours complets (légers, et un
@@ -256,14 +260,34 @@ class LearnerContentService
             });
     }
 
-    private function resourcesFor(Learner $learner): Collection
+    /**
+     * @param  Collection<int, CarbonInterface>|null  $consulted  id => date de consultation
+     */
+    private function resourcesFor(Learner $learner, ?Collection $consulted = null): Collection
     {
+        $consulted ??= $this->consultedResources($learner);
+
         return Resource::where('is_active', true)
             ->whereIn('id', $this->placement()->visibleIds($learner, 'resource'))
             ->with('video')
             ->latest()
             ->get()
-            ->map(fn (Resource $res) => ContentSerializer::resource($res));
+            ->map(fn (Resource $res) => ContentSerializer::resource($res, $consulted->has($res->id)));
+    }
+
+    /**
+     * Ressources consultées par l'apprenant (une seule requête) : id => dernière mise à jour
+     * de la progression.
+     *
+     * @return Collection<int, CarbonInterface>
+     */
+    private function consultedResources(Learner $learner): Collection
+    {
+        return LearnerProgress::where('learner_id', $learner->id)
+            ->where('content_type', 'resource')
+            ->where('status', 'completed')
+            ->get(['content_id', 'updated_at'])
+            ->mapWithKeys(fn (LearnerProgress $p) => [(int) $p->content_id => $p->updated_at]);
     }
 
     /**

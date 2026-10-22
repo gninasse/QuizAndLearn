@@ -152,8 +152,10 @@ class ContentSerializer
     /**
      * Ressource pour l'apprenant : jamais de chemin de fichier (consultation
      * via URL signée), l'URL n'est exposée que pour un lien externe.
+     * `consulted` : l'apprenant courant l'a consultée (learner_progress completed),
+     * quel que soit l'appareil.
      */
-    public static function resource(Resource $resource): array
+    public static function resource(Resource $resource, bool $consulted = false): array
     {
         return [
             'id' => $resource->id,
@@ -166,6 +168,7 @@ class ContentSerializer
             'video_ref' => $resource->kind === 'video' ? $resource->video?->ref : null,
             'url' => $resource->kind === 'link' ? $resource->url : null,
             'conversion_status' => $resource->conversion_status,
+            'consulted' => $consulted,
             'updated_at' => $resource->updated_at->toIso8601String(),
         ];
     }

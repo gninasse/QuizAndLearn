@@ -36,7 +36,7 @@ const flush = async (): Promise<void> => {
 function resource(patch: Partial<Resource> = {}): Resource {
   return {
     id: 4, kind: 'document', title: 'Cours Word', description: null, mime: null, size: null,
-    allow_download: false, video_ref: null, url: null, conversion_status: 'pending',
+    allow_download: false, video_ref: null, url: null, conversion_status: 'pending', consulted: false,
     updated_at: '2026-10-20T10:00:00+00:00', ...patch,
   };
 }

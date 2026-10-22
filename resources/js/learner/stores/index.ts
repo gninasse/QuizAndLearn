@@ -31,7 +31,8 @@ export const consultedResourcesStore = createStore<number[]>([]);
 
 /**
  * Contenu déjà consulté, d'après les seules données locales :
- * article et quiz → progression ; ressource → ouverture locale ;
+ * article et quiz → progression ; ressource → drapeau serveur `consulted`
+ * (autres appareils) ou ouverture locale (immédiate, hors ligne) ;
  * examen → au moins une tentative ; deck → au moins une carte révisée
  * (les sessions de révision ne sont pas conservées côté client).
  */
@@ -50,7 +51,10 @@ export function isConsulted(type: ContentType, id: number): boolean {
     case 'deck':
       return decksStore.get().find((d) => d.id === id)?.cards.some((c) => c.review !== null) ?? false;
     case 'resource':
-      return consultedResourcesStore.get().includes(id);
+      return (
+        resourcesStore.get().some((r) => r.id === id && r.consulted === true) ||
+        consultedResourcesStore.get().includes(id)
+      );
   }
 }
 
