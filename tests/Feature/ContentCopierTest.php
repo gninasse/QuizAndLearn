@@ -386,13 +386,51 @@ class ContentCopierTest extends TestCase
         $this->assertFalse(MediaReferences::isReferenced('nowhere.png'));
     }
 
+    public function test_creator_can_copy_from_a_source_group_they_do_not_manage(): void
+    {
+        // Créateur formateur de Y et Z seulement ; le quiz est dans X (affiché en premier) et Y.
+        $x = Group::create(['name' => 'Promo X', 'is_active' => true]);
+        $y = Group::create(['name' => 'Promo Y', 'is_active' => true]);
+        $z = Group::create(['name' => 'Promo Z', 'is_active' => true]);
+        $author = $this->makeUser('auteur');
+        $author->assignRole('trainer');
+        Trainer::create(['user_id' => $author->id])->groups()->sync([$y->id, $z->id]);
+        $quiz = Quiz::create(['title' => 'Q', 'duration' => 10, 'passing_score' => 50, 'is_active' => true, 'max_attempts' => 1, 'created_by' => $author->id]);
+        $quiz->groups()->attach([$x->id => ['folder_id' => null, 'position' => 0], $y->id => ['folder_id' => null, 'position' => 0]]);
+
+        $res = $this->actingAs($author)
+            ->postJson($this->url($x, 'quiz', $quiz->id), ['target_group_id' => $z->id])
+            ->assertCreated();
+
+        $this->assertSame([$z->id], Quiz::findOrFail($res->json('item.id'))->groups()->pluck('groups.id')->all());
+
+        // La cible doit, elle, être gérée.
+        $this->actingAs($author)->postJson($this->url($x, 'quiz', $quiz->id), ['target_group_id' => $x->id])->assertForbidden();
+    }
+
+    public function test_copy_of_public_deck_is_not_public(): void
+    {
+        $deck = FlashcardDeck::create([
+            'titre' => 'Deck public', 'algorithme' => 'sm2', 'easiness_default' => 2.5, 'interval_min' => 1,
+            'interval_max' => 365, 'active' => true, 'is_public' => true, 'created_by' => $this->creator->id,
+        ]);
+        $deck->groups()->attach($this->groupA->id, ['folder_id' => null, 'position' => 0]);
+        $folder = Folder::create(['group_id' => $this->groupB->id, 'name' => 'Cible', 'position' => 0]);
+
+        $copy = $this->copier()->copy('deck', $deck->id, $this->groupB->id, $folder->id, $this->admin)['model'];
+
+        $this->assertFalse($copy->fresh()->is_public);
+        $this->assertTrue($deck->fresh()->is_public);
+        $this->assertSame($folder->id, (int) DB::table('group_flashcard_deck')->where('flashcard_deck_id', $copy->id)->value('folder_id'));
+    }
+
     public function test_copy_requires_rights(): void
     {
         $quiz = $this->quiz();
         $url = $this->url($this->groupA, 'quiz', $quiz->id);
         $body = ['target_group_id' => $this->groupB->id];
 
-        // Ne gère pas le groupe source (contexte de la route).
+        // Ne peut pas modifier le contenu (gère pourtant le groupe cible).
         $this->actingAs($this->outsider)->postJson($url, $body)->assertForbidden();
 
         // Gère la source mais ne peut pas modifier le contenu (créé par un autre, mode shared).

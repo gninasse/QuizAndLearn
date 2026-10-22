@@ -84,6 +84,10 @@ class ContentCopier
         if ($source instanceof Quiz || $source instanceof Article || $source instanceof FlashcardDeck) {
             $copy->is_showcase = false;
         }
+        // Une copie vit dans un groupe (et peut-être un dossier) : jamais un deck public.
+        if ($source instanceof FlashcardDeck) {
+            $copy->is_public = false;
+        }
         $copy->save();
 
         return $copy;

@@ -286,11 +286,12 @@ class GroupContentController extends Controller
     /**
      * POST — « Copier vers… » : copie profonde d'un contenu du groupe vers `target_group_id`
      * (dans `target_folder_id`, null = racine), en dernière position.
-     * Il faut pouvoir modifier le contenu et gérer le groupe cible.
+     * Il faut pouvoir modifier le contenu et gérer le groupe cible ; le groupe {id} n'est que
+     * le contexte (le contenu doit y être rattaché), il n'a pas à être géré par l'utilisateur.
      */
     public function copyItem(Request $request, ContentCopier $copier, int $id, string $type, int $itemId): JsonResponse
     {
-        $group = $this->authorizedGroup($id);
+        $group = Group::findOrFail($id);
         abort_unless(isset(ContentSharing::TYPES[$type]), 404);
         [$model, $pivot, $fk] = ContentSharing::TYPES[$type];
 
