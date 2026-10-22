@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Modules\Core\Jobs\ConvertDocumentToPdf;
@@ -541,5 +542,24 @@ class IsolationMigratorTest extends TestCase
         $this->assertSame($before, $counts());
         $this->assertSame($quiz->id, (int) DB::table('quiz_attempts')->where('id', $attemptId)->value('quiz_id'));
         $this->assertSame(2, DB::table('group_quiz')->where('quiz_id', $quiz->id)->count());
+    }
+
+    public function test_apply_refused_while_another_switch_holds_the_lock(): void
+    {
+        config(['core.content_sharing_lock_wait' => 0]);
+        $this->learner($this->groupA);
+        $quiz = $this->quiz([$this->groupA, $this->groupB]);
+
+        $lock = Cache::lock('content-sharing-apply', 60);
+        $this->assertTrue($lock->get());
+
+        $this->postJson(route('cores.settings.content-sharing.apply'))
+            ->assertStatus(423)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('message', 'Une bascule est déjà en cours. Réessayez dans quelques instants.');
+        $this->assertSame(2, DB::table('group_quiz')->where('quiz_id', $quiz->id)->count());
+
+        $lock->release();
+        $this->postJson(route('cores.settings.content-sharing.apply'))->assertOk()->assertJsonPath('copied', 1);
     }
 }

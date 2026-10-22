@@ -3,9 +3,11 @@
 namespace Modules\Core\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\Rule;
 use Modules\Core\Models\Group;
 use Modules\Core\Services\ContentSharing;
@@ -63,7 +65,18 @@ class ContentSharingSettingsController extends Controller
     {
         $this->authorizeAdmin();
 
-        $result = $this->migrator->apply(auth()->user());
+        // Deux bascules simultanées dupliqueraient les copies : verrou global, attente courte.
+        try {
+            $result = Cache::lock('content-sharing-apply', 600)->block(
+                (int) config('core.content_sharing_lock_wait', 5),
+                fn () => $this->migrator->apply(auth()->user())
+            );
+        } catch (LockTimeoutException) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Une bascule est déjà en cours. Réessayez dans quelques instants.',
+            ], 423);
+        }
 
         return response()->json([
             'success' => true,
