@@ -42,6 +42,15 @@ class LearnerShellTest extends TestCase
         }
     }
 
+    public function test_courses_and_resource_deep_links_serve_shell_for_authenticated_learner(): void
+    {
+        $user = $this->makeLearnerUser();
+
+        foreach (['/cours', '/cours/5', '/cours/5/9', '/ressources/7'] as $path) {
+            $this->actingAs($user)->get($path)->assertStatus(200)->assertSee('id="app"', false);
+        }
+    }
+
     public function test_spa_deep_routes_serve_shell_without_auth(): void
     {
         foreach (['/articles', '/articles/12', '/entrainement', '/examens', '/quizzes/3', '/quizzes/3/play', '/exams/4/play', '/reviser', '/reviser/2', '/profil', '/progression', '/mot-de-passe', '/demande-acces'] as $path) {

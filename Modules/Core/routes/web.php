@@ -442,6 +442,10 @@ Route::middleware(['auth', 'learner'])->name('learn.')->group(function () {
 });
 
 foreach ([
+    '/cours',
+    '/cours/{groupId}',
+    '/cours/{groupId}/{folderId}',
+    '/ressources/{id}',
     '/articles',
     '/articles/{id}',
     '/entrainement',
