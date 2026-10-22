@@ -111,6 +111,13 @@
       @endforeach
     </div>
   </div>
+  <div class="card mb-3">
+    <div class="card-header"><h3 class="card-title">Partage des contenus</h3></div>
+    <div class="card-body">
+      <p class="text-muted mb-2">Choisissez si un contenu peut être attribué à plusieurs {{ term('groups') }} (mode partagé) ou à {{ term('a_group') }} seulement (mode isolé).</p>
+      <a href="{{ route('cores.settings.content-sharing') }}" class="btn btn-outline-secondary">Gérer le partage des contenus</a>
+    </div>
+  </div>
   <button type="submit" class="btn btn-primary" id="saveBtn">Enregistrer</button>
 </form>
 @endsection

@@ -71,6 +71,12 @@
                     </a>
                   </li>
                   <li class="nav-item">
+                    <a href="{{ route('cores.settings.content-sharing') }}" class="nav-link {{ request()->routeIs('cores.settings.content-sharing*') ? 'active' : '' }}">
+                      <i class="nav-icon bi bi-diagram-3"></i>
+                      <p>Partage des contenus</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
                     <a href="{{ route('cores.showcase.settings') }}" class="nav-link {{ request()->routeIs('cores.showcase.settings*') ? 'active' : '' }}">
                       <i class="nav-icon bi bi-binoculars"></i>
                       <p>Mode découverte</p>

@@ -7,6 +7,7 @@ use Modules\Core\Http\Controllers\AdminController;
 use Modules\Core\Http\Controllers\ArticleController;
 use Modules\Core\Http\Controllers\ArticleEditorController;
 use Modules\Core\Http\Controllers\AuthController;
+use Modules\Core\Http\Controllers\ContentSharingSettingsController;
 use Modules\Core\Http\Controllers\CoreController;
 use Modules\Core\Http\Controllers\DashboardController;
 use Modules\Core\Http\Controllers\ExamController;
@@ -117,6 +118,10 @@ Route::middleware(['auth', 'staff'])->group(function () {
         Route::put('/parametres', [GeneralSettingsController::class, 'save'])->name('settings.general.save');
         Route::post('/parametres/notifications/test', [GeneralSettingsController::class, 'sendPushTest'])->name('settings.push.test');
         Route::post('/parametres/videos/test', [GeneralSettingsController::class, 'testVideo'])->name('settings.video.test');
+        Route::get('/parametres/partage-contenus', [ContentSharingSettingsController::class, 'edit'])->name('settings.content-sharing');
+        Route::post('/parametres/partage-contenus/simulate', [ContentSharingSettingsController::class, 'simulate'])->name('settings.content-sharing.simulate');
+        Route::post('/parametres/partage-contenus/apply', [ContentSharingSettingsController::class, 'apply'])->name('settings.content-sharing.apply');
+        Route::put('/parametres/partage-contenus/mode', [ContentSharingSettingsController::class, 'mode'])->name('settings.content-sharing.mode');
 
         Route::get('/showcase/settings', [ShowcaseAdminController::class, 'settings'])->name('showcase.settings');
         Route::put('/showcase/settings', [ShowcaseAdminController::class, 'saveSettings'])->name('showcase.settings.save');
