@@ -121,10 +121,6 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
 
   const body = el.querySelector<HTMLElement>('[data-role="resource-body"]')!;
 
-  // Consultée dès l'ouverture : localement (onglet Cours) et côté serveur.
-  void markResourceConsulted(id);
-  void dispatch('resource_view', { resource_id: id });
-
   body.addEventListener('click', (event) => {
     if ((event.target as HTMLElement).closest('[data-role="retry"]')) void load(resource, body);
   });
@@ -141,6 +137,17 @@ export function mount(el: HTMLElement, params: Record<string, string>): void {
 }
 
 // ----------------------------------------------------------- Chargement
+
+/**
+ * Consultée seulement une fois affichée (200, ou copie hors ligne) :
+ * localement (onglet Cours) et côté serveur. 202 / 409 / 403 / hors ligne
+ * sans copie ne comptent pas ; la consultation « Voir en tant que » non plus.
+ */
+function markConsulted(resource: Resource): void {
+  if (isConsultation()) return;
+  void markResourceConsulted(resource.id);
+  void dispatch('resource_view', { resource_id: resource.id });
+}
 
 async function load(resource: Resource, body: HTMLElement): Promise<void> {
   body.innerHTML = messageHtml('bi-hourglass', 'Chargement…');
@@ -170,6 +177,7 @@ async function load(resource: Resource, body: HTMLElement): Promise<void> {
     return;
   }
 
+  markConsulted(resource);
   await show(view, resource, body);
 }
 
@@ -179,6 +187,7 @@ async function showOffline(resource: Resource, body: HTMLElement): Promise<void>
     body.innerHTML = messageHtml('bi-wifi-off', MSG_ONLINE_ONLY, true);
     return;
   }
+  markConsulted(resource);
   if (cached.type === 'pdf') {
     await showPdf(body, () => cached.blob.arrayBuffer());
     return;

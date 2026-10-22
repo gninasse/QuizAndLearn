@@ -235,3 +235,56 @@ describe('isConsulted', () => {
     expect(isConsulted('quiz', 999)).toBe(false);
   });
 });
+
+describe('fichiers hors ligne : purgés quand la ressource n’est plus autorisée', () => {
+  /** Cache Storage minimal en mémoire (happy-dom n'en fournit pas). */
+  function fakeCaches(): { store: Map<string, Map<string, Response>>; api: unknown } {
+    const store = new Map<string, Map<string, Response>>();
+    const open = async (name: string) => {
+      if (!store.has(name)) store.set(name, new Map());
+      const entries = store.get(name)!;
+      const href = (key: string) => new URL(key, window.location.origin).href;
+      return {
+        put: async (key: string, value: Response) => void entries.set(href(key), value),
+        match: async (key: string) => entries.get(href(key)),
+        delete: async (key: string | { url: string }) => entries.delete(href(typeof key === 'string' ? key : key.url)),
+        keys: async () => [...entries.keys()].map((url) => ({ url })),
+      };
+    };
+    return { store, api: { open, delete: async (name: string) => store.delete(name) } };
+  }
+
+  const cachedIds = (store: Map<string, Map<string, Response>>): number[] =>
+    [...(store.get('learner-resources-v1')?.keys() ?? [])]
+      .map((url) => Number(url.match(/resource:(\d+)$/)?.[1]))
+      .sort();
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    await clearLocalData();
+  });
+
+  it('après bootstrap puis changes, seules les ressources encore présentes restent en cache', async () => {
+    const { store, api } = fakeCaches();
+    vi.stubGlobal('caches', api);
+    try {
+      const cache = await (api as CacheStorage).open('learner-resources-v1');
+      for (const id of [1, 2, 3]) await cache.put(`/offline/resource:${id}`, new Response('x'));
+
+      mocked.bootstrap.mockResolvedValue({ success: true, ...bootstrapPayload() });
+      await fullBootstrap();
+      expect(cachedIds(store)).toEqual([1, 2]);
+
+      mocked.actions.mockResolvedValue({ success: true, results: [], xp, badges_unlocked: [] });
+      mocked.changes.mockResolvedValue({
+        success: true,
+        ...changesPayload({ resources: { updated: [], authorized_ids: [1] } }),
+      });
+      await sync();
+      expect(resourcesStore.get().map((r) => r.id)).toEqual([1]);
+      expect(cachedIds(store)).toEqual([1]);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});

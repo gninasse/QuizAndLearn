@@ -7,7 +7,13 @@ const mocked = vi.hoisted(() => ({
   resourceView: vi.fn(),
   dispatch: vi.fn(async () => undefined),
   markResourceConsulted: vi.fn(async () => undefined),
+  consultation: false,
 }));
+
+vi.mock('../consultation/consultation', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../consultation/consultation')>();
+  return { ...original, isConsultation: () => mocked.consultation };
+});
 
 vi.mock('../api/client', async (importOriginal) => {
   const original = await importOriginal<typeof import('../api/client')>();
@@ -45,6 +51,7 @@ describe('lecteur de ressource', () => {
   afterEach(() => {
     resourcesStore.set([]);
     vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   });
 
   it('202 → « Document en préparation… »', async () => {
@@ -68,14 +75,66 @@ describe('lecteur de ressource', () => {
     expect(el.querySelector('[data-role="resource-body"]')?.textContent).toContain('Document indisponible');
   });
 
-  it("enregistre la consultation à l'ouverture", async () => {
-    resourcesStore.set([resource({ id: 6, kind: 'pdf', conversion_status: null })]);
-    mocked.resourceView.mockResolvedValue({ status: 'pending' });
-    mount(document.createElement('div'), { id: '6' });
+  it('202, 409 et 403 ne comptent pas comme consultés', async () => {
+    resourcesStore.set([resource({ id: 6, kind: 'document' })]);
+    for (const outcome of [
+      () => mocked.resourceView.mockResolvedValue({ status: 'pending' }),
+      () => mocked.resourceView.mockRejectedValue(new ApiError(409, 'Erreur 409', { status: 'failed' })),
+      () => mocked.resourceView.mockRejectedValue(new ApiError(403, 'Ressource indisponible.')),
+    ]) {
+      outcome();
+      mount(document.createElement('div'), { id: '6' });
+      await flush();
+    }
+
+    expect(mocked.markResourceConsulted).not.toHaveBeenCalled();
+    expect(mocked.dispatch).not.toHaveBeenCalled();
+  });
+
+  it('un affichage réussi (200) enregistre la consultation', async () => {
+    resourcesStore.set([resource({ id: 11, kind: 'link', url: 'https://example.org/cours', conversion_status: null })]);
+    mocked.resourceView.mockResolvedValue({ type: 'link', url: 'https://example.org/cours' });
+    mount(document.createElement('div'), { id: '11' });
     await flush();
 
-    expect(mocked.markResourceConsulted).toHaveBeenCalledWith(6);
-    expect(mocked.dispatch).toHaveBeenCalledWith('resource_view', { resource_id: 6 });
+    expect(mocked.markResourceConsulted).toHaveBeenCalledWith(11);
+    expect(mocked.dispatch).toHaveBeenCalledWith('resource_view', { resource_id: 11 });
+  });
+
+  it('copie hors ligne affichée : comptée ; hors ligne sans copie : non', async () => {
+    resourcesStore.set([resource({ id: 13, kind: 'image', conversion_status: null })]);
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:x');
+    let entry: Response | undefined;
+    vi.stubGlobal('caches', { open: async () => ({ match: async () => entry?.clone() }) });
+
+    mount(document.createElement('div'), { id: '13' });
+    await flush();
+    expect(mocked.markResourceConsulted).not.toHaveBeenCalled();
+    expect(mocked.dispatch).not.toHaveBeenCalled();
+
+    entry = new Response('img', { headers: { 'Content-Type': 'image/png', 'X-Resource-Type': 'image' } });
+    const el = document.createElement('div');
+    mount(el, { id: '13' });
+    await flush();
+    expect(el.querySelector('.rich-content img')).not.toBeNull();
+    expect(mocked.markResourceConsulted).toHaveBeenCalledWith(13);
+    expect(mocked.dispatch).toHaveBeenCalledWith('resource_view', { resource_id: 13 });
+  });
+
+  it('consultation (« Voir en tant que ») : ni marqueur local ni action', async () => {
+    mocked.consultation = true;
+    try {
+      resourcesStore.set([resource({ id: 12, kind: 'link', url: 'https://example.org/cours', conversion_status: null })]);
+      mocked.resourceView.mockResolvedValue({ type: 'link', url: 'https://example.org/cours' });
+      mount(document.createElement('div'), { id: '12' });
+      await flush();
+    } finally {
+      mocked.consultation = false;
+    }
+
+    expect(mocked.markResourceConsulted).not.toHaveBeenCalled();
+    expect(mocked.dispatch).not.toHaveBeenCalled();
   });
 
   it('« Télécharger » seulement si allow_download', async () => {

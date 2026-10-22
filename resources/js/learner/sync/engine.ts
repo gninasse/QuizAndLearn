@@ -10,7 +10,7 @@ import { api, ApiError, NetworkError } from '../api/client';
 import { db, getMeta, setMeta, META_CONSULTED_RESOURCES, META_CURSOR, META_TERMS } from '../db/schema';
 import { resetTerms, setTerms } from '../core/terms';
 import * as outbox from '../db/outbox';
-import { clearResourceCache } from './resource-cache';
+import { clearResourceCache, pruneResourceCache } from './resource-cache';
 import { isGuest, leaveGuestMode, refreshGuestContent } from '../guest/guest-session';
 import {
   blockedInConsultation,
@@ -221,6 +221,16 @@ async function applyChanges(delta: ChangesPayload): Promise<boolean> {
   return missingAuthorized;
 }
 
+/**
+ * Après chaque synchronisation : les fichiers gardés hors ligne des
+ * ressources retirées (masquées, hors groupe) sont supprimés. Pas en
+ * consultation : le cache appartient au compte réel de ce navigateur.
+ */
+async function pruneOfflineResources(): Promise<void> {
+  if (isConsultation()) return;
+  await pruneResourceCache(resourcesStore.get().map((r) => r.id));
+}
+
 /** Mémorise l'ouverture d'une ressource sur cet appareil (progression « consulté »). */
 export async function markResourceConsulted(id: number): Promise<void> {
   const ids = (await getMeta<number[]>(META_CONSULTED_RESOURCES)) ?? [];
@@ -400,6 +410,7 @@ async function doSync(): Promise<void> {
     }
 
     await hydrateFromDb();
+    await pruneOfflineResources();
     syncStore.update((s) => ({ ...s, lastSyncAt: new Date().toISOString() }));
     emit({ kind: 'data-refreshed' });
     void warmMediaCache();
@@ -445,6 +456,7 @@ export async function fullBootstrap(): Promise<void> {
   const payload = await api.bootstrap();
   await persistBootstrap(payload);
   await hydrateFromDb();
+  await pruneOfflineResources();
   void warmMediaCache();
 }
 

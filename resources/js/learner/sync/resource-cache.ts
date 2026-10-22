@@ -66,6 +66,26 @@ export async function removeResourceOffline(id: number): Promise<void> {
   await cache.delete(resourceCacheKey(id));
 }
 
+const OFFLINE_KEY = /\/offline\/resource:(\d+)$/;
+
+/**
+ * Supprime les fichiers hors ligne des ressources qui ne sont plus
+ * autorisées (« non récupérable » : la copie ne survit pas à l'accès).
+ */
+export async function pruneResourceCache(keepIds: readonly number[]): Promise<void> {
+  if (!cacheAvailable()) return;
+  try {
+    const keep = new Set(keepIds);
+    const cache = await caches.open(RESOURCE_CACHE);
+    for (const request of await cache.keys()) {
+      const id = Number(new URL(request.url, self.location.origin).pathname.match(OFFLINE_KEY)?.[1] ?? NaN);
+      if (Number.isFinite(id) && !keep.has(id)) await cache.delete(request);
+    }
+  } catch {
+    /* stockage indisponible : nouvel essai à la prochaine synchronisation */
+  }
+}
+
 /** Vide tous les fichiers gardés hors ligne (déconnexion). */
 export async function clearResourceCache(): Promise<void> {
   if (!cacheAvailable()) return;
