@@ -64,7 +64,8 @@ class Quiz extends Model
      */
     public function groups(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
     {
-        return $this->belongsToMany(Group::class, 'group_quiz', 'quiz_id', 'group_id');
+        return $this->belongsToMany(Group::class, 'group_quiz', 'quiz_id', 'group_id')
+            ->withPivot('folder_id', 'position');
     }
 
     protected static function booted(): void

@@ -37,4 +37,14 @@ return [
             'token_key' => env('BUNNY_STREAM_TOKEN_KEY'),
         ],
     ],
+
+    /*
+    | Documents (PDF, Word…) : taille maximale à l'upload (Ko) et conversion
+    | en PDF via LibreOffice, sur une file dédiée (cf. DEPLOIEMENT.md).
+    */
+    'documents' => [
+        'max_size_kb' => 51200,
+        'soffice_binary' => env('SOFFICE_BINARY', 'soffice'),
+        'queue' => 'documents',
+    ],
 ];

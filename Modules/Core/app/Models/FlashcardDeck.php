@@ -52,7 +52,8 @@ class FlashcardDeck extends Model
 
     public function groups(): BelongsToMany
     {
-        return $this->belongsToMany(Group::class, 'group_flashcard_deck', 'flashcard_deck_id', 'group_id');
+        return $this->belongsToMany(Group::class, 'group_flashcard_deck', 'flashcard_deck_id', 'group_id')
+            ->withPivot('folder_id', 'position');
     }
 
     public function sessions(): HasMany

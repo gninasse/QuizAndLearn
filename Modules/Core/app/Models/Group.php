@@ -103,7 +103,8 @@ class Group extends Model
      */
     public function quizzes(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
     {
-        return $this->belongsToMany(Quiz::class, 'group_quiz', 'group_id', 'quiz_id');
+        return $this->belongsToMany(Quiz::class, 'group_quiz', 'group_id', 'quiz_id')
+            ->withPivot('folder_id', 'position');
     }
 
     /**
@@ -111,7 +112,8 @@ class Group extends Model
      */
     public function articles(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
     {
-        return $this->belongsToMany(Article::class, 'group_article', 'group_id', 'article_id');
+        return $this->belongsToMany(Article::class, 'group_article', 'group_id', 'article_id')
+            ->withPivot('folder_id', 'position');
     }
 
     /**
@@ -119,7 +121,8 @@ class Group extends Model
      */
     public function exams(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
     {
-        return $this->belongsToMany(Exam::class, 'group_exam', 'group_id', 'exam_id');
+        return $this->belongsToMany(Exam::class, 'group_exam', 'group_id', 'exam_id')
+            ->withPivot('folder_id', 'position');
     }
 
     /**
@@ -127,6 +130,25 @@ class Group extends Model
      */
     public function flashcardDecks(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
     {
-        return $this->belongsToMany(FlashcardDeck::class, 'group_flashcard_deck', 'group_id', 'flashcard_deck_id');
+        return $this->belongsToMany(FlashcardDeck::class, 'group_flashcard_deck', 'group_id', 'flashcard_deck_id')
+            ->withPivot('folder_id', 'position');
+    }
+
+    /**
+     * Obtenir les ressources assignées à ce groupe.
+     */
+    public function resources(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Resource::class, 'group_resource', 'group_id', 'resource_id')
+            ->withPivot('folder_id', 'position')
+            ->withTimestamps();
+    }
+
+    /**
+     * Obtenir les dossiers de contenus de ce groupe.
+     */
+    public function folders(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Folder::class);
     }
 }

@@ -61,7 +61,8 @@ class Exam extends Model
 
     public function groups(): BelongsToMany
     {
-        return $this->belongsToMany(Group::class, 'group_exam', 'exam_id', 'group_id');
+        return $this->belongsToMany(Group::class, 'group_exam', 'exam_id', 'group_id')
+            ->withPivot('folder_id', 'position');
     }
 
     public function attempts(): HasMany
