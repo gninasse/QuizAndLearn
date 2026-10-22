@@ -180,6 +180,48 @@ export interface GroupInfo {
   end_date: string | null;
 }
 
+// ------------------------------------------------- Dossiers et ressources
+
+/** Type de contenu placé dans un dossier (pivot `content_type` côté serveur). */
+export type ContentType = 'article' | 'quiz' | 'exam' | 'deck' | 'resource';
+
+/** Dossier d'un groupe (déjà filtré par visibilité côté serveur). */
+export interface Folder {
+  id: number;
+  group_id: number;
+  parent_id: number | null;
+  name: string;
+  position: number;
+}
+
+export type ResourceKind = 'video' | 'document' | 'link';
+
+/** Ressource (vidéo, document, lien). Aucune URL de fichier stable n'est exposée. */
+export interface Resource {
+  id: number;
+  kind: ResourceKind;
+  title: string;
+  description: string | null;
+  mime: string | null;
+  size: number | null;
+  allow_download: boolean;
+  video_ref: string | null;
+  /** Lien externe (kind `link`) uniquement. */
+  url: string | null;
+  /** Conversion Word → PDF (`pending`, `ready`, `failed`…) : null hors document. */
+  conversion_status: string | null;
+  updated_at: string;
+}
+
+/** Place d'un contenu dans un groupe : racine si `folder_id` est null. */
+export interface Placement {
+  type: ContentType;
+  id: number;
+  group_id: number;
+  folder_id: number | null;
+  position: number;
+}
+
 export interface BadgeItem {
   id: number;
   name: string;
@@ -205,6 +247,9 @@ export interface BootstrapPayload {
   decks: DeckItem[];
   exams: ExamItem[];
   badges: BadgeItem[];
+  resources: Resource[];
+  folders: Folder[];
+  placements: Placement[];
   preferences: Preferences;
   /** Libellés configurables du terme « groupe » (voir core/terms.ts). */
   terms?: Record<string, string>;
@@ -323,6 +368,11 @@ export interface ChangesPayload {
   quizzes: CollectionDelta<QuizItem>;
   decks: CollectionDelta<DeckItem>;
   exams: CollectionDelta<ExamItem>;
+  resources: CollectionDelta<Resource>;
+  /** Liste complète : remplace la copie locale à chaque delta. */
+  folders: Folder[];
+  /** Liste complète : remplace la copie locale à chaque delta. */
+  placements: Placement[];
   badges: BadgeItem[];
   xp: XpSnapshot;
   terms?: Record<string, string>;

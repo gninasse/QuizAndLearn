@@ -7,7 +7,7 @@
  */
 
 import { api, ApiError, NetworkError } from '../api/client';
-import { db, getMeta, setMeta, META_CURSOR, META_TERMS } from '../db/schema';
+import { db, getMeta, setMeta, META_CONSULTED_RESOURCES, META_CURSOR, META_TERMS } from '../db/schema';
 import { resetTerms, setTerms } from '../core/terms';
 import * as outbox from '../db/outbox';
 import { isGuest, leaveGuestMode, refreshGuestContent } from '../guest/guest-session';
@@ -19,15 +19,26 @@ import {
   isImpersonationEnded,
   isReadOnlyRefusal,
 } from '../consultation/consultation';
-import type { ActionType, BootstrapPayload, ChangesPayload, CollectionDelta } from '../domain/types';
+import type {
+  ActionType,
+  BootstrapPayload,
+  ChangesPayload,
+  CollectionDelta,
+  Folder,
+  Placement,
+} from '../domain/types';
 import {
   articlesStore,
   badgesStore,
+  consultedResourcesStore,
   groupsStore,
   decksStore,
   examsStore,
+  foldersStore,
+  placementsStore,
   preferencesStore,
   quizzesStore,
+  resourcesStore,
   sessionStore,
   syncStore,
 } from '../stores';
@@ -73,6 +84,10 @@ export async function hydrateFromDb(): Promise<boolean> {
   examsStore.set(await db.exams.toArray());
   badgesStore.set(await db.badges.toArray());
   groupsStore.set(await db.groups.toArray());
+  foldersStore.set(await db.folders.toArray());
+  resourcesStore.set(await db.resources.toArray());
+  placementsStore.set(await db.placements.toArray());
+  consultedResourcesStore.set((await getMeta<number[]>(META_CONSULTED_RESOURCES)) ?? []);
   await refreshPendingCount();
 
   return true;
@@ -81,7 +96,20 @@ export async function hydrateFromDb(): Promise<boolean> {
 async function persistBootstrap(payload: BootstrapPayload): Promise<void> {
   await db.transaction(
     'rw',
-    [db.profile, db.preferences, db.articles, db.quizzes, db.decks, db.exams, db.badges, db.groups, db.meta],
+    [
+      db.profile,
+      db.preferences,
+      db.articles,
+      db.quizzes,
+      db.decks,
+      db.exams,
+      db.badges,
+      db.groups,
+      db.resources,
+      db.folders,
+      db.placements,
+      db.meta,
+    ],
     async () => {
       await db.profile.put({ ...payload.user, _key: 'me' });
       await db.preferences.put({ ...payload.preferences, _key: 'me' });
@@ -98,10 +126,21 @@ async function persistBootstrap(payload: BootstrapPayload): Promise<void> {
       await db.badges.bulkPut(payload.badges);
       await db.groups.clear();
       await db.groups.bulkPut(payload.groups ?? []);
+      await db.resources.clear();
+      await db.resources.bulkPut(payload.resources ?? []);
+      await replaceTree(payload.folders, payload.placements);
       await setMeta(META_CURSOR, payload.cursor);
       if (payload.terms) await setMeta(META_TERMS, payload.terms);
     },
   );
+}
+
+/** Dossiers et placements arrivent toujours complets : la copie locale est remplacée. */
+async function replaceTree(folders: Folder[] | undefined, placements: Placement[] | undefined): Promise<void> {
+  await db.folders.clear();
+  await db.folders.bulkPut(folders ?? []);
+  await db.placements.clear();
+  await db.placements.bulkPut(placements ?? []);
 }
 
 /**
@@ -114,7 +153,19 @@ async function applyChanges(delta: ChangesPayload): Promise<boolean> {
 
   await db.transaction(
     'rw',
-    [db.articles, db.quizzes, db.decks, db.exams, db.badges, db.groups, db.profile, db.meta],
+    [
+      db.articles,
+      db.quizzes,
+      db.decks,
+      db.exams,
+      db.resources,
+      db.folders,
+      db.placements,
+      db.badges,
+      db.groups,
+      db.profile,
+      db.meta,
+    ],
     async () => {
       const apply = async <T>(
         table: {
@@ -145,6 +196,10 @@ async function applyChanges(delta: ChangesPayload): Promise<boolean> {
       await apply(db.quizzes, delta.quizzes);
       await apply(db.decks, delta.decks);
       await apply(db.exams, delta.exams);
+      // Ressource réaffichée (dossier visible à nouveau) : seul `authorized_ids`
+      // la ramène, la détection « présent < autorisé » ci-dessus s'applique.
+      await apply(db.resources, delta.resources ?? { updated: [], authorized_ids: [] });
+      await replaceTree(delta.folders, delta.placements);
 
       await db.badges.clear();
       await db.badges.bulkPut(delta.badges);
@@ -163,6 +218,15 @@ async function applyChanges(delta: ChangesPayload): Promise<boolean> {
   );
 
   return missingAuthorized;
+}
+
+/** Mémorise l'ouverture d'une ressource sur cet appareil (progression « consulté »). */
+export async function markResourceConsulted(id: number): Promise<void> {
+  const ids = (await getMeta<number[]>(META_CONSULTED_RESOURCES)) ?? [];
+  if (ids.includes(id)) return;
+  const next = [...ids, id];
+  await setMeta(META_CONSULTED_RESOURCES, next);
+  consultedResourcesStore.set(next);
 }
 
 // ------------------------------------------------------ Warm cache médias
@@ -444,6 +508,9 @@ export async function clearLocalData(): Promise<void> {
     db.exams.clear(),
     db.badges.clear(),
     db.groups.clear(),
+    db.resources.clear(),
+    db.folders.clear(),
+    db.placements.clear(),
     db.outbox.clear(),
     db.meta.clear(),
     db.drafts.clear(),
@@ -452,6 +519,10 @@ export async function clearLocalData(): Promise<void> {
   // Les médias en cache hors-ligne partent avec la session.
   warmedUrls.clear();
   await globalThis.caches?.delete('learner-static-v1').catch(() => false);
+  foldersStore.set([]);
+  resourcesStore.set([]);
+  placementsStore.set([]);
+  consultedResourcesStore.set([]);
   sessionStore.set(null);
   resetTerms();
   await updateAppBadge(0);

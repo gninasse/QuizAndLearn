@@ -6,11 +6,14 @@ import type {
   BadgeItem,
   DeckItem,
   ExamItem,
+  Folder,
   MistakeEntry,
   OutboxAction,
+  Placement,
   Preferences,
   QuizDraft,
   QuizItem,
+  Resource,
   UserProfile,
 } from '../domain/types';
 
@@ -57,6 +60,15 @@ export class LearnerDb extends Dexie {
   /** Questions ratées récemment (mode « rejouer mes erreurs »). */
   mistakes!: Table<MistakeEntry, number>;
 
+  /** Dossiers visibles des groupes de l'apprenant (remplacés à chaque sync). */
+  folders!: Table<Folder, number>;
+
+  /** Ressources (vidéos, documents, liens). */
+  resources!: Table<Resource, number>;
+
+  /** Place de chaque contenu dans chaque groupe (remplacées à chaque sync). */
+  placements!: Table<Placement, [string, number, number]>;
+
   constructor() {
     super(consultationDbName());
 
@@ -80,6 +92,12 @@ export class LearnerDb extends Dexie {
     this.version(3).stores({
       groups: 'id',
     });
+
+    this.version(4).stores({
+      folders: 'id, group_id, parent_id',
+      resources: 'id, updated_at',
+      placements: '[type+id+group_id], group_id, folder_id',
+    });
   }
 }
 
@@ -99,3 +117,5 @@ export async function setMeta(key: string, value: unknown): Promise<void> {
 export const META_CURSOR = 'sync_cursor';
 /** Libellés du terme « groupe » (voir core/terms.ts). */
 export const META_TERMS = 'terms';
+/** Ids des ressources déjà ouvertes sur cet appareil (progression locale). */
+export const META_CONSULTED_RESOURCES = 'consulted_resources';
