@@ -269,6 +269,16 @@ DOCUMENT_QUEUE=documents         # file dédiée aux conversions
   message « LibreOffice n'est pas installé sur le serveur. », l'apprenant voit « Document
   indisponible ». Après installation, relancer la conversion depuis le back-office (« Réessayer »).
 - Sans worker `documents`, les documents restent « en préparation » (l'apprenant reçoit 202).
+- **Durcissement (SSRF)** : LibreOffice ouvre des fichiers fournis par des utilisateurs. Exécuter
+  le worker `documents` avec un utilisateur système dédié, sans droits d'écriture hors de
+  `storage/`, et **sans accès réseau sortant** (pare-feu, `PrivateNetwork=yes` sous systemd ou
+  réseau Docker isolé). Un document ne doit jamais pouvoir charger une ressource distante ni
+  atteindre le réseau interne.
+- **Migrations** : cette fonctionnalité ajoute des tables et colonnes (dossiers,
+  ressources ; colonnes de placement sur les pivots groupe-contenu). `php artisan migrate --force` (voir §8) ; les contenus existants
+  apparaissent à la racine de chaque groupe, sans migration de données, et le réglage
+  `content.sharing_mode` reste `shared` par défaut. Redémarrer ensuite les workers
+  (`php artisan queue:restart`).
 
 ## 6. Serveur web
 

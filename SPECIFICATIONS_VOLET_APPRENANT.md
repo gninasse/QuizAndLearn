@@ -306,6 +306,32 @@ Quiz synthétique local à partir des questions ratées (mélangées). Bannière
 
 ---
 
+## 11-bis. Cours et ressources — `/cours`
+
+**Objectif** : parcourir les contenus de son groupe tels que le formateur les a rangés en dossiers, et consulter les ressources (PDF, documents, audio, image, vidéo, lien) sans pouvoir les récupérer.
+
+**Navigation** : entrée « Cours » juste après Accueil. `/cours` ouvre directement le groupe s'il n'y en a qu'un ; sinon une carte par groupe (nom + « n/m consultés »). Aucun groupe → état vide. Le mot « groupe » suit la terminologie configurable.
+
+**Dossier** — `/cours/{groupId}/{folderId?}` : fil d'Ariane cliquable (Cours › Groupe › Dossier…), barre « n/m consultés », sous-dossiers (chacun avec sa progression), puis éléments triés par position. Icône par type (article, quiz, examen, deck) et par nature de ressource ; coche « Consulté ». Dossier vide → « Aucun contenu dans ce dossier pour le moment. » Un appui ouvre l'écran existant (article, fiche quiz, révision du deck, liste des examens) ou le lecteur de ressource.
+
+**Consulté** : article = lu ou entamé ; quiz = statut ou tentative ; examen = au moins une tentative ; deck = au moins une carte révisée ; ressource = ouverte et réellement affichée. La progression d'un dossier compte tout son sous-arbre.
+
+**Puce de chemin** : sur les cartes Articles, Entraînement, Examens et en tête de révision, « Groupe › Dossier » (premier groupe par ordre alphabétique si plusieurs, dossier le plus profond, 24 caractères maximum). Un appui ouvre le dossier sans ouvrir la carte. Rien si le contenu n'est placé dans aucun groupe.
+
+**Lecteur de ressource** — `/ressources/{id}` :
+- PDF et documents Word / PowerPoint / OpenDocument (convertis en PDF) : visionneuse page par page, filigrane nominatif sur chaque page, sans barre d'outils ni impression. Document en cours de conversion → « Document en préparation… » (Réessayer) ; conversion échouée → « Document indisponible ».
+- Audio, image, vidéo : lecteurs protégés existants (voir 0.5 et 0.5-bis).
+- Lien : YouTube / Vimeo dans le lecteur de marque ; autre lien → bouton « Ouvrir le lien ».
+- Ressource retirée ou masquée → « Ressource indisponible. »
+
+**Protection (consultable, non récupérable)** : jamais d'URL stable vers un fichier ; le serveur délivre une URL signée valable 15 min, redemandée au besoin. Les gestes de sauvegarde sont neutralisés, `FLAG_SECURE` sur mobile. « Télécharger » n'apparaît que si le formateur l'a autorisé (sinon 403). En consultation (« Voir en tant que »), lecture seule : ni téléchargement ni copie hors ligne.
+
+**Hors ligne** : l'arborescence et les fiches sont toujours disponibles. Les fichiers (PDF, audio, image) ne sont gardés que sur demande (« Disponible hors ligne »), stockés dans l'espace privé de l'application (chiffrés sur mobile), supprimés dès que la ressource n'est plus autorisée et à la déconnexion. Vidéos et liens : en ligne uniquement.
+
+**Suivi** : l'ouverture effective d'une ressource enregistre une consultation (sans XP), via la file d'actions (`resource_view`).
+
+---
+
 ## 12. Profil — `/profil`
 
 **Objectif** : identité, préférences, sécurité, contrôle de la synchronisation.
@@ -340,6 +366,8 @@ Quiz synthétique local à partir des questions ratées (mélangées). Bannière
 | Révision | instantané | (liste : deck vide) | Complet | « Deck introuvable. » |
 | Examens / liste | instantané | 🎓 message | Complet (liste seule) | — |
 | Examen play | démarrage réseau | — | 📡 « Connexion requise » | 403 serveur affichés, échec soumission |
+| Cours / dossier | instantané (local) | « Aucun contenu dans ce dossier pour le moment. » | Arborescence complète, fichiers gardés seulement | — |
+| Ressource | réseau (URL signée) | — | Copie « Disponible hors ligne » sinon « Ressource disponible en ligne uniquement. » | 202 « Document en préparation… », 409 « Document indisponible », 403 « Ressource indisponible. » |
 | Progression | squelettes classement | sections conditionnelles | Stats oui, classement = cache | mention cache |
 | Profil | instantané | — | Complet sauf mot de passe | 422 par champ |
 

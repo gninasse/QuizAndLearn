@@ -718,3 +718,14 @@ formes de vidéo. Les anciennes `<video src="/storage/…">` restent valables (p
   YouTube / Vimeo et ExoPlayer).
 - Mode consultation « Voir en tant que » : la route `/playback` fait partie de la liste
   blanche lecture seule, comportement identique.
+
+---
+
+## Mise à jour — dossiers de contenus et ressources (octobre 2026)
+
+Les contenus sont désormais organisés en dossiers par groupe, avec un nouveau type de
+contenu « ressource » (PDF, document, audio, image, vidéo, lien). Le contrat API
+(`folders`, `resources`, `placements`, `resources/{id}/view`, `resources/{id}/download`,
+action `resource_view`), l'onglet « Cours », la puce de chemin, le lecteur protégé et le
+hors ligne chiffré sont décrits dans **`PROMPT_DOSSIERS_MOBILE_AI_STUDIO.md`**, à appliquer
+comme évolution de ce prompt.
