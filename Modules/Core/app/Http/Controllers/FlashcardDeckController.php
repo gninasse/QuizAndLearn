@@ -61,9 +61,8 @@ class FlashcardDeckController extends Controller
         $query = FlashcardDeck::with(['creator', 'groups']);
 
         $user = auth()->user();
-        if (! ($user->hasRole('super-admin') || $user->hasRole('Admin') || $user->hasRole('admin'))) {
-            $query->where('created_by', $user->id);
-        }
+        // Non-admins : leurs contenus et, en mode isolé, ceux des groupes qu'ils animent.
+        ContentEditAccess::scopeEditable($query, $user);
 
         // Filtre vitrine (?showcase=1)
         if ($request->boolean('showcase')) {
@@ -194,7 +193,8 @@ class FlashcardDeckController extends Controller
      */
     public function destroy(int $id): JsonResponse
     {
-        $deck = $this->authorizeDeck($id);
+        $deck = FlashcardDeck::findOrFail($id);
+        abort_unless(ContentEditAccess::canDelete(auth()->user(), $deck), 403, 'Action non autorisée.');
         $deck->delete();
 
         return response()->json([

@@ -2,6 +2,7 @@
 
 namespace Modules\Core\Services;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Modules\Core\Models\User;
@@ -11,6 +12,8 @@ use Modules\Core\Models\User;
  *
  *  - `shared`   : le créateur et les admins ;
  *  - `isolated` : aussi les formateurs d'un groupe auquel le contenu appartient.
+ *
+ * La suppression reste réservée au créateur et aux admins, quel que soit le mode.
  */
 class ContentEditAccess
 {
@@ -39,6 +42,38 @@ class ContentEditAccess
             ->where("{$pivot}.{$fk}", $content->getKey())
             ->where('group_trainer.trainer_id', $user->trainer->id)
             ->exists();
+    }
+
+    /**
+     * Suppression : créateur et admins seulement (les co-formateurs du mode `isolated` modifient sans supprimer).
+     */
+    public static function canDelete(User $user, Model $content): bool
+    {
+        return $user->hasAnyRole(self::ADMIN_ROLES)
+            || ($content->created_by !== null && (int) $content->created_by === (int) $user->id);
+    }
+
+    /**
+     * Restreint une requête de liste aux contenus que l'utilisateur peut modifier :
+     * les siens et, en mode `isolated`, ceux des groupes qu'il anime. Sans effet pour un admin.
+     * Le modèle interrogé doit avoir une relation `groups`.
+     */
+    public static function scopeEditable(Builder $query, User $user): Builder
+    {
+        if ($user->hasAnyRole(self::ADMIN_ROLES)) {
+            return $query;
+        }
+
+        $trainerId = ContentSharing::isolated() ? $user->trainer?->id : null;
+
+        return $query->where(function (Builder $q) use ($user, $trainerId) {
+            $q->where('created_by', $user->id);
+            if ($trainerId !== null) {
+                $q->orWhereHas('groups', fn (Builder $g) => $g->whereIn(
+                    'groups.id', DB::table('group_trainer')->where('trainer_id', $trainerId)->select('group_id')
+                ));
+            }
+        });
     }
 
     /**

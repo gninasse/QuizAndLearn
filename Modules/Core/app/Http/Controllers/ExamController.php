@@ -51,9 +51,8 @@ class ExamController extends Controller
         $query = Exam::with(['creator', 'groups']);
 
         $user = auth()->user();
-        if (! ($user->hasRole('super-admin') || $user->hasRole('Admin') || $user->hasRole('admin'))) {
-            $query->where('created_by', $user->id);
-        }
+        // Non-admins : leurs contenus et, en mode isolé, ceux des groupes qu'ils animent.
+        ContentEditAccess::scopeEditable($query, $user);
 
         // Search
         if ($request->has('search') && ! empty($request->search)) {
@@ -249,8 +248,12 @@ class ExamController extends Controller
      */
     public function destroy(int $id): JsonResponse
     {
+        $exam = Exam::findOrFail($id);
+        if (! ContentEditAccess::canDelete(auth()->user(), $exam)) {
+            return response()->json(['success' => false, 'message' => 'Action non autorisée.'], 403);
+        }
+
         try {
-            $exam = $this->authorizeExam($id);
             $exam->delete();
 
             return response()->json([

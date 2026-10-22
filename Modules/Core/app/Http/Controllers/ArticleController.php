@@ -47,9 +47,8 @@ class ArticleController extends Controller
         $query = Article::with(['creator', 'groups']);
 
         $user = auth()->user();
-        if (! ($user->hasRole('super-admin') || $user->hasRole('Admin') || $user->hasRole('admin'))) {
-            $query->where('created_by', $user->id);
-        }
+        // Non-admins : leurs contenus et, en mode isolé, ceux des groupes qu'ils animent.
+        ContentEditAccess::scopeEditable($query, $user);
 
         // Filtre vitrine (?showcase=1)
         if ($request->boolean('showcase')) {
@@ -186,8 +185,12 @@ class ArticleController extends Controller
      */
     public function destroy(int $id): \Illuminate\Http\JsonResponse
     {
+        $article = Article::findOrFail($id);
+        if (! ContentEditAccess::canDelete(auth()->user(), $article)) {
+            return response()->json(['success' => false, 'message' => 'Action non autorisée.'], 403);
+        }
+
         try {
-            $article = $this->authorizeArticle($id);
             $article->delete();
 
             return response()->json([

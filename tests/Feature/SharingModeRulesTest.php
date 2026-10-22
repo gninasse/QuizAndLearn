@@ -346,6 +346,54 @@ class SharingModeRulesTest extends TestCase
         $this->json($method, $url, $data)->assertForbidden();
     }
 
+    private function listIds(string $type): array
+    {
+        $prefix = ['article' => 'articles', 'quiz' => 'quizzes', 'exam' => 'exams', 'deck' => 'flashcard-decks'][$type];
+
+        return collect($this->getJson("/cores/{$prefix}/data?limit=100")->assertOk()->json('rows'))
+            ->pluck('id')->map(fn ($id) => (int) $id)->sort()->values()->all();
+    }
+
+    public static function types(): array
+    {
+        return ['article' => ['article'], 'quiz' => ['quiz'], 'exam' => ['exam'], 'deck' => ['deck']];
+    }
+
+    #[DataProvider('types')]
+    public function test_isolated_cotrainer_lists_group_content(string $type): void
+    {
+        $inA = $this->make($type, $this->groupA);
+        $inB = $this->make($type, $this->groupB);
+        $own = $this->make($type);
+        $own->update(['created_by' => $this->cotrainer->id]);
+
+        // Mode partagé : inchangé, seulement ses propres contenus.
+        $this->actingAs($this->cotrainer);
+        $this->assertSame([$own->id], $this->listIds($type));
+
+        $this->isolated();
+        $this->assertSame([$inA->id, $own->id], $this->listIds($type));
+        $this->assertNotContains($inB->id, $this->listIds($type));
+    }
+
+    #[DataProvider('types')]
+    public function test_isolated_cotrainer_can_update_but_not_delete(string $type): void
+    {
+        $this->isolated();
+        $content = $this->make($type, $this->groupA);
+        $prefix = ['article' => '/cores/articles', 'quiz' => '/cores/quizzes', 'exam' => '/cores/exams', 'deck' => '/cores/flashcard-decks'][$type];
+
+        $this->actingAs($this->cotrainer);
+        [$method, $url, $data] = $this->syncRequest($type, $content->id, [$this->groupA->id]);
+        $this->json($method, $url, $data)->assertOk();
+
+        $this->deleteJson("{$prefix}/{$content->id}")->assertForbidden();
+        $this->assertNotNull($content->fresh());
+
+        // Le créateur garde le droit de supprimer.
+        $this->actingAs($this->creator)->deleteJson("{$prefix}/{$content->id}")->assertOk();
+    }
+
     public function test_assign_with_folder_id(): void
     {
         $this->isolated();
