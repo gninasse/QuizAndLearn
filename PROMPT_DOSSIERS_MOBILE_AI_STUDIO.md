@@ -34,15 +34,15 @@ renvoient trois nouveaux éléments : `resources`, `folders`, `placements`.
     { "id": 1, "kind": "video", "title": "Cours filmé", "description": null,
       "mime": "video/mp4", "size": 10485760, "allow_download": false,
       "video_ref": "e9416492-b2fa-4408-9ebd-689550e197e0", "url": null,
-      "conversion_status": null, "updated_at": "2026-10-20T10:00:00+00:00" },
+      "conversion_status": null, "consulted": true, "updated_at": "2026-10-20T10:00:00+00:00" },
     { "id": 2, "kind": "link", "title": "Site officiel", "description": null,
       "mime": null, "size": null, "allow_download": false,
       "video_ref": null, "url": "https://example.org/doc",
-      "conversion_status": null, "updated_at": "2026-10-20T10:00:00+00:00" },
+      "conversion_status": null, "consulted": false, "updated_at": "2026-10-20T10:00:00+00:00" },
     { "id": 3, "kind": "document", "title": "Support Word", "description": null,
       "mime": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "size": 52000, "allow_download": true, "video_ref": null, "url": null,
-      "conversion_status": "ready", "updated_at": "2026-10-20T10:00:00+00:00" }
+      "conversion_status": "ready", "consulted": false, "updated_at": "2026-10-20T10:00:00+00:00" }
   ],
   "folders": [
     { "id": 1, "group_id": 1, "parent_id": null, "name": "Semaine 1", "position": 0 },
@@ -56,7 +56,10 @@ renvoient trois nouveaux éléments : `resources`, `folders`, `placements`.
     { "type": "resource", "id": 1, "group_id": 1, "folder_id": 1,    "position": 1 },
     { "type": "resource", "id": 2, "group_id": 1, "folder_id": 1,    "position": 2 },
     { "type": "resource", "id": 3, "group_id": 1, "folder_id": 2,    "position": 0 }
-  ]
+  ],
+  "terms": { "group": "groupe", "groups": "groupes", "Group": "Groupe", "Groups": "Groupes",
+             "a_group": "un groupe", "the_group": "le groupe", "of_group": "du groupe",
+             "to_group": "au groupe", "this_group": "ce groupe", "no_group": "aucun groupe" }
 }
 ```
 
@@ -67,6 +70,12 @@ Règles de lecture :
   par `GET /resources/{id}/view` (§2).
 - `conversion_status` ∈ `pending | ready | failed | null` (non `null` pour un `document`
   seulement : Word / PowerPoint / OpenDocument convertis en PDF côté serveur).
+- `consulted` (booléen, toujours présent) : l'apprenant connecté a déjà consulté cette
+  ressource, **sur n'importe quel appareil** (progression serveur enregistrée par l'action
+  `resource_view`, §2). C'est la source de vérité multi-appareils ; la table locale
+  `consulted_resources` ne sert qu'à afficher la coche immédiatement, hors ligne, avant
+  que l'outbox soit synchronisée.
+- `terms` (terminologie du groupe, §7) est renvoyé par `bootstrap` **et** par `changes`.
 - `placements[].type` ∈ `article | quiz | exam | deck | resource`. `folder_id: null` =
   racine du groupe. Un contenu peut avoir **plusieurs** placements (un par groupe) ;
   `position` ordonne les éléments d'un même dossier. Les dossiers aussi sont ordonnés
@@ -76,7 +85,11 @@ Règles de lecture :
 - Un contenu qui n'a aucun placement visible dans un groupe de l'apprenant reste dans les
   écrans existants (Articles, Entraînement, Examens) ; il n'apparaît simplement pas dans « Cours ».
 
-### 1.2 `GET /changes?since={cursor}` (extrait réel)
+### 1.2 `GET /changes?since={cursor}` (extrait réel, **abrégé**)
+
+> Exemple raccourci pour la lisibilité : `articles`, `quizzes`, `decks`, `exams`, `badges`
+> et `xp` sont omis (inchangés), et `placements` ne montre qu'une entrée alors que le
+> serveur renvoie toujours la liste complète.
 
 ```json
 {
@@ -86,7 +99,8 @@ Règles de lecture :
     "updated": [ { "id": 3, "kind": "document", "title": "Support Word", "description": null,
                    "mime": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                    "size": 52000, "allow_download": true, "video_ref": null, "url": null,
-                   "conversion_status": "ready", "updated_at": "2026-10-20T10:00:00+00:00" } ],
+                   "conversion_status": "ready", "consulted": true,
+                   "updated_at": "2026-10-20T10:00:00+00:00" } ],
     "authorized_ids": [1, 2, 3]
   },
   "folders": [
@@ -106,7 +120,9 @@ Règles de lecture :
 il contient toujours la liste complète.)
 
 - `resources` suit la forme habituelle `{updated, authorized_ids}` : upsert des `updated`,
-  suppression locale de tout id absent de `authorized_ids`.
+  suppression locale de tout id absent de `authorized_ids`. Une ressource consultée depuis
+  le curseur (par exemple sur un autre appareil) est renvoyée dans `updated` avec
+  `consulted: true`, même si son `updated_at` n'a pas changé.
 - **`folders` et `placements` sont renvoyés EN ENTIER à chaque appel `changes`** (comme
   `groups` et `badges`). Un déplacement de dossier ne déclenche donc aucun re-téléchargement.
 
@@ -124,6 +140,12 @@ Les deux routes sont Bearer, sous `{{BASE_URL}}/api/mobile/v1`.
 | 202 | `{"status":"pending"}` | Document en cours de conversion : « Document en préparation… » + bouton « Réessayer ». |
 | 409 | `{"status":"failed"}` | Conversion échouée : « Document indisponible ». |
 | 403 | `{"message":"Ressource indisponible."}` | Ressource masquée, retirée, groupe inactif : « Ressource indisponible. » et purger la copie hors ligne (§6). |
+| 404 | corps non garanti | Vidéo dont la référence n'existe plus côté serveur : « Ressource indisponible. ». (Une ressource inexistante ou invisible répond 403, jamais 404 : le serveur ne révèle pas son existence.) |
+| 401 | `{"message":"Unauthenticated."}` | Bearer expiré ou révoqué : même traitement que partout ailleurs (purge du token, de Room et des fichiers hors ligne, retour à la connexion — prompt initial). |
+
+L'URL signée (`…/file?expires=…&signature=…`) peut elle-même répondre **403** si elle a
+expiré ou été altérée, et **404** si le fichier n'existe plus sur le serveur : dans les deux
+cas, redemander `view` une fois, puis afficher « Ressource indisponible. ».
 
 L'URL signée **expire 15 minutes après sa délivrance** : ne jamais la stocker ; la
 redemander via `view` si elle a expiré (le fichier est servi avec `Range`, en `inline`).
@@ -133,8 +155,12 @@ redemander via `view` si elle a expiré (le fichier est servi avec `Range`, en `
 - 200 : fichier d'origine en pièce jointe (`Content-Disposition: attachment`).
 - **403** `{"message":"Téléchargement non autorisé pour cette ressource."}` si
   `allow_download` est faux.
+- **404** si le fichier d'origine est absent du serveur, et **toujours pour une vidéo**
+  (une vidéo se regarde en streaming, elle ne se télécharge jamais) : ne jamais afficher
+  « Télécharger » pour `kind = video`, même si `allow_download` est vrai.
+- **401** : Bearer expiré, traitement global (purge + reconnexion).
 - En mode consultation « Voir en tant que » : `view` est autorisé, `download` refusé (403).
-- N'afficher un bouton « Télécharger » **que si `allow_download` est vrai**. Le fichier
+- N'afficher un bouton « Télécharger » **que si `allow_download` est vrai et `kind != video`**. Le fichier
   téléchargé va dans l'espace de téléchargement choisi par l'utilisateur (`DownloadManager`
   avec le Bearer, ou flux enregistré via `MediaStore`), jamais dans le cache chiffré du §6.
 
@@ -176,6 +202,7 @@ data class ResourceEntity(
     val videoRef: String?,
     val url: String?,             // lien uniquement
     val conversionStatus: String?, // pending|ready|failed|null
+    val consulted: Boolean,       // drapeau serveur, tous appareils confondus
     val updatedAt: String,
 )
 
@@ -255,7 +282,7 @@ d'éléments (dossiers exclus), `n` = nombre d'éléments consultés. Un éléme
 | quiz | `status != "unread"` ou au moins une tentative (`attempts` non vide) |
 | examen | au moins une tentative (`attempts` non vide) |
 | deck | au moins une carte avec une révision enregistrée |
-| ressource | id présent dans `consulted_resources` (marquage local à l'ouverture effective, voir §5) |
+| ressource | `consulted` vrai (serveur, tous appareils) **ou** id présent dans `consulted_resources` (marquage local à l'ouverture effective, voir §5) |
 
 Le parcours du sous-arbre doit être protégé contre un cycle (garde de profondeur ou
 ensemble des dossiers déjà vus).
@@ -284,7 +311,7 @@ session de révision, afficher une puce discrète « **Groupe › Dossier** » :
 
 | kind | Rendu |
 |---|---|
-| `pdf`, `document` (`ready`) | `GET /resources/{id}/view` → télécharger le fichier signé **en mémoire / flux** puis le rendre avec `PdfRenderer` (un `Bitmap` par page, rendu paresseux en `LazyColumn`, zoom pincé). Voir §5.3. |
+| `pdf`, `document` (`ready`) | `GET /resources/{id}/view` → télécharger le fichier signé dans un **fichier temporaire privé de `cacheDir`** puis le rendre avec `PdfRenderer` (un `Bitmap` par page, rendu paresseux en `LazyColumn`, zoom pincé). Voir §5.3. |
 | `image` | Visionneuse plein écran existante (zoom au toucher), filigrane. |
 | `audio` | Lecteur audio durci existant (Media3), sans « Télécharger » ni Cast. |
 | `video` | Lecteur vidéo par référence existant (`/videos/{ref}/playback`, renouvellement 15 min, filigrane). |
@@ -302,9 +329,14 @@ copie chiffrée : consultée (l'action partira à la prochaine synchronisation).
 
 ### 5.3 Lecteur PDF (`PdfRenderer`) et protections
 
-- `PdfRenderer` sur un `ParcelFileDescriptor` ouvert sur le fichier **déchiffré en cache
-  temporaire privé** (`cacheDir`), supprimé à la fermeture du lecteur ; pas de couche de
-  texte, pas de barre d'outils, aucun lien sortant, aucune application externe ouverte.
+- `PdfRenderer` exige un `ParcelFileDescriptor` **sur lequel on peut se déplacer
+  (seekable)** : un tube (`createPipe`) ou un flux en mémoire ne fonctionne pas. Dans les
+  deux cas on passe donc par un **fichier temporaire privé de `cacheDir`** :
+  - **en ligne** : le flux de l'URL signée est écrit dans ce fichier temporaire ;
+  - **hors ligne** : la copie chiffrée (§6) est déchiffrée dans ce fichier temporaire.
+  Le fichier est supprimé à la fermeture du lecteur (et au démarrage de l'application,
+  purge des restes éventuels de `cacheDir`). Pas de couche de texte, pas de barre
+  d'outils, aucun lien sortant, aucune application externe ouverte.
 - **`FLAG_SECURE`** sur l'activité tant que l'écran ressource est affiché (captures et
   enregistrement d'écran bloqués), ainsi que sur la visionneuse d'image et le plein écran
   vidéo.
@@ -316,7 +348,7 @@ copie chiffrée : consultée (l'action partira à la prochaine synchronisation).
 - Si l'URL signée expire pendant la lecture (réseau lent, 15 min), redemander `view` ;
   ne jamais conserver l'URL.
 - Boutons : « Disponible hors ligne » (bascule) pour `pdf`, `document`, `audio`, `image` ;
-  « Télécharger » **seulement si `allow_download`**. En mode consultation (« Voir en tant
+  « Télécharger » **seulement si `allow_download`** et jamais pour une vidéo. En mode consultation (« Voir en tant
   que ») ces deux boutons sont masqués.
 
 ### 5.4 Messages d'état
@@ -347,7 +379,10 @@ la vidéo ni les liens.
    stockage **privé de l'application** (`context.filesDir/resources/{id}.enc`), jamais sur
    le stockage partagé ni la carte SD, jamais dans `MediaStore`. Chiffrement
    `EncryptedFile` (Jetpack Security, AES-256-GCM-HKDF) avec une clé du Keystore Android
-   (`MasterKey`, `AES256_GCM`). Conserver à côté (Room ou fichier méta) : id, `kind`, `mime`.
+   (`MasterKey`, `AES256_GCM`). Jetpack Security (`EncryptedFile`) est **déprécié** :
+   une clé AES générée dans l'Android Keystore et un chiffrement en flux AES-GCM
+   (`Cipher` + `CipherOutputStream` / `CipherInputStream`, IV stocké en tête du fichier)
+   est une alternative acceptable. Conserver à côté (Room ou fichier méta) : id, `kind`, `mime`.
    Aucune URL signée n'est stockée.
 2. Lecture hors ligne : déchiffrer en flux vers un fichier temporaire de `cacheDir`
    (PDF) ou un flux mémoire (image, audio), le supprimer à la fermeture. Mêmes protections
@@ -370,12 +405,35 @@ la vidéo ni les liens.
 ## 7. Terminologie du groupe
 
 Le serveur peut appeler le groupe autrement (classe, promotion, cohorte…). Les libellés
-viennent de l'objet `terms` renvoyé par `changes` (clés : `group`, `groups`, `Group`,
+viennent de l'objet `terms` renvoyé par `bootstrap` et par `changes` (clés : `group`, `groups`, `Group`,
 `Groups`, `a_group`, `the_group`, `of_group`, `to_group`, `this_group`, `no_group`),
 stocké dans Room avec les préférences. Dans tous les écrans de ce prompt, **ne jamais écrire
 « groupe » en dur** : « Aucun {terms.group} » / `terms.no_group`, titres « {terms.Groups} »,
 etc. Valeur par défaut si `terms` est absent : « groupe ».
 Tous les textes sont en français, accentués.
+
+## 7-bis. Choix de conception (non imposés par le serveur)
+
+> Les points suivants sont des **choix côté application**, repris de la PWA ou proposés
+> pour Android. Le serveur ne les vérifie pas : ils peuvent être adaptés s'il existe une
+> meilleure solution Android, tant que les règles de sécurité (§5.3, §6) sont tenues.
+
+- L'onglet « Cours » ne liste que les groupes au statut `active` (§4.1).
+- La table locale `consulted_resources` (affichage immédiat et hors ligne de la coche
+  « Consulté », en plus du drapeau serveur `consulted`).
+- Le stockage hors ligne chiffré dans `filesDir` (§6). `EncryptedFile` de Jetpack
+  Security est déprécié : clé Android Keystore + flux AES-GCM est acceptable.
+- `android:allowBackup="false"` (ou règles d'exclusion de sauvegarde équivalentes).
+- Le téléchargement via `DownloadManager` (avec le Bearer) ou un flux enregistré via
+  `MediaStore` (§2).
+- Les règles de la puce de chemin (24 caractères points de suspension compris, premier
+  groupe dans l'ordre alphabétique, dossier le plus profond) : reprises de la PWA.
+
+**Sans impact mobile :** le back-office permet désormais de modifier les paramètres d'une
+ressource (titre, description, téléchargement autorisé, activation) et de la supprimer.
+Ces opérations sont réservées au back-office (aucun endpoint mobile) ; l'application en
+voit seulement l'effet après synchronisation (`updated`, ou id absent de
+`authorized_ids` → suppression locale et purge de la copie hors ligne).
 
 ## 8. Tests attendus et checklist de QA
 
@@ -391,7 +449,8 @@ Tests automatisés (JUnit / Room en mémoire / MockWebServer) :
 - Progression `n/m` récursive (sous-dossiers compris), avec les règles « consulté » par type.
 - `view` : 200 pdf / link / video, 202, 409, 403 → bons écrans ; `resource_view` n'est
   mis en outbox que sur 200 (ou copie locale lue).
-- `download` : bouton absent si `allow_download` est faux.
+- `download` : bouton absent si `allow_download` est faux, et toujours absent pour une vidéo.
+- `consulted: true` reçu du serveur sans marquage local → l'élément est coché « Consulté ».
 
 Checklist de QA manuelle :
 - [ ] Onglet « Cours » après Accueil ; un seul groupe → ouverture directe de sa racine.
