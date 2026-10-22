@@ -208,8 +208,8 @@ export interface Resource {
   video_ref: string | null;
   /** Lien externe (kind `link`) uniquement. */
   url: string | null;
-  /** Conversion Word → PDF (`pending`, `ready`, `failed`…) : null hors document. */
-  conversion_status: string | null;
+  /** Conversion Word → PDF : null hors document. */
+  conversion_status: 'pending' | 'ready' | 'failed' | null;
   updated_at: string;
 }
 
