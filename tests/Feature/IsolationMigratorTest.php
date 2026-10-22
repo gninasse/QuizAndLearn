@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Queue;
+use Modules\Core\Jobs\ConvertDocumentToPdf;
 use Modules\Core\Models\Exam;
 use Modules\Core\Models\ExamQuestion;
 use Modules\Core\Models\FlashcardDeck;
@@ -13,6 +15,7 @@ use Modules\Core\Models\Group;
 use Modules\Core\Models\Learner;
 use Modules\Core\Models\Question;
 use Modules\Core\Models\Quiz;
+use Modules\Core\Models\Resource;
 use Modules\Core\Models\Role;
 use Modules\Core\Models\User;
 use Modules\Core\Services\ContentSharing;
@@ -152,6 +155,8 @@ class IsolationMigratorTest extends TestCase
         $this->learner($this->groupB);
 
         $quiz = $this->quiz([$this->groupA]);
+        $author = $this->makeUser('auteur');
+        $quiz->update(['created_by' => $author->id]);
         $folder = Folder::create(['group_id' => $this->groupB->id, 'name' => 'Module 1', 'position' => 0]);
         $before = $this->quiz([]);
         $after = $this->quiz([]);
@@ -175,10 +180,33 @@ class IsolationMigratorTest extends TestCase
         $this->assertSame(0, (int) DB::table('group_quiz')->where('quiz_id', $before->id)->value('position'));
         $this->assertSame(2, (int) DB::table('group_quiz')->where('quiz_id', $after->id)->value('position'));
         $this->assertSame(2, Quiz::find($copyId)->questions()->count());
+        // Copie automatique : l'auteur de l'original est conservé.
+        $this->assertSame($author->id, (int) Quiz::find($copyId)->created_by);
 
         // Rejouer ne trouve plus rien.
         $this->assertCount(0, $this->migrator()->conflicts());
         $this->assertSame(['copied' => 0, 'moved_rows' => 0], $this->migrator()->apply());
+    }
+
+    public function test_pending_document_copy_gets_one_conversion_job(): void
+    {
+        Queue::fake();
+        $resource = Resource::create([
+            'kind' => 'document', 'title' => 'Cours', 'disk' => 'local', 'path' => 'resources/1/abc.docx',
+            'conversion_status' => 'pending', 'mime' => 'application/msword', 'size' => 123,
+            'original_name' => 'cours.docx', 'allow_download' => true, 'is_active' => true, 'created_by' => null,
+        ]);
+        $resource->groups()->attach($this->groupA->id, ['folder_id' => null, 'position' => 0]);
+        $resource->groups()->attach($this->groupB->id, ['folder_id' => null, 'position' => 0]);
+
+        $this->assertSame(1, $this->migrator()->apply()['copied']);
+
+        $copyId = (int) DB::table('group_resource')->where('group_id', $this->groupB->id)->value('resource_id');
+        $this->assertNotSame($resource->id, $copyId);
+        Queue::assertPushed(ConvertDocumentToPdf::class, 1);
+        Queue::assertPushed(ConvertDocumentToPdf::class, fn ($job) => $job->resourceId === $copyId && $job->afterCommit === true);
+        // Auteur d'origine absent : repli sur l'admin qui bascule.
+        $this->assertSame($this->admin->id, (int) Resource::find($copyId)->created_by);
     }
 
     public function test_exam_attempts_follow_copy_and_max_attempts_preserved(): void

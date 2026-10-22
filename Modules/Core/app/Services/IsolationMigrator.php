@@ -103,7 +103,7 @@ class IsolationMigrator
     /**
      * Exécute le plan : une transaction par contenu. Rejouer après succès ne fait rien.
      *
-     * @param  ?User  $by  propriétaire des copies (défaut : utilisateur connecté)
+     * @param  ?User  $by  propriétaire des copies dont l'auteur d'origine n'existe plus (défaut : utilisateur connecté)
      * @return array{copied: int, moved_rows: int}
      */
     public function apply(?User $by = null): array
@@ -134,6 +134,9 @@ class IsolationMigrator
         $id = $item['id'];
         [, $pivot, $fk] = ContentSharing::TYPES[$type];
 
+        // Les copies automatiques gardent l'auteur de l'original (repli : l'admin qui bascule).
+        $creatorId = ContentSharing::TYPES[$type][0]::whereKey($id)->value('created_by');
+        $owner = ($creatorId !== null ? User::find($creatorId) : null) ?? $by;
         $keptLearners = $this->learnerIds($item['keep_group_id']);
         $copied = 0;
         $moved = 0;
@@ -147,7 +150,7 @@ class IsolationMigrator
             $group = Group::findOrFail($groupId);
 
             // 1. Copie au même dossier ; 2. retrait de l'original ; puis rang d'origine à l'identique.
-            ['model' => $copy, 'map' => $map] = $this->copier->copy($type, $id, $groupId, $folderId, $by);
+            ['model' => $copy, 'map' => $map] = $this->copier->copy($type, $id, $groupId, $folderId, $owner);
             $this->tree->detach($group, $type, $id);
             DB::table($pivot)->where('group_id', $groupId)->where($fk, $copy->getKey())
                 ->update(['position' => (int) $place->position]);

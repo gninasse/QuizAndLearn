@@ -70,7 +70,7 @@ class ContentCopier
         // Document encore en conversion : la copie reçoit son propre job (même PDF cible).
         $copy = $result['model'];
         if ($copy instanceof Resource && $copy->kind === 'document' && $copy->conversion_status === 'pending') {
-            ConvertDocumentToPdf::dispatch($copy->id);
+            ConvertDocumentToPdf::dispatch($copy->id)->afterCommit();
         }
 
         return $result;
