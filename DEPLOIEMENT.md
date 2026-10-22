@@ -26,7 +26,8 @@
 - **Nginx** (recommandé) ou Apache 2.4.
 - **HTTPS obligatoire** : le service worker, l'installation de la PWA et les cookies de session sécurisés ne fonctionnent qu'en HTTPS (Let's Encrypt / certbot).
 - **Disque** : prévoir la volumétrie des vidéos (100 Mo max par vidéo par défaut).
-- **LibreOffice** (sans interface) pour convertir en PDF les documents Word, PowerPoint et OpenDocument des ressources : voir §5 ter.
+- **LibreOffice** (sans interface) pour convertir en PDF les documents Word, PowerPoint
+  et OpenDocument des ressources : voir §5 ter.
 
 ## 3. Installation initiale
 
@@ -262,7 +263,11 @@ DOCUMENT_QUEUE=documents         # file dédiée aux conversions
 - **Worker dédié** sur la file **`documents`** (voir §7) :
   `php artisan queue:work --queue=documents --tries=2 --timeout=300`.
   LibreOffice s'arrête au bout de 270 s, le job au bout de 300 s, deux essais au plus.
-  `DB_QUEUE_RETRY_AFTER` (ou `REDIS_QUEUE_RETRY_AFTER`) doit rester supérieur à 300.
+  **`retry_after` doit dépasser 300 s sur la connexion de file utilisée par ce worker**
+  (`DB_QUEUE_RETRY_AFTER` pour `database`, `REDIS_QUEUE_RETRY_AFTER` pour `redis` ; la
+  valeur par défaut, 90 s, ne suffit pas) : sinon une conversion encore en cours serait
+  relancée par un second worker. Exemple : `DB_QUEUE_RETRY_AFTER=360` (ou `4200` si le
+  pilote vidéo `s3_hls` partage la connexion, voir §5 bis).
 - Le worker doit pouvoir écrire dans `storage/app/tmp` (profil LibreOffice et fichiers
   temporaires propres à chaque conversion, supprimés ensuite).
 - **LibreOffice absent** (ou `SOFFICE_BINARY` erroné) : le document passe en « échec » avec le
@@ -275,8 +280,8 @@ DOCUMENT_QUEUE=documents         # file dédiée aux conversions
   réseau Docker isolé). Un document ne doit jamais pouvoir charger une ressource distante ni
   atteindre le réseau interne.
 - **Migrations** : cette fonctionnalité ajoute des tables et colonnes (dossiers,
-  ressources ; colonnes de placement sur les pivots groupe-contenu). `php artisan migrate --force` (voir §8) ; les contenus existants
-  apparaissent à la racine de chaque groupe, sans migration de données, et le réglage
+  ressources ; colonnes de placement sur les pivots groupe-contenu).
+  `php artisan migrate --force` (voir §8) ; les contenus existants apparaissent à la racine de chaque groupe, sans migration de données, et le réglage
   `content.sharing_mode` reste `shared` par défaut. Redémarrer ensuite les workers
   (`php artisan queue:restart`).
 
@@ -365,8 +370,10 @@ php artisan queue:work --queue=videos --tries=1 --timeout=4000
 php artisan queue:work --queue=documents --tries=2 --timeout=300
 ```
 
-Avec le pilote `s3_hls`, `DB_QUEUE_RETRY_AFTER` (ou `REDIS_QUEUE_RETRY_AFTER`) doit valoir
-au moins `4200` (supérieur au `--timeout` le plus long), voir §5 bis. Sans worker `videos`,
+`retry_after` vaut pour toute une connexion de file : il doit dépasser le `--timeout` le
+plus long des workers de cette connexion. Avec le worker `documents`, au moins `360`
+(timeout 300 s, voir §5 ter) ; avec le pilote `s3_hls`, au moins `4200`, voir §5 bis
+(`DB_QUEUE_RETRY_AFTER` ou `REDIS_QUEUE_RETRY_AFTER`). Sans worker `videos`,
 les vidéos `s3_hls` restent indéfiniment « en cours de préparation ».
 
 Le planificateur lance aussi chaque jour `php artisan showcase:purge-requests`
